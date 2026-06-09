@@ -241,10 +241,10 @@
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(positions)}">
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td></td><td></td><td></td><td class="text-center text-muted py-4">
                                 <span data-i18n="table.empty">No positions yet.</span>
                                 <a th:href="@{/depot/new}" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
-                            </td>
+                            </td><td></td><td></td><td></td><td></td>
                         </tr>
                         </tbody>
                     </table>
