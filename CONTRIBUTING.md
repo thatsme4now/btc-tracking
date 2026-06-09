@@ -10,13 +10,13 @@ No IDE required — Gradle wrapper is included.
 ## Local Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/depot.git
-cd depot
+git clone https://github.com/thatsme4now/btc-tracking.git
+cd btc-tracking
 ./gradlew bootJar
-java -jar build/libs/depot.jar
+java -jar build/libs/btc-tracking.jar
 ```
 
-App starts at `http://localhost:8080/depot` with H2 in-memory DB.
+App starts at `http://localhost:8080/btc-tracking` with H2 in-memory DB.
 
 ## Making Changes
 

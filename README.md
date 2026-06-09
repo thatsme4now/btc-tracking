@@ -1,4 +1,4 @@
-# Bitcoin Portfolio Tracker — Depot
+# Bitcoin Portfolio Tracker
 
 A self-hosted, privacy-first Bitcoin portfolio tracker.  
 Runs locally as a single JAR — no cloud, no accounts, no ads.
@@ -15,12 +15,11 @@ If you enjoy this small tool, please spend some sats: `turbolush199@walletofsato
 
 - Track BTC positions across multiple exchanges and wallets
 - BUY / SELL / TRANSFER_IN / TRANSFER_OUT transactions
-- Automatic price history via CoinGecko (EUR, USD, THB, …)
+- manually price adjustment or via CoinGecko (EUR, USD, THB, …)
 - CSV import with flexible column mapping (PapaParse)
-- CSV export compatible with common tax tools
-- Multi-currency display with live exchange-rate support
+- CSV export compatible with common tax tools. (Optional with password to encrypt data)
 - Dark / light theme, EN / DE / TH UI
-- Runs fully offline after initial price fetch
+- can run fully offline if wanted
 
 ---
 
@@ -33,31 +32,31 @@ If you enjoy this small tool, please spend some sats: `turbolush199@walletofsato
 
 ---
 
-## Quick Start — In-Memory (H2) (default, recommended)
+## Quick Start — H2 File (default, recommended)
 
-No database setup, no persistence. Data is lost on every restart. Useful for testing.
+No database setup required. Data is persisted in `btc-tracking-data.mv.db` next to the JAR.
+The file `btc-tracking-data.mv.db` is created automatically on first run. **Back it up to keep your data safe.**
 
 ```bash
-java -jar depot.jar
+java -jar btc-tracking.jar
 ```
 
-The browser opens automatically at `http://localhost:8080/depot`.  
+The browser opens automatically at `http://localhost:8080/btc-tracking`.  
 
 ---
 
-## Quick Start — H2 File
+## Quick Start — In-Memory (H2)
 
-No database setup required. Data is persisted in `depot-data.mv.db` next to the JAR.
-The file `depot-data.mv.db` is created automatically on first run. **Back it up to keep your data safe.**
+No database setup, no persistence. Data is lost on every restart. Useful for testing.
 
 Create `application-local.properties` next to the JAR:
 
 ```properties
-depot.db=h2file
+depot.db=inmemory
 ```
 
 ```bash
-java -jar depot.jar --spring.config.additional-location=./application-local.properties
+java -jar btc-tracking.jar --spring.config.additional-location=./application-local.properties
 ```
 
 ---
@@ -82,7 +81,7 @@ spring.datasource.password=YOUR_PASSWORD
 3. Run:
 
 ```bash
-java -jar depot.jar --spring.config.additional-location=./application-local.properties
+java -jar btc-tracking.jar --spring.config.additional-location=./application-local.properties
 ```
 
 ---
@@ -90,43 +89,25 @@ java -jar depot.jar --spring.config.additional-location=./application-local.prop
 ## Build from Source
 
 ```bash
-git clone https://github.com/thatsme4now/depot.git
-cd depot
+git clone https://github.com/thatsme4now/btc-tracking.git
+cd btc-tracking
 ./gradlew bootJar
 ```
 
-Output: `build/libs/depot.jar`
+Output: `build/libs/btc-tracking.jar`
 
 **Run after build:**
 
 ```bash
-java -jar build/libs/depot.jar
+java -jar build/libs/btc-tracking.jar
 ```
-
-### Build Portable ZIP (JAR + bundled JRE)
-
-Requires JDK 21 with `jlink` available.
-
-```bash
-./gradlew portableZip
-# Output: build/dist/DepotBitcoin-portable.zip
-```
-
-### Build Windows Portable ZIP (downloads Temurin JRE)
-
-```bash
-./gradlew portableWinZip
-# Output: build/dist/DepotBitcoin-portable-win.zip (~90 MB)
-```
-
----
 
 ## Download Pre-built Release
 
-Go to [Releases](../../releases) and download `depot.jar` from the latest release.
+Go to [Releases](../../releases) and download `btc-tracking.jar` from the latest release.
 
 ```bash
-java -jar depot.jar
+java -jar btc-tracking.jar
 ```
 
 Java 21+ must be installed on your machine.
@@ -158,12 +139,12 @@ The **export** format (re-importable) uses these columns:
 | `typ` | `Trade`, `Einzahlung`, `Auszahlung` |
 | `date` | `01.01.2024 14:30:00` |
 | `exchange` | `Binance` |
-| `buyQuantity` | `0.00500000` |
-| `buyCurrency` | `BTC` |
-| `sellQuantity` | `280.50` |
-| `sellCurrency` | `EUR` |
+| `buyQty` | `0.00500000` |
+| `buyCur` | `BTC` |
+| `sellQty` | `280.50` |
+| `sellCur` | `EUR` |
 | `fee` | `1.40` |
-| `feeCurrency` | `EUR` |
+| `feeCur` | `EUR` |
 | `exchangeRate` | `1.000000` |
 | `comment` | optional |
 
