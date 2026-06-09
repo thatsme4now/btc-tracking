@@ -121,8 +121,8 @@ public class DepotService {
 
         BigDecimal quantity = txs.stream()
                 .map(tx -> switch (tx.getType()) {
-                    case BUY, TRANSFER_IN   -> tx.getQuantity();
-                    case SELL, TRANSFER_OUT -> tx.getQuantity().negate();
+                    case BUY, TRANSFER_IN, DEPOSIT   -> tx.getQuantity();
+                    case SELL, TRANSFER_OUT, WITHDRAW -> tx.getQuantity().negate();
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

@@ -274,7 +274,7 @@ function filterExchangeTransaction(exchange) {
     panel.classList.remove('d-none');
 
     const doSearch = () => {
-        $('#txTable').DataTable().search(exchange).draw();
+        $('#txTable').DataTable().search('"' + exchange + '"').draw();
     };
 
     if (!txLoaded) {
@@ -442,7 +442,7 @@ function renderTxTable(data) {
 
     $('#txTable').DataTable({
         order:      [[1, 'desc']],
-        pageLength: 25,
+        pageLength: 100,
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),

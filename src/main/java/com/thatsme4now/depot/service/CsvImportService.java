@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.Collections;
 
 @Slf4j
 @Service
@@ -42,14 +41,16 @@ public class CsvImportService {
         for (MappedRow r : rows) {
             try {
                 CsvRow row = mapMappedRow(r);
-                if (row != null) csvRows.add(row);
+                if (row != null && row.type != null) {                	
+                	csvRows.add(row);
+                }
             } catch (Exception e) {
                 log.warn("Skipping mapped row: {}", e.getMessage());
             }
         }
-
-        csvRows = assignTransferIds(csvRows);
-        return persistRows(csvRows);
+        List<CsvRow> reversed = csvRows.reversed();
+        csvRows = assignTransferIds(reversed);
+        return persistRows(reversed);
     }
 
     private CsvRow mapMappedRow(MappedRow r) {
