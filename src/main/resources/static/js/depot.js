@@ -142,6 +142,25 @@ I18N.ready.then(() => {
     }
 
     initDonut();
+
+	// sorting for exchange/wallet table
+	if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().destroy();
+    }
+
+    $('#posTable').DataTable({
+        order:      [[2, 'desc']],
+        pageLength: 100,
+		paging:     false,
+		searching:  false, 
+        language: {
+            search:     t('dt.search'),
+            lengthMenu: t('dt.lengthMenu'),
+            info:       t('dt.info'),
+            paginate:   { previous: t('dt.previous'), next: t('dt.next') }
+        },
+        columnDefs: [{ orderable: false, targets: [-1] }]
+    });	
 });
 
 // ── Settings Modal ────────────────────────────────────────
@@ -223,20 +242,20 @@ function initDonut() {
         chart: {
             ...APEX_DEFAULTS.chart,
             type:   'donut',
-            height: 280
+            height: 550
         },
         colors: CHART_COLORS,
         plotOptions: {
             pie: {
                 donut: {
-                    size: '62%',
+                    size: '80%',
                     labels: {
                         show: true,
                         total: {
                             show:      true,
                             label:     t('chart.total'),
                             color:     '#6b6f7a',
-                            fontSize:  '11px',
+                            fontSize:  '30px',
                             formatter: (w) => {
                                 const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                                 return formatEur(total);
@@ -244,7 +263,7 @@ function initDonut() {
                         },
                         value: {
                             color:     '#ddd9d0',
-                            fontSize:  '13px',
+                            fontSize:  '30px',
                             formatter: (val) => formatEur(Number(val))
                         }
                     }
@@ -442,7 +461,8 @@ function renderTxTable(data) {
 
     $('#txTable').DataTable({
         order:      [[1, 'desc']],
-        pageLength: 100,
+        pageLength: 500,
+		lengthMenu: [25, 50, 100, 250, 500],
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),

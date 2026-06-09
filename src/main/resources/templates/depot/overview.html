@@ -184,21 +184,20 @@
                           data-i18n="table.wallets.hint">— click a row to show price chart</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table dataTable depot-table mb-0">
+                    <table class="table dataTable depot-table mb-0" id="posTable">
                         <thead>
                         <tr>
                             <th data-i18n="table.col.label">Label</th>
                              <th data-i18n="table.col.type">Type</th>
                             <th class="text-end" data-i18n="table.col.btc">BTC</th>
                             <th class="text-end" data-i18n="table.col.sats">Sats</th>
-                            <th class="text-end" data-i18n="table.col.btcPrice">BTC Price</th>
                             <th class="text-end" data-i18n="table.col.value">Value</th>
                             <th class="text-end" data-i18n="table.col.gl">G/L</th>
                             <th class="text-end" data-i18n="table.col.glPct">G/L %</th>
                             <th></th>
                         </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="posTableBody">
                         <tr th:each="p : ${positions}"
                             class="depot-row"
                             th:data-label="${p.label}"
@@ -212,11 +211,6 @@
                                 th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
                             <td class="text-end text-muted"
                                 th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
-                            <td class="text-end">
-                                <span th:if="${p.currentPrice != null}"
-                                      th:text="${#numbers.formatDecimal(p.currentPrice, 1, 'POINT', 2, 'COMMA') + ' €'}"></span>
-                                <span th:if="${p.currentPrice == null}" class="text-muted">–</span>
-                            </td>
                             <td class="text-end fw-medium"
                                 th:if="${p.totalValue != null}"
                                 th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
@@ -712,8 +706,12 @@
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-    const ALLOCATION_LABELS   = /*[[${positions.![label]}]]*/ [];
-    const ALLOCATION_VALUES   = /*[[${positions.![totalValue != null ? totalValue : 0]}]]*/ [];
+    var ALLOCATION_LABELS   = /*[[${positions.![totalValue != null && totalValue != 0.00 ? label : null]}]]*/ [];
+    ALLOCATION_LABELS = ALLOCATION_LABELS.filter(v => v !== null);
+
+    var ALLOCATION_VALUES   = /*[[${positions.![totalValue != null && totalValue != 0.00 ? totalValue : null]}]]*/ [];
+    ALLOCATION_VALUES = ALLOCATION_VALUES.filter(v => v !== null);
+
     const SERVER_CURRENCY     = /*[[${currency}]]*/ 'EUR';
     const NO_PRICE_AVAILABLE  = /*[[${noPriceAvailable}]]*/ false;
     /*]]>*/

@@ -460,7 +460,13 @@ body.density-spacious {
     overflow-x: hidden;
 }
 
+div.dt-container .dt-search input {
+	margin-left: 10px !important;
+}
 
+div.dt-container .dt-length select {
+	margin-right: 10px !important;
+}
 
 
 
