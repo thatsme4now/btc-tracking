@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${position.id == null} ? 'New Position' : 'Edit Position'">Position</title>
+    <link rel="icon" type="image/x-icon"  th:href="@{/favicon.ico}"/>
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/favicon-32.png}"/>
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/apple-touch-icon.png}"/>
+    <link rel="stylesheet"
+          th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet"
+          th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+</head>
+<body class="depot-body">
+
+<nav class="navbar depot-navbar">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand depot-brand" th:href="@{/depot}">
+            <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+        </a>
+    </div>
+</nav>
+
+<main class="container py-5" style="max-width: 520px">
+    <div class="depot-card">
+        <div class="depot-card-header mb-4">
+            <i class="bi bi-pencil-square me-2"></i>
+            <span th:if="${position.id == null}" data-i18n="form.position.titleNew">New Wallet / Exchange</span>
+            <span th:if="${position.id != null}" data-i18n="form.position.titleEdit">Edit Position</span>
+        </div>
+
+        <form th:action="@{/depot/save}" th:object="${position}" method="post">
+            <input type="hidden" th:field="*{id}"/>
+
+            <div class="mb-3">
+                <label class="depot-label">
+                    <span data-i18n="form.position.label">Label</span>
+                    <span class="text-muted" data-i18n="form.position.label.hint"> (e.g. Binance, Ledger, Kraken)</span>
+                </label>
+                <input type="text" th:field="*{label}"
+                       class="form-control depot-input"
+                       data-i18n-placeholder="form.position.label.placeholder"
+                       placeholder="Ledger Hardware Wallet"
+                       required maxlength="100"/>
+            </div>
+            
+            <div class="col-md-4">
+                <label class="depot-label" data-i18n="modal.field.type">Type</label>
+                <select th:field="*{type}"  class="form-select depot-input">
+                    <option value="EXCHANGE" data-i18n="form.position.type.exchange">EX</option>
+                    <option value="WALLET" data-i18n="form.position.type.wallet">WA</option>
+                </select>
+            </div>
+            
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn depot-btn-primary">
+                    <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
+                </button>
+                <a th:href="@{/depot}" class="btn depot-btn-outline" data-i18n="form.position.btn.cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/offline.js}"></script>
+<script>
+    // Apply translations after i18n is ready
+    I18N.ready.then(() => I18N.applyI18n());
+</script>
+</body>
+</html>

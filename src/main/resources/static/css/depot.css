@@ -1,0 +1,403 @@
+/* ── Local Fonts ────────────────────────────────────────── */
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style:  normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url('/vendor/fonts/IBMPlexMono-Light.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style:  normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/vendor/fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'IBM Plex Mono';
+    font-style:  normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/vendor/fonts/IBMPlexMono-Medium.woff2') format('woff2');
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+:root {
+    --bg:               #0d0f12;
+    --bg-card:          #13161b;
+    --bg-row:           #191c22;
+    --border:           #252830;
+    --text:             #ddd9d0;
+    --text-muted:       #6b6f7a;
+    --pos:              #1d9e75;
+    --neg:              #d85a30;
+    --accent:           #F7931A;   /* Bitcoin orange */
+    --accent-dim:       #3a2200;
+    --radius:           6px;
+    --font:             'IBM Plex Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.depot-body {
+    background:  var(--bg);
+    color:       var(--text);
+    font-family: var(--font);
+    font-size:   0.85rem;
+    min-height:  100vh;
+}
+
+/* ── Light Mode ──────────────────────────────────────────── */
+body.light {
+    --bg:               #f4f5f7;
+    --bg-card:          #ffffff;
+    --bg-row:           #f0f1f3;
+    --border:           #dde0e6;
+    --text:             #1a1d23;
+    --text-muted:       #7a7f8e;
+    --pos:              #1a7a5a;
+    --neg:              #c0431f;
+    --accent:           #e07b00;
+    --accent-dim:       #fde8c8;
+}
+
+/* ── Navbar ──────────────────────────────────────────────── */
+.depot-navbar {
+    background:    var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding:       0.75rem 0;
+}
+
+.depot-brand {
+    font-family:     var(--font);
+    font-size:       1rem;
+    letter-spacing:  0.18em;
+    color:           var(--text) !important;
+    text-decoration: none;
+}
+
+/* ── BTC live price badge ─────────────────────────────────── */
+.btc-price-badge {
+    font-size:      0.72rem;
+    letter-spacing: 0.08em;
+    color:          var(--text-muted);
+    border:         1px solid var(--border);
+    border-radius:  var(--radius);
+    padding:        0.3rem 0.75rem;
+}
+
+/* ── Offline Toggle ──────────────────────────────────────── */
+.depot-btn-offline {
+    background:     transparent;
+    border:         1px solid var(--border);
+    color:          var(--text-muted);
+    font-family:    var(--font);
+    font-size: 		1.2rem;
+    padding:        0.3rem 0.5rem;
+    border-radius:  var(--radius);
+    cursor:         pointer;
+    transition:     all 0.15s;
+    line-height:    1;
+}
+.depot-btn-offline:hover {
+    border-color: var(--text-muted);
+/*     color:        var(--text); */
+}
+.depot-btn-offline.is-offline {
+    border-color: var(--neg);
+    color:        var(--neg);
+    background:   rgba(216, 90, 48, 0.08);
+}
+.depot-btn-offline.is-offline:hover {
+    background: rgba(216, 90, 48, 0.15);
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.depot-btn-primary {
+    background:     transparent;
+    border:         1px solid var(--accent);
+    color:          var(--accent);
+    font-family:    var(--font);
+    font-size:      0.75rem;
+    letter-spacing: 0.08em;
+    padding:        0.4rem 1rem;
+    border-radius:  var(--radius);
+    transition:     background 0.15s, color 0.15s;
+    cursor:         pointer;
+}
+.depot-btn-primary:hover    { background: var(--accent-dim); color: #ffc97a; }
+.depot-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.depot-btn-outline {
+    background:      transparent;
+    border:          1px solid var(--border);
+    color:           var(--text-muted);
+    font-family:     var(--font);
+    font-size:       0.75rem;
+    letter-spacing:  0.08em;
+    padding:         0.4rem 1rem;
+    border-radius:   var(--radius);
+    transition:      border-color 0.15s, color 0.15s;
+    text-decoration: none;
+    display:         inline-flex;
+    align-items:     center;
+}
+.depot-btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+
+.btn-xs { padding: 0.2rem 0.45rem; font-size: 0.72rem; }
+
+.depot-btn-icon {
+    background:    transparent;
+    border:        1px solid var(--border);
+    color:         var(--text-muted);
+    border-radius: var(--radius);
+    transition:    all 0.15s;
+    line-height:   1;
+}
+.depot-btn-icon:hover { border-color: var(--text-muted); color: var(--text); }
+
+/* ── Cards ───────────────────────────────────────────────── */
+.depot-card {
+    background:    var(--bg-card);
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    padding:       1.25rem;
+}
+
+.depot-card-header {
+    font-size:      0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  1rem;
+}
+
+.depot-card-metric { padding: 1.1rem 1.25rem; }
+
+.metric-label {
+    font-size:      0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  0.4rem;
+}
+
+.metric-value {
+    font-size:   1.4rem;
+    font-weight: 400;
+    color:       var(--text);
+    line-height: 1.1;
+}
+
+.sats-value {
+    font-size: 1.1rem;
+    color:     var(--accent);
+}
+
+/* ── Colors ──────────────────────────────────────────────── */
+.text-pos { color: var(--pos) !important; }
+.text-neg { color: var(--neg) !important; }
+
+/* ── Table ───────────────────────────────────────────────── */
+.depot-table { font-size: 0.8rem; color: var(--text); }
+
+.depot-table thead th {
+    font-size:      0.67rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    font-weight:    400;
+    border-bottom:  1px solid var(--border);
+    padding:        0.6rem 0.75rem;
+    background:     transparent;
+    white-space:    nowrap;
+}
+
+.depot-table tbody td {
+    border-bottom:  1px solid #1a1d23;
+    padding:        0.75rem 0.75rem;
+    vertical-align: middle;
+}
+
+.depot-row { cursor: pointer; transition: background 0.1s; }
+.depot-row:hover td  { background: var(--bg-row) !important; }
+.depot-row.active td { background: #1e2430 !important; }
+
+.depot-actions { opacity: 0; transition: opacity 0.15s; }
+.depot-row:hover .depot-actions { opacity: 1; }
+
+/* ── Form ────────────────────────────────────────────────── */
+.depot-label {
+    display:        block;
+    font-size:      0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color:          var(--text-muted);
+    margin-bottom:  0.4rem;
+}
+
+.depot-body .depot-input {
+    background:    #1a1d23 !important;
+}
+
+.depot-body.light .depot-input {
+    background:    #f4f5f7 !important;
+}
+
+.depot-input {
+    border:        1px solid var(--border) !important;
+    color:         var(--text) !important;
+    font-family:   var(--font) !important;
+    font-size:     0.82rem !important;
+    border-radius: var(--radius) !important;
+    transition:    border-color 0.15s;
+}
+.depot-input:focus {
+    border-color: var(--accent) !important;
+    box-shadow:   0 0 0 2px rgba(247,147,26,0.15) !important;
+    outline:      none;
+}
+
+/* ── Toast ───────────────────────────────────────────────── */
+.depot-toast {
+    position:      fixed;
+    top:           1rem;
+    right:         1.5rem;
+    z-index:       9999;
+    background:    var(--bg-card);
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    padding:       0.75rem 1.25rem;
+    font-size:     0.78rem;
+    color:         var(--text);
+    box-shadow:    0 4px 24px rgba(0,0,0,0.5);
+    transition:    opacity 0.3s;
+}
+.depot-toast.success { border-left: 3px solid var(--pos); }
+.depot-toast.error   { border-left: 3px solid var(--neg); }
+
+/* ── Button spinner ──────────────────────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.depot-spinner {
+    display:       inline-block;
+    width:         12px;
+    height:        12px;
+    border:        2px solid rgba(247,147,26,0.3);
+    border-top:    2px solid var(--accent);
+    border-radius: 50%;
+    animation:     spin 0.7s linear infinite;
+    margin-right:  6px;
+    vertical-align: middle;
+}
+
+/* ── Chart containers ────────────────────────────────────── */
+#donutChart, #historyChart { min-height: 260px; }
+
+/* ── DataTables overrides ────────────────────────────────── */
+table.dataTable,
+table.dataTable td,
+table.dataTable th {
+    background-color: transparent !important;
+    color:            var(--text) !important;
+    border-color:     var(--border) !important;
+    box-sizing:       border-box;
+}
+
+table.dataTable thead th,
+table.dataTable thead td {
+    background-color: var(--bg-card) !important;
+    border-bottom:    1px solid var(--border) !important;
+    color:            var(--text-muted) !important;
+}
+
+table.dataTable tbody tr {
+    background-color: transparent !important;
+}
+
+table.dataTable tbody tr:hover td {
+    background-color: var(--bg-row) !important;
+}
+
+table.dataTable.no-footer {
+    border-bottom: 1px solid var(--border) !important;
+}
+
+table.dataTable thead th.dt-orderable-asc,
+table.dataTable thead th.dt-orderable-desc {
+    cursor: pointer;
+}
+
+.dataTables_wrapper {
+    color: var(--text-muted) !important;
+    font-family: var(--font) !important;
+    font-size: 0.72rem !important;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    background:    var(--bg) !important;
+    border:        1px solid var(--border) !important;
+    color:         var(--text) !important;
+    font-family:   var(--font) !important;
+    font-size:     0.75rem !important;
+    border-radius: var(--radius) !important;
+    padding:       0.25rem 0.5rem !important;
+    margin:        0 0.25rem !important;
+}
+
+.dataTables_wrapper .dataTables_filter label,
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_info {
+    color: var(--text-muted) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background:    transparent !important;
+    border:        1px solid var(--border) !important;
+    color:         var(--text-muted) !important;
+    border-radius: var(--radius) !important;
+    padding:       0.2rem 0.5rem !important;
+    margin:        0 2px !important;
+    cursor:        pointer;
+    font-family:   var(--font) !important;
+    font-size:     0.72rem !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background:   var(--bg-row) !important;
+    border-color: var(--text-muted) !important;
+    color:        var(--text) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background:   var(--accent-dim) !important;
+    border-color: var(--accent) !important;
+    color:        var(--accent) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    opacity: 0.3 !important;
+    cursor: not-allowed !important;
+}
+
+.depot-password-field {
+    -webkit-text-security: disc;
+    text-security:         disc;
+}
+
+.text-muted {
+	color: #926412bf !important;
+}
+
+
+
+
+
+
+
+
+
+
+

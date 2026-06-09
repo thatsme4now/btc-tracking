@@ -1,0 +1,237 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.5'
+    id 'java'
+}
+
+group   = 'com.thatsme4now'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-parameters'
+}
+
+wrapper {
+    gradleVersion = '8.10.2'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Web + Thymeleaf
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.apache.commons:commons-csv:1.11.0'
+
+    // JPA + MySQL
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Jackson
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+
+jar {
+    enabled = false
+}
+ 
+bootJar {
+    archiveFileName = 'depot.jar'
+}
+
+// ── Portable ZIP: JAR + bundled JRE, no installer needed ────────────────────
+// Run with: ./gradlew portableZip
+// Works on any OS where jlink is available (JDK 21 required on build machine)
+tasks.register('jlink', Exec) {
+    dependsOn bootJar
+ 
+    def jlink     = "${System.getProperty('java.home')}/bin/jlink"
+    def outputDir = layout.buildDirectory.dir('jre-minimal').get().asFile.absolutePath
+ 
+    commandLine jlink,
+        '--module-path', "${System.getProperty('java.home')}/jmods",
+        '--add-modules', 'java.base,java.desktop,java.instrument,java.logging,java.management,' +
+                         'java.naming,java.net.http,java.security.jgss,' +
+                         'java.sql,java.xml,jdk.unsupported,jdk.unsupported.desktop',
+        '--output',      outputDir,
+        '--compress',    '2',
+        '--no-header-files',
+        '--no-man-pages'
+ 
+    doFirst {
+        println "Building minimal JRE with jlink..."
+        new File(outputDir).deleteDir()
+    }
+}
+ 
+tasks.register('portableZip', Zip) {
+    dependsOn bootJar, 'jlink'
+ 
+    archiveFileName = 'DepotBitcoin-portable.zip'
+    destinationDirectory = layout.buildDirectory.dir('dist')
+ 
+    // Bundled minimal JRE
+    from(layout.buildDirectory.dir('jre-minimal')) {
+        into 'jre'
+    }
+ 
+    // Application JAR
+    from(layout.buildDirectory.dir('libs')) {
+        include 'depot.jar'
+        into 'app'
+    }
+ 
+    // Windows launcher batch file
+    from(file('src/main/launcher')) {
+        include '*.bat'
+        include '*.sh'
+    }
+ 
+    doLast {
+        println "Portable ZIP: build/dist/DepotBitcoin-portable.zip"
+    }
+}
+
+
+// ── Portable Windows ZIP ─────────────────────────────────────────────────────
+// Downloads a pre-built Windows x64 JRE from Adoptium (Temurin 21)
+// and packages it together with depot.jar + launcher scripts.
+// Run with: ./gradlew portableWinZip
+// Result:   build/dist/DepotBitcoin-portable-win.zip  (~90 MB)
+// ---------------------------------------------------------------------------
+ 
+def jreVersion    = '21.0.3+9'
+def jreVersionShort = '21.0.3_9'  // used in Adoptium filename
+def adoptiumUrl   = "https://github.com/adoptium/temurin21-binaries/releases/download/" +
+                    "jdk-${jreVersion}/OpenJDK21U-jre_x64_windows_hotspot_${jreVersionShort}.zip"
+def jreZipFile    = layout.buildDirectory.file("tmp/jre-win.zip").get().asFile
+def jreExtractDir = layout.buildDirectory.dir("tmp/jre-win").get().asFile
+ 
+tasks.register('downloadWinJre') {
+    outputs.file jreZipFile
+ 
+    doLast {
+        if (jreZipFile.exists()) {
+            println "Windows JRE already downloaded: ${jreZipFile}"
+            return
+        }
+        jreZipFile.parentFile.mkdirs()
+        println "Downloading Windows JRE from Adoptium..."
+        println "URL: ${adoptiumUrl}"
+ 
+        new URL(adoptiumUrl).withInputStream { is ->
+            jreZipFile.withOutputStream { os ->
+                os << is
+            }
+        }
+        println "Downloaded: ${jreZipFile} (${jreZipFile.length() / 1024 / 1024} MB)"
+    }
+}
+ 
+tasks.register('extractWinJre') {
+    dependsOn 'downloadWinJre'
+    inputs.file  jreZipFile
+    outputs.dir  jreExtractDir
+ 
+    doLast {
+        if (jreExtractDir.exists()) jreExtractDir.deleteDir()
+        jreExtractDir.mkdirs()
+        println "Extracting Windows JRE..."
+        copy {
+            from zipTree(jreZipFile)
+            into jreExtractDir
+        }
+        println "Extracted to: ${jreExtractDir}"
+    }
+}
+ 
+tasks.register('portableWinZip', Zip) {
+    dependsOn bootJar, 'extractWinJre'
+ 
+    archiveFileName      = 'DepotBitcoin-portable-win.zip'
+    destinationDirectory = layout.buildDirectory.dir('dist')
+ 
+    // JRE – strip the top-level folder name from the zip (jdk-21.0.3+9-jre/)
+    from(jreExtractDir) {
+        // Adoptium zip has one top-level dir like "jdk-21.0.3+9-jre"
+        // we rename it to "jre" inside our zip
+        eachFile { details ->
+            def parts = details.relativePath.segments
+            if (parts.length > 0) {
+                details.relativePath = new RelativePath(
+                    !details.directory,
+                    ['jre'] + parts.drop(1) as String[]
+                )
+            }
+        }
+        includeEmptyDirs = false
+        into '.'
+    }
+ 
+    // Application JAR
+    from(layout.buildDirectory.dir('libs')) {
+        include 'depot.jar'
+        into 'app'
+    }
+ 
+    // Launcher scripts
+    from('src/main/launcher') {
+        include '*.bat'
+        include '*.sh'
+        into '.'
+    }
+ 
+    doLast {
+        println "Windows portable ZIP: build/dist/DepotBitcoin-portable-win.zip"
+    }
+}
+ 
+// ── jpackage EXE (Windows only, requires WiX 3.x) ───────────────────────────
+tasks.register('jpackageWin', Exec) {
+    dependsOn bootJar
+ 
+    def jpackage  = "${System.getProperty('java.home')}/bin/jpackage"
+    def outputDir = layout.buildDirectory.dir('jpackage').get().asFile.absolutePath
+    def iconPath  = file('src/main/resources/static/favicon.ico').absolutePath
+ 
+    commandLine jpackage,
+        '--type',            'exe',
+        '--name',            'DepotBitcoin',
+        '--app-version',     '1.0.0',
+        '--description',     'Bitcoin Portfolio Tracker',
+        '--vendor',          'depot',
+        '--input',           file('build/libs').absolutePath,
+        '--main-jar',        'depot.jar',
+        '--main-class',      'de.depot.DepotApplication',
+        '--dest',            outputDir,
+        '--icon',            iconPath,
+        '--win-shortcut',
+        '--win-dir-chooser',
+        '--win-per-user-install',
+        '--java-options',    '-Xmx256m',
+        '--java-options',    '-Dfile.encoding=UTF-8',
+        '--java-options',    '-Ddepot.db=inmemory'
+ 
+    doFirst {
+        new File(outputDir).mkdirs()
+        println "Building Windows EXE with jpackage..."
+    }
+}
