@@ -35,7 +35,34 @@ const APEX_DEFAULTS = {
     },
     grid: { borderColor: '#252830' }
 };
+// ── Density Toggle ────────────────────────────────────────
+const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
+const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
+const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
 
+(function initDensity() {
+    const saved = localStorage.getItem('depot-density') || 'default';
+    applyDensity(saved);
+})();
+
+
+function cycleDensity() {
+    const current = localStorage.getItem('depot-density') || 'default';
+    const next    = DENSITY_CYCLE[(DENSITY_CYCLE.indexOf(current) + 1) % DENSITY_CYCLE.length];
+    applyDensity(next);
+    localStorage.setItem('depot-density', next);
+}
+
+function applyDensity(density) {
+    document.body.classList.remove('density-comfortable', 'density-spacious');
+    if (density !== 'default') {
+        document.body.classList.add('density-' + density);
+    }
+    const icon = document.getElementById('densityIcon');
+    if (icon) icon.className = DENSITY_ICONS[density] || 'bi-type';
+    const btn = document.getElementById('btnDensity');
+    if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
+}
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
 

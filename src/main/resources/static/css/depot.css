@@ -391,6 +391,74 @@ table.dataTable thead th.dt-orderable-desc {
 	color: #926412bf !important;
 }
 
+/* ── Density System ──────────────────────────────────────── */
+:root {
+    --density-font:    0.85rem;
+    --density-metric:  1.4rem;
+    --density-pad:     1.25rem;
+    --density-row-pad: 0.75rem;
+    --density-label:   0.68rem;
+    --density-btn:     0.75rem;
+}
+
+body.density-comfortable {
+    --density-font:    0.92rem;
+    --density-metric:  1.55rem;
+    --density-pad:     1.5rem;
+    --density-row-pad: 0.9rem;
+    --density-label:   0.75rem;
+    --density-btn:     0.82rem;
+}
+
+body.density-spacious {
+    --density-font:    1.0rem;
+    --density-metric:  1.7rem;
+    --density-pad:     1.75rem;
+    --density-row-pad: 1.05rem;
+    --density-label:   0.82rem;
+    --density-btn:     0.88rem;
+}
+
+/* Wire variables into existing classes */
+.depot-body               { font-size: var(--density-font); }
+.depot-card               { padding: var(--density-pad); }
+.depot-table              { font-size: var(--density-font); }
+.depot-table tbody td     { padding: var(--density-row-pad) 0.75rem; }
+.metric-value             { font-size: var(--density-metric); }
+.metric-label             { font-size: var(--density-label); }
+.depot-card-header        { font-size: var(--density-label); }
+.depot-label              { font-size: var(--density-label); }
+.depot-btn-primary,
+.depot-btn-outline        { font-size: var(--density-btn); }
+.btc-price-badge          { font-size: var(--density-btn); }
+.dataTables_wrapper       { font-size: var(--density-btn) !important; }
+
+/* ── Responsive Transaktionstabelle ──────────────────────── */
+/* Spalten die bei schmalem Fenster ausgeblendet werden */
+@media (max-width: 1100px) {
+    #txTable th:nth-child(8),   /* Transfer-ID */
+    #txTable td:nth-child(8)    { display: none; }
+}
+
+@media (max-width: 900px) {
+    #txTable th:nth-child(6),   /* Price/BTC */
+    #txTable td:nth-child(6),
+    #txTable th:nth-child(7),   /* Total EUR */
+    #txTable td:nth-child(7)    { display: none; }
+}
+
+@media (max-width: 640px) {
+    #txTable th:nth-child(3),   /* Position */
+    #txTable td:nth-child(3)    { display: none; }
+
+    /* Datum kürzer */
+    #txTable td:nth-child(2)    { font-size: 0.72rem; white-space: nowrap; }
+}
+
+/* Verhindert horizontalen Scroll im Container */
+#transactionsPanel .table-responsive {
+    overflow-x: hidden;
+}
 
 
 
