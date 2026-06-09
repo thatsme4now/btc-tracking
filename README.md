@@ -34,8 +34,8 @@ If you enjoy this small tool, please spend some sats: `turbolush199@walletofsato
 
 ## Quick Start — H2 File (default, recommended)
 
-No database setup required. Data is persisted in `btc-tracking-data.mv.db` next to the JAR.
-The file `btc-tracking-data.mv.db` is created automatically on first run. **Back it up to keep your data safe.**
+No database setup required. Data is persisted in `depot-data.mv.db` next to the JAR.
+The file `depot-data.mv.db` is created automatically on first run. **Back it up to keep your data safe.**
 
 ```bash
 java -jar btc-tracking.jar
