@@ -2,6 +2,7 @@ package com.thatsme4now.depot.controller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -80,8 +81,12 @@ public class DepotViewController {
         // BTC price for header badge – from selected currency
 		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> {
     			model.addAttribute("btcPrice", p.getPrice());
-    			model.addAttribute("btcPriceDate", p.getPriceDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")));
-    	}, () -> model.addAttribute("btcPrice", new BigDecimal(0L)));
+    			model.addAttribute("btcPriceDate", 
+    					p.getPriceDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+    	}, () -> {
+    		model.addAttribute("btcPrice", new BigDecimal(0L));
+    		model.addAttribute("btcPriceDate", "");
+    	});
         
         // Flag: no price available for selected currency
         boolean noPriceAvailable = positions.stream()
