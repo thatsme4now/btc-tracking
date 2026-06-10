@@ -36,9 +36,13 @@ const APEX_DEFAULTS = {
     grid: { borderColor: '#252830' }
 };
 // ── Density Toggle ────────────────────────────────────────
-const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
-const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
-const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
+//const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
+//const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
+//const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
+
+const DENSITY_CYCLE = ['default', 'comfortable'];
+const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
+const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
 
 (function initDensity() {
     const saved = localStorage.getItem('depot-density') || 'default';
@@ -235,6 +239,7 @@ function initDonut() {
     if (!labels.length) return;
     if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
 
+	
     const options = {
         ...APEX_DEFAULTS,
         series: values,
@@ -242,7 +247,7 @@ function initDonut() {
         chart: {
             ...APEX_DEFAULTS.chart,
             type:   'donut',
-            height: 550
+            height: window.innerHeight / 2
         },
         colors: CHART_COLORS,
         plotOptions: {
@@ -941,7 +946,7 @@ function openPriceEdit() {
     const editor = document.getElementById('btcPriceEditor');
     // Read current display value → strip formatting
     const raw = document.getElementById('btcPriceDisplay')
-        .textContent.replace(/[^\d,]/g, '').replace(',', '.');
+        .textContent.slice(0, -12).replace(/[^\d,]/g, '').replace(',', '.');
     document.getElementById('btcPriceInput').value = parseFloat(raw) || '';
     badge.classList.add('d-none');
     editor.classList.remove('d-none');

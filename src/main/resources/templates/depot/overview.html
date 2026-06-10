@@ -18,11 +18,13 @@
 
 <!-- ── Navbar ── -->
 <nav class="navbar depot-navbar">
-    <div class="container-fluid px-4">
+	<div class="container-fluid px-4">
         <span class="navbar-brand depot-brand">
             <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
         </span>
-        <div class="ms-auto d-flex align-items-center gap-3">
+	</div>
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center gap-3">
             <!-- Live BTC price badge -->
             <span class="btc-price-badge" th:if="${btcPrice != null}"
                   onclick="openPriceEdit()"
@@ -30,7 +32,7 @@
                   id="btcPriceBadge">
                 BTC
                 <span class="text-pos" id="btcPriceDisplay"
-                      th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency}">
+                      th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency + ' (' + btcPriceDate + ')'}">
                 </span>
                 <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
             </span>
@@ -75,6 +77,9 @@
             <a th:href="@{/depot/new}" class="btn depot-btn-outline">
                 <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
             </a>
+            
+        </div>
+        <div class="ms-auto d-flex align-items-right gap-3">
             <!-- Offline Toggle -->
             <button class="btn depot-btn-offline px-2" id="btnOffline"
                     onclick="OFFLINE.toggle()" title="Online mode">
@@ -93,7 +98,7 @@
                     data-i18n-title="nav.btn.settings" title="Settings">
                 <i class="bi bi-gear-fill"></i>
             </button>
-        </div>
+    	</div>
     </div>
 </nav>
 

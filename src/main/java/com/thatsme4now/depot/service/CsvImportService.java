@@ -1,20 +1,35 @@
 package com.thatsme4now.depot.service;
 
-import com.thatsme4now.depot.controller.DepotRestController.MappedRow;
-import com.thatsme4now.depot.entity.*;
-import com.thatsme4now.depot.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.csv.*;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.*;
-import java.math.*;
-import java.nio.charset.StandardCharsets;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import com.thatsme4now.depot.controller.DepotRestController.MappedRow;
+import com.thatsme4now.depot.entity.CurrentPrice;
+import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PositionType;
+import com.thatsme4now.depot.entity.Transaction;
+import com.thatsme4now.depot.entity.TransactionType;
+import com.thatsme4now.depot.repository.PositionRepository;
+import com.thatsme4now.depot.repository.TransactionRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -23,7 +38,8 @@ public class CsvImportService {
 
     private final PositionRepository    positionRepo;
     private final TransactionRepository transactionRepo;
-
+    private final DepotService     depotService;
+    
     private static final DateTimeFormatter DATE_FMT =
         DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
@@ -50,6 +66,19 @@ public class CsvImportService {
         }
         List<CsvRow> reversed = csvRows.reversed();
         csvRows = assignTransferIds(reversed);
+        CsvRow last = reversed.getLast();
+        
+        String currency = last.currency != null ? last.currency.toUpperCase() : "EUR";
+        CurrentPrice cp = depotService.getCurrentPrice(currency).orElse(new CurrentPrice());
+        // set price with value from last import
+        if (cp.getPrice() == null || cp.getPrice().intValue() == BigDecimal.ZERO.intValue()) {        	
+        	cp.setTicker("BTC");
+        	cp.setCurrency(currency);
+        	cp.setPrice(last.pricePerBtc);
+        	cp.setPriceDate(last.dateTime != null ? last.dateTime.toLocalDate() : java.time.LocalDate.now());
+        	cp.setLoadedAt(java.time.LocalDateTime.now());
+        	depotService.saveCurrentPrice(cp);
+        }
         return persistRows(reversed);
     }
 
@@ -333,7 +362,7 @@ public class CsvImportService {
 
     // ── Internal DTO ──────────────────────────────────────────────────────────
 
-    private static class CsvRow {
+    public static class CsvRow {
         String          exchange;
         LocalDateTime   dateTime;
         TransactionType type;

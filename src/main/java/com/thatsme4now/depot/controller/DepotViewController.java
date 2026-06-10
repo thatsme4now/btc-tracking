@@ -2,7 +2,6 @@ package com.thatsme4now.depot.controller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -17,7 +16,6 @@ import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.service.DepotService;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
@@ -80,8 +78,10 @@ public class DepotViewController {
         model.addAttribute("currency",       currency);
 
         // BTC price for header badge – from selected currency
-		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> model.addAttribute("btcPrice", p.getPrice()),
-				() -> model.addAttribute("btcPrice", new BigDecimal(0L)));
+		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> {
+    			model.addAttribute("btcPrice", p.getPrice());
+    			model.addAttribute("btcPriceDate", p.getPriceDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+    	}, () -> model.addAttribute("btcPrice", new BigDecimal(0L)));
         
         // Flag: no price available for selected currency
         boolean noPriceAvailable = positions.stream()
