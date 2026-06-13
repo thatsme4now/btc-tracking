@@ -80,7 +80,14 @@
             
         </div>
         <div class="ms-auto d-flex align-items-right gap-3">
+  
+           
             <!-- Offline Toggle -->
+            <button class="btn depot-btn-icon px-2" id="btnLightning"
+                    onclick="sendSomeSats()" data-i18-title="" title="Send some sats!">
+                <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
+            </button>
+            
             <button class="btn depot-btn-offline px-2" id="btnOffline"
                     onclick="OFFLINE.toggle()" title="Online mode">
                 <i class="bi bi-wifi" id="offlineIcon"></i>
@@ -626,6 +633,12 @@
         </div>
     </div>
 
+ 	<!-- Settings Modal -->
+    <div class="modal fade" id="sendsomesatsModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            
+        </div>
+    </div>
     <!-- Settings Modal -->
     <div class="modal fade" id="settingsModal" tabindex="-1">
         <div class="modal-dialog modal-sm">

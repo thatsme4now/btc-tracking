@@ -204,6 +204,13 @@ function openSettings() {
     settingsModal.show();
 }
 
+function sendSomeSats() {
+
+
+    if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
+    settingsModal.show();
+}
+
 function saveSettings() {
     const selLang = document.querySelector('input[name="langChoice"]:checked');
     const selCur  = document.querySelector('input[name="curChoice"]:checked');
