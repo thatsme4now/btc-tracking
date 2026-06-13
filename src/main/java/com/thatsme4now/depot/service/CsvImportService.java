@@ -307,17 +307,35 @@ public class CsvImportService {
     private List<CsvRow> assignTransferIds(List<CsvRow> rows) {
         for (int i = 0; i < rows.size() - 1; i++) {
             CsvRow curr = rows.get(i);
-            CsvRow next = rows.get(i + 1);
-
-            if (curr.type == TransactionType.TRANSFER_OUT
-                    && next.type == TransactionType.TRANSFER_IN
-                    && curr.quantity.compareTo(next.quantity) == 0) {
-
-                String uuid = UUID.randomUUID().toString();
-                curr.transferId = uuid;
-                next.transferId = uuid;
-                i++;
+            CsvRow next1 = rows.get(i + 1);
+            CsvRow next2 = i < rows.size() - 2 ? rows.get(i + 2) : null;
+            CsvRow next3 = i < rows.size() - 3 ? rows.get(i + 3) : null;
+            CsvRow next4 = i < rows.size() - 4 ? rows.get(i + 4) : null;
+            
+            if (curr.type == TransactionType.TRANSFER_OUT && curr.transferId == null) {
+            	if (next1.type == TransactionType.TRANSFER_IN && next1.transferId == null
+                        && (curr.quantity.compareTo(next1.quantity) == 0 || curr.quantity.subtract(curr.fees).compareTo(next1.quantity) == 0)) {  
+            		String uuid = UUID.randomUUID().toString();
+            		curr.transferId = uuid;
+            		next1.transferId = uuid;
+            	} else if (next2 != null && next2.type == TransactionType.TRANSFER_IN && next2.transferId == null
+                        && (curr.quantity.compareTo(next2.quantity) == 0 || curr.quantity.subtract(curr.fees).compareTo(next2.quantity) == 0)) {            		
+            		String uuid = UUID.randomUUID().toString();
+            		curr.transferId = uuid;
+            		next2.transferId = uuid;
+            	} else if (next3 != null && next3.type == TransactionType.TRANSFER_IN && next3.transferId == null
+                        && (curr.quantity.compareTo(next3.quantity) == 0 || curr.quantity.subtract(curr.fees).compareTo(next3.quantity) == 0)) {            		
+            		String uuid = UUID.randomUUID().toString();
+            		curr.transferId = uuid;
+            		next3.transferId = uuid;
+            	} else if (next4 != null && next4.type == TransactionType.TRANSFER_IN && next4.transferId == null
+                        && (curr.quantity.compareTo(next4.quantity) == 0 || curr.quantity.subtract(curr.fees).compareTo(next4.quantity) == 0)) {            		
+            		String uuid = UUID.randomUUID().toString();
+            		curr.transferId = uuid;
+            		next4.transferId = uuid;
+            	}
             }
+            
         }
         return rows;
     }
