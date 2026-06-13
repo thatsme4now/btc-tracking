@@ -33,7 +33,7 @@
   "table.col.type": "Typ",
   "table.col.pricePerBtc": "Preis/BTC",
   "table.col.fees": "Gebühren",
-  "table.col.totalEur": "Gesamt EUR",
+  "table.col.total": "Gesamt",
   "table.col.transferId": "Transfer-ID",
   "table.action.pair.transfer": "Transfer paaren",
   "table.action.move.position": "Wallet/Börse anpassen",
@@ -132,5 +132,8 @@
   "offline.blocked": "Offline-Modus aktiv – Internetzugriff deaktiviert",
   "offline.priceLocalOnly": "Preis lokal aktualisiert (Offline-Modus – nicht in DB gespeichert)",
   "nav.btn.offline.on": "Offline-Modus AN",
-  "nav.btn.offline.off": "Online-Modus – klicken für Offline"
+  "nav.btn.offline.off": "Online-Modus – klicken für Offline",
+  "sats.modal.title": "Sats spenden",
+  "sats.modal.text": "Wenn dir die App gefällt, freue ich mich über ein paar Sats!",
+  "modal.settings.font": "Schriftart"
 }

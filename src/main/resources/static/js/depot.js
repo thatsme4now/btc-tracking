@@ -43,6 +43,22 @@ const APEX_DEFAULTS = {
 const DENSITY_CYCLE = ['default', 'comfortable'];
 const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
 const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
+const FONTS = [
+    { key: 'ibm',   label: 'IBM Plex Mono', family: "'IBM Plex Mono', 'Courier New', monospace" },
+    { key: 'inter', label: 'Inter',          family: "'Inter', sans-serif" },
+    { key: 'roboto',label: 'Roboto',         family: "'Roboto', sans-serif" },
+];
+
+(function initFont() {
+    const saved = localStorage.getItem('depot-font') || 'ibm';
+    applyFont(saved);
+})();
+
+function applyFont(key) {
+    const font = FONTS.find(f => f.key === key) || FONTS[0];
+    document.documentElement.style.setProperty('--font', font.family);
+    localStorage.setItem('depot-font', key);
+}
 
 (function initDensity() {
     const saved = localStorage.getItem('depot-density') || 'default';
@@ -171,7 +187,6 @@ I18N.ready.then(() => {
 let settingsModal = null;
 
 function openSettings() {
-    // Language options
     const langContainer = document.getElementById('langOptions');
     const supported     = I18N.supported();
     const currentLang   = I18N.currentLang();
@@ -185,9 +200,8 @@ function openSettings() {
         </label>
     `).join('');
 
-    // Currency options
-    const curContainer  = document.getElementById('currencyOptions');
-    const currentCur    = CURRENCY.current();
+    const curContainer = document.getElementById('currencyOptions');
+    const currentCur   = CURRENCY.current();
 
     curContainer.innerHTML = CURRENCY.all().map(c => `
         <label class="d-flex align-items-center gap-2" style="cursor:pointer">
@@ -200,23 +214,46 @@ function openSettings() {
         </label>
     `).join('');
 
+    const fontContainer = document.getElementById('fontOptions');
+    const currentFont   = localStorage.getItem('depot-font') || 'ibm';
+
+    fontContainer.innerHTML = FONTS.map(f => `
+        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
+            <input type="radio" name="fontChoice" value="${f.key}"
+                   ${f.key === currentFont ? 'checked' : ''}
+                   style="accent-color:var(--accent)"/>
+            <span style="font-size:.82rem;font-family:${f.family};color:var(--text)">${f.label}</span>
+        </label>
+    `).join('');
+
     if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
     settingsModal.show();
 }
 
 function sendSomeSats() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('sendsomesatsModal'))
+        || new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
+    modal.show();
+}
 
-
-    if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
-    settingsModal.show();
+function copySatsAddress() {
+    const addr = document.getElementById('satsAddress').textContent;
+    navigator.clipboard.writeText(addr).then(() => {
+        const btn = document.getElementById('btnCopySats');
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        setTimeout(() => btn.innerHTML = '<i class="bi bi-copy"></i>', 1500);
+    });
 }
 
 function saveSettings() {
     const selLang = document.querySelector('input[name="langChoice"]:checked');
     const selCur  = document.querySelector('input[name="curChoice"]:checked');
+    const selFont = document.querySelector('input[name="fontChoice"]:checked');
 
     const langChanged = selLang && selLang.value !== I18N.currentLang();
     const curChanged  = selCur  && selCur.value  !== CURRENCY.current();
+
+    if (selFont) applyFont(selFont.value);
 
     const applyLang = selLang
         ? I18N.setLanguage(selLang.value)
@@ -445,9 +482,9 @@ function renderTxTable(data) {
             <td>${tx.positionLabel || '–'}</td>
             <td><span class="${color}">${tx.type}</span></td>
             <td class="text-end">${fmt8(tx.quantity)}</td>
-            <td class="text-end">${tx.pricePerBtc != null ? formatEur(tx.pricePerBtc) : '–'}</td>
+            <td class="text-end">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
             
-            <td class="text-end">${tx.quantityFiat != null ? formatEur(tx.quantityFiat * tx.exchangeRate) + (tx.currency && tx.currency !== 'EUR' ? ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : '') : '–'}</td>
+            <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
             <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
             <td class="text-end depot-actions" style="white-space:nowrap">
                 <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
@@ -566,7 +603,7 @@ async function openEditTx(tx) {
     // Reset new-position input
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
-
+debugger;
     document.getElementById('editTxId').value           = tx.id;
     document.getElementById('editTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
     document.getElementById('editTxType').value         = tx.type;
@@ -624,7 +661,7 @@ function saveOrAddTx(isAdd) {
 
     const url    = isAdd ? '/api/depot/transactions' : '/api/depot/transactions/' + id;
     const method = isAdd ? 'POST' : 'PUT';
-
+debugger;
     fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },

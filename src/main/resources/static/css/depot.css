@@ -21,6 +21,35 @@
     src: url('/vendor/fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/vendor/fonts/Inter-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Inter';
+    font-style:  normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/vendor/fonts/Inter-Medium.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style:  normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/vendor/fonts/Roboto-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Roboto';
+    font-style:  normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/vendor/fonts/Roboto-Medium.woff2') format('woff2');
+}
+
 /* ── Base ────────────────────────────────────────────────── */
 :root {
     --bg:               #0d0f12;
@@ -472,7 +501,11 @@ div.dt-container .dt-length select {
     color: #dcba09;
 }
 
-
+.depot-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
 
 
 

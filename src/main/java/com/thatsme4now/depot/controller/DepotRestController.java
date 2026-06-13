@@ -203,8 +203,7 @@ public class DepotRestController {
 		if (req.getQuantityFiat() != null && req.getQuantity() != null) {
 		    java.math.BigDecimal rate = req.getExchangeRate() != null ? req.getExchangeRate() : java.math.BigDecimal.ONE;
 		    tx.setPricePerBtc(req.getQuantityFiat()
-		        .divide(req.getQuantity(), 2, java.math.RoundingMode.HALF_UP)
-		        .divide(rate, 2, java.math.RoundingMode.HALF_UP));
+		        .divide(req.getQuantity(), 2, java.math.RoundingMode.HALF_UP));
 		    tx.setQuantityFiat(req.getQuantityFiat());
 		}
 		if (req.getCurrency()     != null) tx.setCurrency(req.getCurrency());

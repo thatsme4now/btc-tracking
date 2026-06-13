@@ -33,7 +33,7 @@
   "table.col.type": "Type",
   "table.col.pricePerBtc": "Price/BTC",
   "table.col.fees": "Fees",
-  "table.col.totalEur": "Total EUR",
+  "table.col.total": "Total",
   "table.col.transferId": "Transfer ID",
   "table.action.pair.transfer": "Pair Transfers",
   "table.action.move.position": "Change wallet or exchange",
@@ -134,5 +134,8 @@
   "offline.blocked": "Offline mode active – internet access disabled",
   "offline.priceLocalOnly": "Price updated locally (offline mode – not saved to DB)",
   "nav.btn.offline.on": "Offline mode ON",
-  "nav.btn.offline.off": "Online mode – click to go offline"
+  "nav.btn.offline.off": "Online mode – click to go offline",
+  "sats.modal.title": "Send some Sats",
+  "sats.modal.text": "If you find this app useful, feel free to send a few sats!",
+  "modal.settings.font": "Font"
 }

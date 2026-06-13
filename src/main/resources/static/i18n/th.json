@@ -33,7 +33,7 @@
   "table.col.type": "ประเภท",
   "table.col.pricePerBtc": "ราคา/BTC",
   "table.col.fees": "ค่าธรรมเนียม",
-  "table.col.totalEur": "รวม EUR",
+  "table.col.total": "รวม",
   "table.col.transferId": "รหัสโอน",
   "table.action.pair.transfer": "Pair Transfers",
   "table.action.move.position": "Change wallet or exchange",
@@ -131,5 +131,8 @@
   "offline.blocked": "โหมดออฟไลน์ – การเข้าถึงอินเทอร์เน็ตถูกปิด",
   "offline.priceLocalOnly": "อัปเดตราคาในเครื่อง (โหมดออฟไลน์ – ไม่บันทึกใน DB)",
   "nav.btn.offline.on": "โหมดออฟไลน์ เปิด",
-  "nav.btn.offline.off": "โหมดออนไลน์ – คลิกเพื่อออฟไลน์"
+  "nav.btn.offline.off": "โหมดออนไลน์ – คลิกเพื่อออฟไลน์",
+  "sats.modal.title": "ส่ง Sats",
+  "sats.modal.text": "ถ้าชอบแอปนี้ ส่ง Sats มาให้หน่อยก็ได้นะ!",
+  "modal.settings.font": "แบบอักษร"
 }

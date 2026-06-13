@@ -196,11 +196,11 @@ public class DepotService {
         dto.setExchangeRate(tx.getExchangeRate());
         dto.setTransferId(tx.getTransferId());
 
-        if (tx.getPricePerBtc() != null) {
-            BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-            BigDecimal total = tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
-            if (tx.getFees() != null) total = total.add(tx.getFees());
-            dto.setQuantityFiat(total.setScale(2, RoundingMode.HALF_UP));
+        if (tx.getQuantityFiat() != null) {
+            //BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
+            //BigDecimal total = tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
+            //if (tx.getFees() != null) total = total.add(tx.getFees());
+            dto.setQuantityFiat(tx.getQuantityFiat().setScale(2, RoundingMode.HALF_UP));
         }
         return dto;
     }

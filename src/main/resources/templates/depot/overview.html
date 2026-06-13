@@ -311,8 +311,7 @@
                     <th data-i18n="table.col.type">Type</th>
                     <th class="text-end" data-i18n="table.col.btc">BTC</th>
                     <th class="text-end" data-i18n="table.col.pricePerBtc">Price/BTC</th>
-<!--                     <th class="text-end" data-i18n="table.col.fees">Fees</th> -->
-                    <th class="text-end" data-i18n="table.col.totalEur">Total EUR</th>
+                    <th class="text-end" data-i18n="table.col.total">Total EUR</th>
                     <th class="text-end" data-i18n="table.col.transferId">Transfer ID</th>
                     <th></th>
                 </tr>
@@ -635,10 +634,34 @@
 
  	<!-- Settings Modal -->
     <div class="modal fade" id="sendsomesatsModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            
-        </div>
-    </div>
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-lightning-charge-fill me-2" style="color:#dcba09"></i>
+	                    <span data-i18n="sats.modal.title">Send some Sats</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body text-center">
+	                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="sats.modal.text">
+	                    If you find this app useful, feel free to send a few sats!
+	                </p>
+	                <img src="/sats.png" alt="Lightning QR"
+	                     style="width:180px;height:180px;border-radius:var(--radius);margin-bottom:1rem;border:1px solid var(--border)"/>
+	                <div class="d-flex align-items-center gap-2 justify-content-center">
+	                    <code style="font-size:.68rem;color:var(--accent);word-break:break-all" id="satsAddress">turbolush199@walletofsatoshi.com</code>
+	                    <button class="btn btn-xs depot-btn-icon" onclick="copySatsAddress()" id="btnCopySats" title="Copy">
+	                        <i class="bi bi-copy"></i>
+	                    </button>
+	                </div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
     <!-- Settings Modal -->
     <div class="modal fade" id="settingsModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
@@ -658,6 +681,10 @@
                     <div id="currencyOptions" class="d-flex flex-column gap-2">
                         <!-- rendered by JS -->
                     </div>
+                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.font">Font</label>
+					<div id="fontOptions" class="d-flex flex-column gap-2">
+					    <!-- rendered by JS -->
+					</div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
                     <button class="btn depot-btn-primary" onclick="saveSettings()" data-i18n="modal.settings.btn.save">Save</button>
