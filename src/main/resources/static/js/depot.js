@@ -940,12 +940,76 @@ function esc(str) {
         .replace(/>/g, '&gt;');
 }
 
+// ── Position Modal ────────────────────────────────────────
+let _positionModal = null;
+
+async function openPositionModal(id) {
+    document.getElementById('positionId').value    = id || '';
+    document.getElementById('positionLabel').value = '';
+    document.getElementById('positionType').value  = 'EXCHANGE';
+
+    const titleEl = document.getElementById('positionModalTitle');
+    if (id) {
+        titleEl.setAttribute('data-i18n', 'form.position.titleEdit');
+        titleEl.textContent = t('form.position.titleEdit');
+        const data = await fetch('/api/depot/positions/' + id).then(r => r.json());
+        document.getElementById('positionLabel').value = data.label || '';
+        document.getElementById('positionType').value  = data.type  || 'EXCHANGE';
+    } else {
+        titleEl.setAttribute('data-i18n', 'form.position.titleNew');
+        titleEl.textContent = t('form.position.titleNew');
+    }
+
+    if (!_positionModal) _positionModal = new bootstrap.Modal(document.getElementById('positionModal'));
+    _positionModal.show();
+}
+
+function savePosition() {
+    const id    = document.getElementById('positionId').value;
+    const label = document.getElementById('positionLabel').value.trim();
+    const type  = document.getElementById('positionType').value;
+
+    if (!label) {
+        showToast('✗ ' + t('toast.error') + ': Label required', 'error');
+        return;
+    }
+
+    const url    = id ? '/api/depot/positions/' + id : '/api/depot/positions';
+    const method = id ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ label, type })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
+        _positionModal.hide();
+        _positionsCache = null;
+        showToast('✓ ' + t(id ? 'toast.txUpdated' : 'toast.txAdded'), 'success');
+        setTimeout(() => window.location.reload(), 800);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
 // ── Refresh Prices ────────────────────────────────────────
 function refreshPrices() {
     if (!OFFLINE.isOnline()) {
-        showToast('✗ ' + t('offline.blocked'), 'error');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
+            || new bootstrap.Modal(document.getElementById('offlineConfirmModal'));
+        modal.show();
         return;
     }
+    _doRefreshPrices();
+}
+
+function confirmOfflineRefresh() {
+    bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
+    _doRefreshPrices();
+}
+
+function _doRefreshPrices() {
     const btn = document.getElementById('btnRefresh');
     btn.disabled = true;
     btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;

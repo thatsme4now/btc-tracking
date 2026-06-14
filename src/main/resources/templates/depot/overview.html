@@ -32,7 +32,7 @@
                   id="btcPriceBadge">
                 BTC
                 <span class="text-pos" id="btcPriceDisplay"
-                      th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency + ' (' + btcPriceDate + ')'}">
+                      th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency}">
                 </span>
                 <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
             </span>
@@ -74,9 +74,9 @@
             <button class="btn depot-btn-outline" onclick="openExportModal()">
 	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
 	        </button>
-            <a th:href="@{/depot/new}" class="btn depot-btn-outline">
-                <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
-            </a>
+            <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
+			    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
+			</button>
             
         </div>
         <div class="ms-auto d-flex align-items-right gap-3">
@@ -240,10 +240,12 @@
                                            #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
                             <td class="text-end text-muted" th:if="${p.performancePct == null}">–</td>
                             <td class="text-end depot-actions" onclick="event.stopPropagation()">
-                                <a th:href="@{/depot/edit/{id}(id=${p.id})}"
-                                   class="btn btn-xs depot-btn-icon" data-i18n-title="table.col.label" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
+                               <button class="btn btn-xs depot-btn-icon"
+                              		th:data-id="${p.id}"
+							        onclick="event.stopPropagation(); openPositionModal(this.dataset.id)"
+							        title="Edit">
+								    <i class="bi bi-pencil"></i>
+								</button>
                                 <a th:href="@{/depot/delete/{id}(id=${p.id})}"
                                    class="btn btn-xs depot-btn-icon text-neg"
                                    title="Delete"
@@ -740,6 +742,74 @@
 	            <div class="modal-footer" style="border-top:1px solid var(--border)">
 	                <button class="btn depot-btn-primary" onclick="confirmBulkExRate()" data-i18n="modal.save">
 	                    <i class="bi bi-check-lg me-1"></i>Apply
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	
+	<!-- Offline Confirm Modal -->
+	<div class="modal fade" id="offlineConfirmModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
+	                    <span data-i18n="modal.offline.title">Offline Mode</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
+	                    Offline mode is active. Fetch current price from internet anyway?
+	                </p>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="confirmOfflineRefresh()">
+	                    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	
+	<!-- Position Modal (Add / Edit) -->
+	<div class="modal fade" id="positionModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-pencil-square me-2"></i>
+	                    <span id="positionModalTitle" data-i18n="form.position.titleNew">New Wallet / Exchange</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <input type="hidden" id="positionId"/>
+	                <div class="mb-3">
+	                    <label class="depot-label">
+	                        <span data-i18n="form.position.label">Label</span>
+	                        <span class="text-muted" data-i18n="form.position.label.hint"> (e.g. Binance, Ledger, Kraken)</span>
+	                    </label>
+	                    <input type="text" id="positionLabel"
+	                           class="form-control depot-input"
+	                           data-i18n-placeholder="form.position.label.placeholder"
+	                           placeholder="Ledger Hardware Wallet"
+	                           maxlength="100"/>
+	                </div>
+	                <div class="mb-1">
+	                    <label class="depot-label" data-i18n="modal.field.type">Type</label>
+	                    <select id="positionType" class="form-select depot-input">
+	                        <option value="EXCHANGE" data-i18n="form.position.type.exchange">Exchange</option>
+	                        <option value="WALLET" data-i18n="form.position.type.wallet">Wallet</option>
+	                    </select>
+	                </div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="savePosition()">
+	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
 	                </button>
 	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
 	            </div>

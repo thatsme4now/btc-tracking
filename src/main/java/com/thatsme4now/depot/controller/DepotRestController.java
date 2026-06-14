@@ -357,6 +357,38 @@ public class DepotRestController {
         ));
     }
     
+    @GetMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
+        return depotService.getPosition(id)
+            .map(p -> ResponseEntity.ok(Map.<String, Object>of(
+                "id",    p.getId(),
+                "label", p.getLabel(),
+                "type",  p.getType().name()
+            )))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/positions")
+    public ResponseEntity<Map<String, Object>> createPosition(@RequestBody PositionRequest req) {
+        Position p = new Position();
+        p.setLabel(req.getLabel());
+        p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+        depotService.save(p);
+        return ResponseEntity.ok(Map.of("id", p.getId(), "label", p.getLabel()));
+    }
+
+    @PutMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> updatePosition(
+            @PathVariable("id") Long id,
+            @RequestBody PositionRequest req) {
+        return depotService.getPosition(id).map(p -> {
+            p.setLabel(req.getLabel());
+            p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+            depotService.save(p);
+            return ResponseEntity.ok(Map.<String, Object>of("id", p.getId(), "label", p.getLabel()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/positions")
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
@@ -485,5 +517,11 @@ public class DepotRestController {
     public static class BulkExRateRequest {
         private List<Long> ids;
         private java.math.BigDecimal exchangeRate;
+    }
+    
+    @lombok.Data
+    public static class PositionRequest {
+        private String label;
+        private String type;
     }
 }

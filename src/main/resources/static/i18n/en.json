@@ -137,5 +137,8 @@
   "nav.btn.offline.off": "Online mode – click to go offline",
   "sats.modal.title": "Send some Sats",
   "sats.modal.text": "If you find this app useful, feel free to send a few sats!",
-  "modal.settings.font": "Font"
+  "modal.settings.font": "Font",
+  "modal.offline.title": "Offline Mode",
+  "modal.offline.body": "Offline mode is active. Fetch current price from internet anyway?",
+  "modal.offline.confirm": "Fetch anyway"
 }

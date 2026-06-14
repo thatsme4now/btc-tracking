@@ -134,5 +134,8 @@
   "nav.btn.offline.off": "โหมดออนไลน์ – คลิกเพื่อออฟไลน์",
   "sats.modal.title": "ส่ง Sats",
   "sats.modal.text": "ถ้าชอบแอปนี้ ส่ง Sats มาให้หน่อยก็ได้นะ!",
-  "modal.settings.font": "แบบอักษร"
+  "modal.settings.font": "แบบอักษร",
+  "modal.offline.title": "โหมดออฟไลน์",
+  "modal.offline.body": "โหมดออฟไลน์เปิดอยู่ ต้องการดึงราคาจากอินเทอร์เน็ตอยู่ดีหรือไม่?",
+  "modal.offline.confirm": "ดึงข้อมูลต่อไป"
 }

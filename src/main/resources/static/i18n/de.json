@@ -135,5 +135,8 @@
   "nav.btn.offline.off": "Online-Modus – klicken für Offline",
   "sats.modal.title": "Sats spenden",
   "sats.modal.text": "Wenn dir die App gefällt, freue ich mich über ein paar Sats!",
-  "modal.settings.font": "Schriftart"
+  "modal.settings.font": "Schriftart",
+  "modal.offline.title": "Offline-Modus",
+  "modal.offline.body": "Offline-Modus ist aktiv. Trotzdem den aktuellen Preis online abrufen?",
+  "modal.offline.confirm": "Trotzdem abrufen"
 }
