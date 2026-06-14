@@ -83,6 +83,7 @@ function applyDensity(density) {
     const btn = document.getElementById('btnDensity');
     if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
 }
+
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
 
@@ -1471,3 +1472,16 @@ function showConfirm(title, body) {
         _confirmModal.show();
     });
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Sicherstellen, dass CURRENCY Objekt existiert
+	debugger;
+    if (typeof CURRENCY !== 'undefined' && CURRENCY.current) {
+        const symbol = CURRENCY.symbol(CURRENCY.current());
+        
+        // Alle Währungssymbol-Platzhalter im Dokument finden und füllen
+        document.querySelectorAll('.currency-symbol').forEach(function(el) {
+            el.textContent = ' ' + symbol;
+        });
+    }
+});

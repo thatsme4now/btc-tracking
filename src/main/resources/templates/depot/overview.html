@@ -139,15 +139,19 @@
         <div class="col-6 col-md-2">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
-                <div class="metric-value"
-                     th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA') + ' €'}">–</div>
+                <div class="metric-value">
+                     <span th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA')}">–</span>
+                     <span class="currency-symbol"></span>         
+                </div>
             </div>
         </div>
         <div class="col-6 col-md-2">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.invested">Invested</div>
-                <div class="metric-value"
-                     th:text="${#numbers.formatDecimal(invested, 1, 'POINT', 2, 'COMMA') + ' €'}">–</div>
+                <div class="metric-value">
+                	<span th:text="${#numbers.formatDecimal(invested, 1, 'POINT', 2, 'COMMA')}">–</span>
+                    <span class="currency-symbol"></span>      
+                </div>
             </div>
         </div>
         <div class="col-6 col-md-2">
@@ -163,9 +167,11 @@
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
                 <div class="metric-value"
-                     th:classappend="${gainLoss >= 0} ? 'text-pos' : 'text-neg'"
-                     th:text="${(gainLoss >= 0 ? '+' : '') +
-                                #numbers.formatDecimal(gainLoss, 1, 'POINT', 2, 'COMMA') + ' €'}">–</div>
+                     th:classappend="${gainLoss >= 0} ? 'text-pos' : 'text-neg'">
+                 	<span th:text="${(gainLoss >= 0 ? '+' : '') +
+                                #numbers.formatDecimal(gainLoss, 1, 'POINT', 2, 'COMMA')}">–</span>
+                    <span class="currency-symbol"></span>                  
+                 </div>
             </div>
         </div>
         <div class="col-6 col-md-2">
@@ -180,8 +186,10 @@
         <div class="col-6 col-md-2">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.realized">Realized</div>
-                <div class="metric-value"
-                     th:text="${#numbers.formatDecimal(realized, 1, 'POINT', 2, 'COMMA') + ' €'}">–</div>
+                <div class="metric-value">
+                	<span th:text="${#numbers.formatDecimal(realized, 1, 'POINT', 2, 'COMMA')}">–</span>
+                    <span class="currency-symbol"></span>                   
+                </div>
             </div>
         </div>
     </div>
@@ -225,13 +233,18 @@
                                 th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
                             <td class="text-end fw-medium"
                                 th:if="${p.totalValue != null}"
-                                th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
+                                >
+                                <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
+                                <span class="currency-symbol"></span>
+                            </td>
                             <td class="text-end text-muted" th:if="${p.totalValue == null}">–</td>
                             <td class="text-end"
                                 th:if="${p.gainLoss != null}"
-                                th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'"
-                                th:text="${(p.gainLoss >= 0 ? '+' : '') +
-                                           #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA') + ' €'}"></td>
+                                th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
+                            	<span th:text="${(p.gainLoss >= 0 ? '+' : '') +
+                                           #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
+                                <span class="currency-symbol"></span>               
+                            </td>
                             <td class="text-end text-muted" th:if="${p.gainLoss == null}">–</td>
                             <td class="text-end"
                                 th:if="${p.performancePct != null}"
