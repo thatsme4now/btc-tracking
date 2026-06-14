@@ -62,6 +62,7 @@
     --neg:              #d85a30;
     --accent:           #F7931A;   /* Bitcoin orange */
     --accent-dim:       #3a2200;
+    --warn:				#6b3d04;
     --radius:           6px;
     --font:             'IBM Plex Mono', 'Courier New', monospace;
 }
@@ -88,6 +89,7 @@ body.light {
     --neg:              #c0431f;
     --accent:           #e07b00;
     --accent-dim:       #fde8c8;
+    --warn:       		  #e0ceb9;
 }
 
 /* ── Navbar ──────────────────────────────────────────────── */
@@ -341,6 +343,10 @@ table.dataTable thead td {
 
 table.dataTable tbody tr {
     background-color: transparent !important;
+}
+
+table.dataTable tbody tr.warning {
+    background-color: var(--warn) !important;
 }
 
 table.dataTable tbody tr:hover td {

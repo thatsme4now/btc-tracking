@@ -247,11 +247,12 @@
 								    <i class="bi bi-pencil"></i>
 								</button>
                                 <a th:href="@{/depot/delete/{id}(id=${p.id})}"
-                                   class="btn btn-xs depot-btn-icon text-neg"
-                                   title="Delete"
-                                   th:attr="onclick='return confirm(t(\'confirm.deletePosition\'))'">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+								   th:data-id="${p.id}"
+								   class="btn btn-xs depot-btn-icon text-neg"
+								   title="Delete"
+								   onclick="event.preventDefault(); confirmDeletePosition(this.dataset.id)">
+								    <i class="bi bi-trash"></i>
+								</a>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(positions)}">
@@ -810,6 +811,26 @@
 	            <div class="modal-footer" style="border-top:1px solid var(--border)">
 	                <button class="btn depot-btn-primary" onclick="savePosition()">
 	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+	<!-- Generic Confirm Modal -->
+	<div class="modal fade" id="confirmModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0" id="confirmModalTitle"></span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.8rem;color:var(--text);margin:0" id="confirmModalBody"></p>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" id="confirmModalOk">
+	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.save">OK</span>
 	                </button>
 	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
 	            </div>

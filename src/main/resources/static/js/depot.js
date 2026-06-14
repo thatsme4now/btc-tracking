@@ -473,7 +473,7 @@ function renderTxTable(data) {
         const color   = TYPE_COLORS[tx.type] || '';
         const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 16) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-        return `<tr class="depot-row" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
+        return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
@@ -681,8 +681,8 @@ debugger;
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-function removeAll() {
-    if (!confirm(t('confirm.deleteAll'))) return;
+async function removeAll() {
+    if (!await showConfirm(t('nav.btn.removeAll'), t('confirm.deleteAll'))) return;
     fetch('/api/depot/', { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
@@ -693,8 +693,8 @@ function removeAll() {
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-function deleteTx(id) {
-    if (!confirm(t('confirm.deleteTx'))) return;
+async function deleteTx(id) {
+    if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTx'))) return;
     fetch('/api/depot/transactions/' + id, { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
@@ -702,6 +702,12 @@ function deleteTx(id) {
             showToast('✓ ' + t('toast.txDeleted'), 'success');
         })
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+function confirmDeletePosition(id) {
+    showConfirm(t('table.action.delete'), t('confirm.deletePosition')).then(ok => {
+        if (ok) window.location.href = '/depot/delete/' + id;
+    });
 }
 
 function fmt8(val) {
@@ -1277,10 +1283,10 @@ function _ctxItem(icon, label, action, danger = false) {
 }
 
 // ── Bulk: Delete ──────────────────────────────────────────
-function bulkDelete() {
+async function bulkDelete() {
     const ids = _getSelectedIds();
     if (!ids.length) return;
-	if (!confirm(t("confirm.deleteTxs", {COUNT: ids.length}))) return;
+    if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTxs', { COUNT: ids.length }))) return;
 
     fetch('/api/depot/transactions/bulk', {
         method:  'DELETE',
@@ -1289,7 +1295,7 @@ function bulkDelete() {
     })
     .then(r => r.json())
     .then(d => {
-        showToast("✓ " + t("toast.deleteTxs.success", {COUNT: d.deleted}), 'success');
+        showToast('✓ ' + t('toast.deleteTxs.success', { COUNT: d.deleted }), 'success');
         _positionsCache = null;
         txLoaded = false;
         loadTransactions();
@@ -1298,35 +1304,39 @@ function bulkDelete() {
 }
 
 // ── Bulk: Pair Transfers ──────────────────────────────────
-function bulkPair() {
+async function bulkPair() {
     const ids = _getSelectedIds();
     if (ids.length < 2 || ids.length % 2 !== 0) {
-		showToast("✗ " + t("toast.pairing.error.uneven"), 'error');
+        showToast('✗ ' + t('toast.pairing.error.uneven'), 'error');
         return;
     }
-	
-	const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
-	        .map(cb => cb.closest('tr'));
-	const types   = selectedRows.map(tr => tr.dataset.type);
+
+    const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(cb => cb.closest('tr'));
+    const types    = selectedRows.map(tr => tr.dataset.type);
     const inCount  = types.filter(t => t === 'TRANSFER_IN').length;
     const outCount = types.filter(t => t === 'TRANSFER_OUT').length;
     const invalid  = types.filter(t => t !== 'TRANSFER_IN' && t !== 'TRANSFER_OUT');
 
     if (invalid.length > 0) {
-        showToast("✗ " + t("toast.pairing.error.type.wrong"), 'error');
+        showToast('✗ ' + t('toast.pairing.error.type.wrong'), 'error');
         return;
     }
     if (inCount !== outCount) {
-		showToast("✗ " + t("toast.pairing.error.type.unequal", {IN: inCount, OUT: outCount}), 'error');
+        showToast('✗ ' + t('toast.pairing.error.type.unequal', { IN: inCount, OUT: outCount }), 'error');
         return;
     }
-			
-    // Check existing transferIds
+
     const existingPaired = [...document.querySelectorAll('.tx-row-check:checked')]
         .map(cb => cb.closest('tr'))
-		.filter(cb => cb.closest('tr').dataset.transferId);
+        .filter(tr => tr.dataset.transferId);
 
-    const doIt = () => fetch('/api/depot/transactions/bulk-pair', {
+    if (existingPaired.length > 0) {
+        if (!await showConfirm(t('table.action.pair.transfer'),
+                t('toast.pairing.info.id', { COUNT: existingPaired.length }))) return;
+    }
+
+    fetch('/api/depot/transactions/bulk-pair', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids })
@@ -1334,16 +1344,11 @@ function bulkPair() {
     .then(r => r.json())
     .then(d => {
         if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
-        showToast("✓ " + t("toast.pairing.success", {COUNT: d.paired}), 'success');
+        showToast('✓ ' + t('toast.pairing.success', { COUNT: d.paired }), 'success');
         txLoaded = false;
         loadTransactions();
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
-
-    if (existingPaired.length > 0) {
-        if (!confirm(t("toast.pairing.info.id", {COUNT: existingPaired.length}))) return;
-    }
-    doIt();
 }
 
 // ── Bulk: Move Position ───────────────────────────────────
@@ -1434,4 +1439,35 @@ function confirmBulkExRate() {
         loadTransactions();
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+// ── Generic Confirm Dialog ────────────────────────────────
+let _confirmModal     = null;
+let _confirmResolve   = null;
+
+function showConfirm(title, body) {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalBody').textContent  = body;
+
+    if (!_confirmModal) {
+        _confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    }
+
+    return new Promise(resolve => {
+        _confirmResolve = resolve;
+
+        const okBtn = document.getElementById('confirmModalOk');
+        // Alten Listener entfernen um Doppel-Trigger zu vermeiden
+        const newOk = okBtn.cloneNode(true);
+        okBtn.parentNode.replaceChild(newOk, okBtn);
+        newOk.addEventListener('click', () => {
+            _confirmModal.hide();
+            resolve(true);
+        });
+
+        document.getElementById('confirmModal')
+            .addEventListener('hidden.bs.modal', () => resolve(false), { once: true });
+
+        _confirmModal.show();
+    });
 }
