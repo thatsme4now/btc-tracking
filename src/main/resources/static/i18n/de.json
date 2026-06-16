@@ -138,5 +138,13 @@
   "modal.settings.font": "Schriftart",
   "modal.offline.title": "Offline-Modus",
   "modal.offline.body": "Offline-Modus ist aktiv. Trotzdem den aktuellen Preis online abrufen?",
-  "modal.offline.confirm": "Trotzdem abrufen"
+  "modal.offline.confirm": "Trotzdem abrufen",
+  
+  "csv.import.mapping.buy.quantity": "Kauf-Wert",
+  "csv.import.mapping.buy.currency": "Kauf-Währung",
+  "csv.import.mapping.sell.quantity": "Verkauf-Wert",
+  "csv.import.mapping.sell.currency": "Verkauf-Währung",
+  "csv.import.mapping.fee.currency": "Gebühr-Währung",
+  "csv.import.mapping.fee.exchange.rate": "Wechselkurs zur Anzeige (Optional)",
+  "table.col.profit": "Gewinn/Verlust"
 }

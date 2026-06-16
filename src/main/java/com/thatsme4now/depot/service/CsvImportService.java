@@ -9,8 +9,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.csv.CSVFormat;
@@ -40,8 +44,25 @@ public class CsvImportService {
     private final TransactionRepository transactionRepo;
     private final DepotService     depotService;
     
-    private static final DateTimeFormatter DATE_FMT =
-        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final DateTimeFormatter DATE_FMT_EN = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+    private static final DateTimeFormatter DATE_FMT_WITHOUT_SEC = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter DATE_FMT_EN_WITHOUT_SEC = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm");
+    public static final DateTimeFormatter ISO_LOCAL_FMT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    public static final DateTimeFormatter ISO_INSTANT_FMT = DateTimeFormatter.ISO_INSTANT;
+    public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
+    private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
+
+    private static final Set<DateTimeFormatter> TIME_FORMATS = new HashSet<>(Arrays.asList(
+            DATE_FMT,
+            DATE_FMT_EN,
+            DATE_FMT_WITHOUT_SEC,
+            DATE_FMT_EN_WITHOUT_SEC,
+            ISO_LOCAL_FMT,
+            RFC_1123_FMT, 
+            DATE_FMT_EN_12H 
+    ));
+    
 
     // ── Mapped Import (PapaParse frontend → JSON) ─────────────────────────────
 
@@ -85,22 +106,23 @@ public class CsvImportService {
     private CsvRow mapMappedRow(MappedRow r) {
         if (r.getTyp() == null || r.getDate() == null || r.getExchange() == null) return null;
 
-        LocalDateTime dateTime;
-        try {
-            dateTime = LocalDateTime.parse(r.getDate().trim(), DATE_FMT);
-            dateTime = dateTime.withSecond(0);
-        } catch (Exception e) {
-            // Try ISO format fallback
-            try {
-                dateTime = LocalDateTime.parse(r.getDate().trim(),
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                dateTime = dateTime.withSecond(0);
-            } catch (Exception e2) {
-                log.warn("Cannot parse date '{}': {}", r.getDate(), e2.getMessage());
-                return null;
-            }
-        }
-
+        LocalDateTime dateTime = null;
+       
+		for (DateTimeFormatter format : TIME_FORMATS) {
+			try {
+				dateTime = LocalDateTime.parse(r.getDate().trim(), format);
+				dateTime = dateTime.withSecond(0);
+				break;
+			} catch (Exception e) {
+				// nothing
+			}
+		}
+        
+		if(dateTime == null) {
+			log.warn("Cannot parse date '{}': {}", r.getDate());
+			return null;
+		}
+ 
         BigDecimal buyQty  = decimal(r.getBuyQuantity());
         BigDecimal sellQty = decimal(r.getSellQuantity());
         BigDecimal fee     = decimal(r.getFee());

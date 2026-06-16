@@ -135,7 +135,11 @@ public class DepotService {
                 .filter(tx -> tx.getType() == TransactionType.BUY && tx.getPricePerBtc() != null)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-                    return tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
+                    if (cp.getCurrency().equals(tx.getCurrency())) {
+                    	return tx.getQuantity().multiply(tx.getPricePerBtc());
+                    } else {                    	
+                    	return tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
+                    }
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -145,7 +149,14 @@ public class DepotService {
 
         BigDecimal realized = txs.stream()
                 .filter(tx -> tx.getType() == TransactionType.SELL)
-                .map(Transaction::getQuantityFiat)
+                .map(tx -> {
+                    BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
+                    if (cp.getCurrency().equals(tx.getCurrency())) {
+                    	return tx.getQuantityFiat();
+                    } else {                    	
+                    	return tx.getQuantityFiat().multiply(tx.getPricePerBtc()).multiply(rate);
+                    }
+                })
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 

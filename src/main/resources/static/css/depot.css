@@ -490,6 +490,58 @@ body.density-spacious {
     #txTable td:nth-child(2)    { font-size: 0.72rem; white-space: nowrap; }
 }
 
+/* ── Flatpickr Theme Override ────────────────────────────── */
+.flatpickr-calendar {
+    background:    var(--bg-card) !important;
+    border:        1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow:    0 4px 24px rgba(0,0,0,.5) !important;
+    font-family:   var(--font) !important;
+    font-size:     0.8rem !important;
+    color:         var(--text) !important;
+}
+.flatpickr-day {
+    color: var(--text) !important;
+    border-radius: var(--radius) !important;
+}
+.flatpickr-day:hover, .flatpickr-day.prevMonthDay:hover, .flatpickr-day.nextMonthDay:hover {
+    background: var(--bg-row) !important;
+    border-color: var(--border) !important;
+}
+.flatpickr-day.selected, .flatpickr-day.selected:hover {
+    background:   var(--accent) !important;
+    border-color: var(--accent) !important;
+    color:        #000 !important;
+}
+.flatpickr-day.today { border-color: var(--accent) !important; }
+.flatpickr-months, .flatpickr-weekdays, .flatpickr-time {
+    background: var(--bg-card) !important;
+    color:      var(--text) !important;
+}
+.flatpickr-prev-month, .flatpickr-next-month { color: var(--text-muted) !important; fill: var(--text-muted) !important; }
+.flatpickr-prev-month:hover svg, .flatpickr-next-month:hover svg { fill: var(--accent) !important; }
+.flatpickr-current-month, .flatpickr-monthDropdown-months {
+    color:      var(--text) !important;
+    background: var(--bg-card) !important;
+    font-family: var(--font) !important;
+}
+.flatpickr-time input, .numInputWrapper span {
+    color:      var(--text) !important;
+    background: var(--bg-card) !important;
+}
+.flatpickr-time .flatpickr-time-separator { color: var(--text-muted) !important; }
+.flatpickr-weekday { color: var(--text-muted) !important; }
+.flatpickr-day.flatpickr-disabled { color: var(--text-muted) !important; opacity: .4; }
+
+/* altInput soll wie depot-input aussehen */
+.flatpickr-input.form-control[readonly] {
+    background: #1a1d23 !important;
+    cursor:     pointer;
+}
+body.light .flatpickr-input.form-control[readonly] {
+    background: #f4f5f7 !important;
+}
+
 /* Verhindert horizontalen Scroll im Container */
 #transactionsPanel .table-responsive {
     overflow-x: hidden;

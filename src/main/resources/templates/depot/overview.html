@@ -13,6 +13,8 @@
           th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/depot.css}"/>
     <link rel="stylesheet" th:href="@{/vendor/css/dataTables.dataTables.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/flatpickr.min.css}"/>
+
 </head>
 <body class="depot-body">
 
@@ -329,12 +331,13 @@
                     <th class="text-end" data-i18n="table.col.btc">BTC</th>
                     <th class="text-end" data-i18n="table.col.pricePerBtc">Price/BTC</th>
                     <th class="text-end" data-i18n="table.col.total">Total EUR</th>
+                    <th class="text-end" data-i18n="table.col.profit"></th>
                     <th class="text-end" data-i18n="table.col.transferId">Transfer ID</th>
                     <th></th>
                 </tr>
                 </thead>
                 <tbody id="txTableBody">
-                <tr><td colspan="9" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -864,6 +867,7 @@
 
     const SERVER_CURRENCY     = /*[[${currency}]]*/ 'EUR';
     const NO_PRICE_AVAILABLE  = /*[[${noPriceAvailable}]]*/ false;
+    const CURRENT_PRICE = /*[[${currentPrice}]]*/ 0;
     /*]]>*/
 </script>
 <script th:src="@{/vendor/js/papaparse.min.js}"></script>
@@ -872,6 +876,12 @@
 <script th:src="@{/vendor/js/jquery.min.js}"></script>
 <script th:src="@{/vendor/js/dataTables.min.js}"></script>
 
+<script th:src="@{/vendor/js/flatpickr.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-de.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-th.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
 <!-- load order: i18n → currency → offline → depot -->
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>

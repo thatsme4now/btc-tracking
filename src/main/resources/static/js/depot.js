@@ -84,6 +84,54 @@ function applyDensity(density) {
     if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
 }
 
+// ── Flatpickr Date Pickers ────────────────────────────────
+const FLATPICKR_LOCALES = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
+
+let _fpAdd  = null;
+let _fpEdit = null;
+let _fpTransferIn = null;
+
+function _fpLocale() {
+    const lang = I18N.currentLang();
+    return FLATPICKR_LOCALES[lang] || 'default';
+}
+
+function _fpConfig(inputEl) {
+    return {
+        enableTime:  true,
+        time_24hr:   true,
+        dateFormat:  'Y-m-d H:i',     // internes Format — bleibt immer ISO für JS-Logik
+        altInput:    true,
+        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        locale:      _fpLocale(),
+        allowInput:  true,
+        minuteIncrement: 1,
+    };
+}
+
+function initFlatpickr() {
+    const locale = _fpLocale();
+    const isEn   = locale === 'default';
+    const cfg = {
+        enableTime:     true,
+        time_24hr:      !isEn,
+        dateFormat:     'Y-m-d H:i',
+        altInput:       true,
+        altFormat:      isEn ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        locale:         locale,
+        allowInput:     true,
+        minuteIncrement: 1,
+    };
+
+    if (_fpAdd)        { _fpAdd.destroy();        _fpAdd = null; }
+    if (_fpEdit)       { _fpEdit.destroy();       _fpEdit = null; }
+    if (_fpTransferIn) { _fpTransferIn.destroy(); _fpTransferIn = null; }
+
+    _fpAdd        = flatpickr('#addTxDate',       cfg);
+    _fpEdit       = flatpickr('#editTxDate',      cfg);
+    _fpTransferIn = flatpickr('#transferInDate',  cfg);
+}
+
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
 
@@ -163,7 +211,8 @@ I18N.ready.then(() => {
     }
 
     initDonut();
-
+	initFlatpickr();
+	
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().destroy();
@@ -182,6 +231,7 @@ I18N.ready.then(() => {
         },
         columnDefs: [{ orderable: false, targets: [-1] }]
     });	
+
 });
 
 // ── Settings Modal ────────────────────────────────────────
@@ -261,7 +311,8 @@ function saveSettings() {
         : Promise.resolve();
 
     applyLang.then(() => {
-        if (curChanged) {
+		initFlatpickr();
+		if (curChanged) {
             CURRENCY.setCurrency(selCur.value);
             settingsModal.hide();
             showToast('✓ ' + t('toast.currencyChanged', { currency: selCur.value }), 'success');
@@ -292,7 +343,7 @@ function initDonut() {
         chart: {
             ...APEX_DEFAULTS.chart,
             type:   'donut',
-            height: window.innerHeight / 2
+            height: window.innerHeight / 3
         },
         colors: CHART_COLORS,
         plotOptions: {
@@ -450,6 +501,7 @@ function toggleTransactions() {
 }
 
 async function loadTransactions() {
+	debugger;
     return fetch('/api/depot/transactions')
         .then(r => r.json())
         .then(data => {
@@ -458,7 +510,7 @@ async function loadTransactions() {
         })
         .catch(err => {select
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -486,7 +538,12 @@ function renderTxTable(data) {
             <td class="text-end">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
             
             <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-            <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
+			
+			
+			<td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur(-1 * ((tx.quantityFiat + tx.fees) * tx.exchangeRate - CURRENT_PRICE)) : formatEur(-1 * ((tx.quantityFiat + tx.fees) - CURRENT_PRICE)) : '–'}</td>
+	
+			
+			 <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
             <td class="text-end depot-actions" style="white-space:nowrap">
                 <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
                     <i class="bi bi-pencil"></i>
@@ -507,7 +564,7 @@ function renderTxTable(data) {
 
     document.getElementById('txTableBody').innerHTML =
         rows.length ? rows.join('') :
-        `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td></tr>`;
+        `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
 
     $('#txTable').DataTable({
         order:      [[1, 'desc']],
@@ -538,7 +595,10 @@ function updateRelevantFields() {
         const qty  = document.getElementById('addTxQty').value;
         const tDate = document.getElementById('transferInDate');
         const tQty  = document.getElementById('transferInQty');
-        if (!tDate.value && date) tDate.value = date;
+        //if (!tDate.value && date) tDate.value = date;
+		if (_fpTransferIn && !_fpTransferIn.selectedDates.length && date) {
+		    _fpTransferIn.setDate(date, false);
+		}
         if (!tQty.value  && qty)  tQty.value  = qty;
     }
 }
@@ -581,7 +641,8 @@ async function openAddTx(tx) {
 		document.getElementById('addTxId').value           = '';
 		var now = new Date();
 		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-		document.getElementById('addTxDate').value = now.toISOString().slice(0,16);;
+		//document.getElementById('addTxDate').value = now.toISOString().slice(0,16);
+		if (_fpAdd) _fpAdd.setDate(now, false);
         document.getElementById('addTxType').value         = 'BUY';
         document.getElementById('addTxQty').value          = '';
         document.getElementById('addTxQuantityFiat').value = '';
@@ -604,9 +665,10 @@ async function openEditTx(tx) {
     // Reset new-position input
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
-debugger;
     document.getElementById('editTxId').value           = tx.id;
-    document.getElementById('editTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
+    //document.getElementById('editTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
+	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+
     document.getElementById('editTxType').value         = tx.type;
     document.getElementById('editTxQty').value          = tx.quantity;
     document.getElementById('editTxQuantityFiat').value = tx.quantityFiat || '';
@@ -662,7 +724,6 @@ function saveOrAddTx(isAdd) {
 
     const url    = isAdd ? '/api/depot/transactions' : '/api/depot/transactions/' + id;
     const method = isAdd ? 'POST' : 'PUT';
-debugger;
     fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -757,18 +818,20 @@ function openMappingModal() {
     const headers = csvImport.headers;
     const NONE    = `<option value="">${t('modal.csv.field.notMapped')}</option>`;
 
+	
+	
     const FIELDS = [
-        { id: 'map_typ',          label: 'typ',                required: true  },
-        { id: 'map_date',         label: 'date',               required: true  },
-        { id: 'map_exchange',     label: 'exchange',           required: true  },
-        { id: 'map_buyQty',       label: 'buyQuantity',        required: false },
-        { id: 'map_buyCur',       label: 'buyCurrency',        required: false },
-        { id: 'map_sellQty',      label: 'sellQuantity',       required: false },
-        { id: 'map_sellCur',      label: 'sellCurrency',       required: false },
-        { id: 'map_fee',          label: 'fee',                required: false },
-		{ id: 'map_feeCur',       label: 'feeCurrency',        required: false },
-        { id: 'map_exchangeRate', label: 'exchangeRate (opt.)', required: false },
-        { id: 'map_comment',      label: 'comment',            required: false },
+        { id: 'map_typ',          label: I18N.t('table.col.type'),                			required: true  },
+        { id: 'map_date',         label: I18N.t('table.col.date'),               			required: true  },
+        { id: 'map_exchange',     label: I18N.t('table.wallets'),           				required: true  },
+        { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: false },
+        { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: false },
+        { id: 'map_sellQty',      label: I18N.t('csv.import.mapping.sell.quantity'),       	required: false },
+        { id: 'map_sellCur',      label: I18N.t('csv.import.mapping.sell.currency'),       	required: false },
+        { id: 'map_fee',          label: I18N.t('table.col.fees'),                			required: false },
+		{ id: 'map_feeCur',       label: I18N.t('csv.import.mapping.fee.currency'),        	required: false },
+        { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 	required: false },
+        { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
     ];
 
     const autoMatch = (fieldLabel) => {
@@ -1061,7 +1124,8 @@ function openPriceEdit() {
     const editor = document.getElementById('btcPriceEditor');
     // Read current display value → strip formatting
     const raw = document.getElementById('btcPriceDisplay')
-        .textContent.slice(0, -12).replace(/[^\d,]/g, '').replace(',', '.');
+        .textContent.slice(0, -4).replace(/[^\d,]/g, '').replace(',', '.');
+
     document.getElementById('btcPriceInput').value = parseFloat(raw) || '';
     badge.classList.add('d-none');
     editor.classList.remove('d-none');
@@ -1475,7 +1539,6 @@ function showConfirm(title, body) {
 
 document.addEventListener("DOMContentLoaded", function() {
     // Sicherstellen, dass CURRENCY Objekt existiert
-	debugger;
     if (typeof CURRENCY !== 'undefined' && CURRENCY.current) {
         const symbol = CURRENCY.symbol(CURRENCY.current());
         
