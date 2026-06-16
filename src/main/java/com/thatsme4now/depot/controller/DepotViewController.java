@@ -83,16 +83,20 @@ public class DepotViewController {
     			model.addAttribute("btcPrice", p.getPrice());
     			model.addAttribute("btcPriceDate", 
     					p.getPriceDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                model.addAttribute("currentPrice", p.getPrice());
+
     	}, () -> {
     		model.addAttribute("btcPrice", new BigDecimal(0L));
     		model.addAttribute("btcPriceDate", "");
+            model.addAttribute("currentPrice", new BigDecimal(0L));
+
     	});
         
         // Flag: no price available for selected currency
         boolean noPriceAvailable = positions.stream()
             .allMatch(p -> p.getCurrentPrice() == null);
         model.addAttribute("noPriceAvailable", noPriceAvailable);
-
+        
         model.addAttribute("transactionCount", depotService.getTransactionCount());
         return "depot/overview";
     }

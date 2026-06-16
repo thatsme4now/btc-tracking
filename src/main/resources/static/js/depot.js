@@ -501,7 +501,7 @@ function toggleTransactions() {
 }
 
 async function loadTransactions() {
-	debugger;
+	
     return fetch('/api/depot/transactions')
         .then(r => r.json())
         .then(data => {
@@ -526,6 +526,26 @@ function renderTxTable(data) {
         const color   = TYPE_COLORS[tx.type] || '';
         const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 16) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
+		
+		let earning;
+		let posNeg = "";
+		if (tx.type == "BUY") {		
+			if(tx.currency !== CURRENCY.current()) {
+				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity);
+			} else {
+				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity);
+			}
+
+			if (earning.startsWith("-")) {
+				posNeg = "text-neg";
+			} else {
+				debugger;
+				posNeg = "text-pos";
+			}
+		} else {
+			earning="–";
+		}
+		
         return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
@@ -540,7 +560,7 @@ function renderTxTable(data) {
             <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
 			
 			
-			<td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur(-1 * ((tx.quantityFiat + tx.fees) * tx.exchangeRate - CURRENT_PRICE)) : formatEur(-1 * ((tx.quantityFiat + tx.fees) - CURRENT_PRICE)) : '–'}</td>
+			<td class="text-end"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
 	
 			
 			 <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>

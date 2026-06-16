@@ -52,6 +52,8 @@ public class CsvImportService {
     public static final DateTimeFormatter ISO_INSTANT_FMT = DateTimeFormatter.ISO_INSTANT;
     public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
+    public static final DateTimeFormatter ISO_CUSTOM_FORMAT = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
+
 
     private static final Set<DateTimeFormatter> TIME_FORMATS = new HashSet<>(Arrays.asList(
             DATE_FMT,
@@ -60,7 +62,8 @@ public class CsvImportService {
             DATE_FMT_EN_WITHOUT_SEC,
             ISO_LOCAL_FMT,
             RFC_1123_FMT, 
-            DATE_FMT_EN_12H 
+            DATE_FMT_EN_12H,
+            ISO_CUSTOM_FORMAT
     ));
     
 
@@ -106,17 +109,7 @@ public class CsvImportService {
     private CsvRow mapMappedRow(MappedRow r) {
         if (r.getTyp() == null || r.getDate() == null || r.getExchange() == null) return null;
 
-        LocalDateTime dateTime = null;
-       
-		for (DateTimeFormatter format : TIME_FORMATS) {
-			try {
-				dateTime = LocalDateTime.parse(r.getDate().trim(), format);
-				dateTime = dateTime.withSecond(0);
-				break;
-			} catch (Exception e) {
-				// nothing
-			}
-		}
+        LocalDateTime dateTime = getLocalDateTimeByString(r.getDate().trim());
         
 		if(dateTime == null) {
 			log.warn("Cannot parse date '{}': {}", r.getDate());
@@ -191,6 +184,21 @@ public class CsvImportService {
             ? exRate : BigDecimal.ONE;
         return row;
     }
+
+	public LocalDateTime getLocalDateTimeByString(String date) {
+		LocalDateTime dateTime = null;
+       
+		for (DateTimeFormatter format : TIME_FORMATS) {
+			try {
+				dateTime = LocalDateTime.parse(date, format);
+				dateTime = dateTime.withSecond(0);
+				break;
+			} catch (Exception e) {
+				// nothing
+			}
+		}
+		return dateTime;
+	}
 
     private int persistRows(List<CsvRow> rows) {
         int inserted = 0;

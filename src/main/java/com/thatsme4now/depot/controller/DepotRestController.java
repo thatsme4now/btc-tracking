@@ -1,6 +1,7 @@
 package com.thatsme4now.depot.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -197,7 +198,9 @@ public class DepotRestController {
     }
 
 	private void mapTransactionRequestToTransaction(TransactionUpdateRequest req, Transaction tx) {
-		if (req.getDate()         != null) tx.setDate(req.getDate());
+		LocalDateTime dateTime = csvImportService.getLocalDateTimeByString(req.getDate());
+		
+		if (req.getDate()         != null) tx.setDate(dateTime);
 		if (req.getType()         != null) tx.setType(req.getType());
 		if (req.getQuantity() != null) tx.setQuantity(req.getQuantity());
 		if (req.getQuantityFiat() != null && req.getQuantity() != null) {
@@ -309,6 +312,7 @@ public class DepotRestController {
                 String datum = tx.getDate() != null
                     ? tx.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
                     : "";
+//                String datum = "";
                 String fee          = tx.getFees()         != null ? tx.getFees().toPlainString()         : "";
                 String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
                 String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
@@ -482,7 +486,8 @@ public class DepotRestController {
 
     @lombok.Data
     public static class TransactionUpdateRequest {
-        private java.time.LocalDateTime date;
+//        private java.time.LocalDateTime date;
+    	private String date;
         private TransactionType type;
         private java.math.BigDecimal quantity;
         private java.math.BigDecimal quantityFiat;
