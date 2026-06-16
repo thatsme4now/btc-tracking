@@ -513,8 +513,6 @@ div.dt-container .dt-length select {
     z-index: 1030;
 }
 
-
-
-
-
-
+.table-responsive.no-overflow {
+	overflow-x: hidden;
+}

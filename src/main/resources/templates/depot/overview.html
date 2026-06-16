@@ -24,8 +24,8 @@
         </span>
 	</div>
     <div class="container-fluid px-4">
-        <div class="d-flex align-items-center gap-3">
-            <!-- Live BTC price badge -->
+	    <div class="d-flex align-items-left gap-3">
+	    	<!-- Live BTC price badge -->
             <span class="btc-price-badge" th:if="${btcPrice != null}"
                   onclick="openPriceEdit()"
                   style="cursor:pointer"
@@ -53,7 +53,8 @@
             <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
                 <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="nav.btn.refresh">Refresh</span>
             </button>
-
+	    </div>
+        <div class="ms-auto align-items-center gap-3">
             <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
                 <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
                 <input style="display:none" onclick="openAddTx()"/>
@@ -203,7 +204,7 @@
                     <span class="text-muted ms-2" style="font-size:.75rem"
                           data-i18n="table.wallets.hint">— click a row to show price chart</span>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive no-overflow">
                     <table class="table dataTable depot-table mb-0" id="posTable">
                         <thead>
                         <tr>
@@ -311,7 +312,7 @@
 			    <button class="btn btn-xs depot-btn-outline" onclick="openBulkExRate()">
 			        <i class="bi bi-percent me-1"></i><span data-i18n="table.action.exchange.rate"></span>
 			    </button>
-			    <button class="btn btn-xs depot-btn-icon text-neg ms-auto" onclick="bulkDelete()">
+			    <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			        <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			    </button>
 			</div>	
