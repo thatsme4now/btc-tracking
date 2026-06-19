@@ -53,17 +53,18 @@ public class DepotViewController {
             .map(PositionDTO::getQuantity)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal gainLoss = totalValue.subtract(invested);
+        BigDecimal realized = positions.stream()
+        		.map(PositionDTO::getRealized)
+        		.filter(v -> v != null)
+        		.reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal gainLoss = totalValue.subtract(invested).add(realized);
         BigDecimal performancePct = invested.compareTo(BigDecimal.ZERO) > 0
             ? gainLoss.divide(invested, 4, RoundingMode.HALF_UP)
                       .multiply(BigDecimal.valueOf(100))
                       .setScale(2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
-        BigDecimal realized = positions.stream()
-            .map(PositionDTO::getRealized)
-            .filter(v -> v != null)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalSats = totalBtc.multiply(BigDecimal.valueOf(100_000_000))
             .setScale(0, RoundingMode.HALF_UP);

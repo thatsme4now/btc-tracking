@@ -171,7 +171,7 @@ public class DepotService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal invested = quantity.multiply(avgPurchasePrice).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal invested = totalBuyCost;
 
         PositionDTO dto = new PositionDTO();
         dto.setId(p.getId());
