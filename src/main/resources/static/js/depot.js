@@ -539,7 +539,6 @@ function renderTxTable(data) {
 			if (earning.startsWith("-")) {
 				posNeg = "text-neg";
 			} else {
-				debugger;
 				posNeg = "text-pos";
 			}
 		} else {
@@ -645,7 +644,7 @@ async function openAddTx(tx) {
 
     if (tx !== undefined) {
        document.getElementById('addTxId').value           = '';
-       document.getElementById('addTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
+	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
        document.getElementById('addTxType').value         = tx.type;
        document.getElementById('addTxQty').value          = tx.quantity;
        document.getElementById('addTxQuantityFiat').value = tx.quantityFiat || '';
@@ -661,7 +660,6 @@ async function openAddTx(tx) {
 		document.getElementById('addTxId').value           = '';
 		var now = new Date();
 		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-		//document.getElementById('addTxDate').value = now.toISOString().slice(0,16);
 		if (_fpAdd) _fpAdd.setDate(now, false);
         document.getElementById('addTxType').value         = 'BUY';
         document.getElementById('addTxQty').value          = '';
@@ -686,7 +684,6 @@ async function openEditTx(tx) {
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
     document.getElementById('editTxId').value           = tx.id;
-    //document.getElementById('editTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
 	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
 
     document.getElementById('editTxType').value         = tx.type;
