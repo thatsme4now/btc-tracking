@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `position` (
 
 CREATE TABLE IF NOT EXISTS `transaction` (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id    VARCHAR(36),
     position_id   BIGINT        NOT NULL,
     type          VARCHAR(20)   NOT NULL,
     date          TIMESTAMP     NOT NULL,

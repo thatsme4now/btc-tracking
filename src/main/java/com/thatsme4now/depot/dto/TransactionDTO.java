@@ -1,13 +1,16 @@
 package com.thatsme4now.depot.dto;
 
-import com.thatsme4now.depot.entity.TransactionType;
-import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.thatsme4now.depot.entity.TransactionType;
+
+import lombok.Data;
 
 @Data
 public class TransactionDTO {
     private Long id;
+    private String transactionId;
     private Long positionId;
     private String positionLabel;
     private TransactionType type;

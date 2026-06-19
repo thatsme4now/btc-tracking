@@ -1,19 +1,30 @@
 package com.thatsme4now.depot.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+
 import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.dto.TransactionDTO;
-import com.thatsme4now.depot.entity.*;
-import com.thatsme4now.depot.repository.*;
+import com.thatsme4now.depot.entity.CurrentPrice;
+import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PriceHistory;
+import com.thatsme4now.depot.entity.Transaction;
+import com.thatsme4now.depot.entity.TransactionType;
+import com.thatsme4now.depot.repository.CurrentPriceRepository;
+import com.thatsme4now.depot.repository.PositionRepository;
+import com.thatsme4now.depot.repository.PriceHistoryRepository;
+import com.thatsme4now.depot.repository.TransactionRepository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -135,7 +146,7 @@ public class DepotService {
                 .filter(tx -> tx.getType() == TransactionType.BUY && tx.getPricePerBtc() != null)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-                    if (cp.getCurrency().equals(tx.getCurrency())) {
+                    if (cp != null && cp.getCurrency().equals(tx.getCurrency())) {
                     	return tx.getQuantity().multiply(tx.getPricePerBtc());
                     } else {                    	
                     	return tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
@@ -206,6 +217,7 @@ public class DepotService {
         dto.setComment(tx.getComment());
         dto.setExchangeRate(tx.getExchangeRate());
         dto.setTransferId(tx.getTransferId());
+        dto.setTransactionId(tx.getTransactionId());
 
         if (tx.getQuantityFiat() != null) {
             //BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;

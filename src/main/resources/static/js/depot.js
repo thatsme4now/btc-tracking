@@ -850,9 +850,11 @@ function openMappingModal() {
         { id: 'map_sellCur',      label: I18N.t('csv.import.mapping.sell.currency'),       	required: false },
         { id: 'map_fee',          label: I18N.t('table.col.fees'),                			required: false },
 		{ id: 'map_feeCur',       label: I18N.t('csv.import.mapping.fee.currency'),        	required: false },
-        { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 	required: false },
+        { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
         { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
-    ];
+		{ id: 'map_transactionId',label: I18N.t('modal.field.transaction.id'),            	required: false },
+
+		 ];
 
     const autoMatch = (fieldLabel) => {
         const candidates = [fieldLabel, fieldLabel.toLowerCase(), fieldLabel.toUpperCase()];
@@ -958,6 +960,7 @@ function confirmCsvImport() {
 		feeCur:       document.getElementById('map_feeCur')?.value,
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
+		transactionId:      document.getElementById('map_transactionId')?.value,
     };
 
     const missing = [];
@@ -993,6 +996,7 @@ function confirmCsvImport() {
 			feeCur:       mapping.feeCur  ? (r[mapping.feeCur]  || '').trim() : null,
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
+			transactionId :mapping.transactionId      ? (r[mapping.transactionId]      || '').trim() : null,
         };
     }).filter(Boolean);
 

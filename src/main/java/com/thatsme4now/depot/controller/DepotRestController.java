@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -109,7 +108,7 @@ public class DepotRestController {
                     .setHeader("typ", "date", "exchange",
                                "buyQuantity", "buyCurrency",
                                "sellQuantity", "sellCurrency",
-                               "fee", "feeCurrency", "exchangeRate", "comment")
+                               "fee", "feeCurrency", "exchangeRate", "comment", "transactionId")
                     .setSkipHeaderRecord(true)
                     .setTrim(true)
                     .build()
@@ -128,6 +127,7 @@ public class DepotRestController {
                     r.setFeeCurrency(rec.get("feeCurrency"));
                     r.setExchangeRate(rec.get("exchangeRate"));
                     r.setComment(rec.get("comment"));
+                    r.setTransactionId(rec.get("transactionId"));
                     rows.add(r);
                 }
             }
@@ -158,7 +158,7 @@ public class DepotRestController {
 		}
         Position position = csvImportService.resolvePosition(req.getExchange());
         tx.setPosition(position);
-
+        tx.setTransactionId(UUID.randomUUID().toString());
         // Pairing: wenn TRANSFER_OUT + transferTarget gesetzt → UUID vergeben
         if (tx.getType() == TransactionType.TRANSFER_OUT
                 && req.getTransferTarget() != null
@@ -262,7 +262,8 @@ public class DepotRestController {
                     .setHeader("typ", "date", "exchange",
                                "buyQty", "buyCur",
                                "sellQty", "sellCur",
-                               "fee", "feeCur", "exchangeRate", "comment")
+                               "fee", "feeCur", "exchangeRate", "comment",
+                               "transactionId")
                     .setDelimiter(",")
                     .setQuote('"')
                     .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
@@ -316,10 +317,11 @@ public class DepotRestController {
                 String fee          = tx.getFees()         != null ? tx.getFees().toPlainString()         : "";
                 String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
                 String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
- 
+                String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
+
                 printer.printRecord(typ, datum, tx.getPositionLabel(),
                                     kauf, kaufCur, verkauf, verkCur,
-                                    fee, feeCurrency, exchangeRate, tx.getComment());
+                                    fee, feeCurrency, exchangeRate, tx.getComment(), transactionId);
             }
         }
  
@@ -482,6 +484,7 @@ public class DepotRestController {
         private String feeCurrency;
         private String exchangeRate;
         private String comment;
+        private String transactionId;
     }
 
     @lombok.Data
