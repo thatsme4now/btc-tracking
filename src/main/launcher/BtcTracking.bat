@@ -28,7 +28,7 @@ echo ======================================
 echo.
 
 :: Start Spring Boot in background (new window, hidden after startup)
-start "DepotBitcoin" /min "%JRE%" ^
+start "BtcTracking" /min "%JRE%" ^
     -Xmx256m ^
     -Dfile.encoding=UTF-8 ^
     -jar "%JAR%" ^

@@ -85,7 +85,7 @@ tasks.register('jlink', Exec) {
 tasks.register('portableZip', Zip) {
     dependsOn bootJar, 'jlink'
  
-    archiveFileName = 'BTC-Tracking-portable.zip'
+    archiveFileName = 'BtcTracking-portable.zip'
     destinationDirectory = layout.buildDirectory.dir('dist')
  
     // Bundled minimal JRE
@@ -95,7 +95,7 @@ tasks.register('portableZip', Zip) {
  
     // Application JAR
     from(layout.buildDirectory.dir('libs')) {
-        include 'depot.jar'
+        include 'btc-tracking.jar'
         into 'app'
     }
  
@@ -166,7 +166,7 @@ tasks.register('extractWinJre') {
 tasks.register('portableWinZip', Zip) {
     dependsOn bootJar, 'extractWinJre'
  
-    archiveFileName      = 'BTC-Tracking-portable-win.zip'
+    archiveFileName = 'BtcTracking-portable-win.zip'
     destinationDirectory = layout.buildDirectory.dir('dist')
  
     // JRE – strip the top-level folder name from the zip (jdk-21.0.3+9-jre/)
@@ -188,14 +188,14 @@ tasks.register('portableWinZip', Zip) {
  
     // Application JAR
     from(layout.buildDirectory.dir('libs')) {
-        include 'depot.jar'
+        include 'btc-tracking.jar'
         into 'app'
     }
  
     // Launcher scripts
     from('src/main/launcher') {
-        include '*.bat'
-        include '*.sh'
+        include 'BtcTracking.bat'
+        include 'BtcTracking.sh'
         into '.'
     }
  
@@ -214,12 +214,12 @@ tasks.register('jpackageWin', Exec) {
  
     commandLine jpackage,
         '--type',            'exe',
-        '--name',            'BTC-Tracking',
+        '--name',            'BtcTracking',
         '--app-version',     '1.0.0',
         '--description',     'Bitcoin Portfolio Tracker',
-        '--vendor',          'depot',
-        '--input',           file('build/libs').absolutePath,
-        '--main-jar',        'depot.jar',
+        '--vendor',          'btc-tracking',
+        '--input',    		 file('build/libs').absolutePath,
+		'--main-jar', 		 'btc-tracking.jar',
         '--main-class',      'de.depot.DepotApplication',
         '--dest',            outputDir,
         '--icon',            iconPath,
@@ -228,7 +228,7 @@ tasks.register('jpackageWin', Exec) {
         '--win-per-user-install',
         '--java-options',    '-Xmx256m',
         '--java-options',    '-Dfile.encoding=UTF-8',
-        '--java-options',    '-Ddepot.db=inmemory'
+        '--java-options',    '-Ddepot.db=h2file'
  
     doFirst {
         new File(outputDir).mkdirs()
