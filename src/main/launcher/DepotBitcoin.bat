@@ -40,7 +40,7 @@ timeout /t 5 /nobreak > nul
 
 :: Open default browser
 echo Opening browser...
-start "" "http://localhost:8080/depot"
+start "" "http://localhost:8080/btc-tracking"
 
 echo.
 echo Server is running. Close the DepotBitcoin console window to stop.

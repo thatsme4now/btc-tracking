@@ -33,7 +33,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/depot")
+@RequestMapping("/api/btc-tracking")
 @RequiredArgsConstructor
 public class DepotRestController {
 

@@ -34,7 +34,7 @@ sleep 5
 
 # Open browser
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    open "http://localhost:8080/depot"
+    open "http://localhost:8080/btc-tracking"
 else
     xdg-open "http://localhost:8080/depot" 2>/dev/null || \
     sensible-browser "http://localhost:8080/depot" 2>/dev/null || \

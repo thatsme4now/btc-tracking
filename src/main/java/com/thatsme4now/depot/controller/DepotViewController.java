@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping("/depot")
+@RequestMapping("/btc-tracking")
 @RequiredArgsConstructor
 public class DepotViewController {
 
@@ -29,7 +29,7 @@ public class DepotViewController {
 
     @GetMapping("/")
     public String root() {
-        return "redirect:/depot";
+    	return "redirect:/btc-tracking";
     }
 
     @GetMapping

@@ -45,7 +45,7 @@ public class DatabaseConfig {
     public DataSource dataSource() {
         return switch (dbMode()) {
             case "inmemory" -> DataSourceBuilder.create()
-                .url("jdbc:h2:mem:depot;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=MySQL;NON_KEYWORDS=VALUE")
+                .url("jdbc:h2:mem:btc-tracking;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=MySQL;NON_KEYWORDS=VALUE")
                 .username("sa")
                 .password("")
                 .driverClassName("org.h2.Driver")
@@ -54,7 +54,7 @@ public class DatabaseConfig {
             case "h2file" -> DataSourceBuilder.create()
                 // File stored next to the JAR as depot-data.mv.db
                 // AUTO_SERVER=TRUE allows multiple connections (e.g. external tool)
-                .url("jdbc:h2:file:./depot-data;MODE=MySQL;NON_KEYWORDS=VALUE;AUTO_SERVER=TRUE")
+                .url("jdbc:h2:file:./btc-tracking-data;MODE=MySQL;NON_KEYWORDS=VALUE;AUTO_SERVER=TRUE")
                 .username("sa")
                 .password("")
                 .driverClassName("org.h2.Driver")

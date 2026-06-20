@@ -141,7 +141,7 @@ async function _ensurePositionsLoaded(prefix) {
         _fillExchangeDropdown(sel, _positionsCache);
         return;
     }
-    const data = await fetch('/api/depot/positions').then(r => r.json());
+    const data = await fetch('/api/btc-tracking/positions').then(r => r.json());
     _positionsCache = data;
     _fillExchangeDropdown(sel, data);
 }
@@ -413,7 +413,7 @@ function showHistory() {
     document.getElementById('historyChart').innerHTML =
         `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.loading')}</div>`;
 
-    fetch('/api/depot/history')
+    fetch('/api/btc-tracking/history')
         .then(r => r.json())
         .then(data => {
             if (!data.length) {
@@ -502,7 +502,7 @@ function toggleTransactions() {
 
 async function loadTransactions() {
 	
-    return fetch('/api/depot/transactions')
+    return fetch('/api/btc-tracking/transactions')
         .then(r => r.json())
         .then(data => {
             txLoaded = true;
@@ -625,7 +625,7 @@ function updateRelevantFields() {
 function _loadPositionsDropdown() {
     const sel = document.getElementById('transferTargetSelect');
     if (sel.dataset.loaded) return;
-    fetch('/api/depot/positions')
+    fetch('/api/btc-tracking/positions')
         .then(r => r.json())
         .then(data => {
             sel.innerHTML =
@@ -739,7 +739,7 @@ function saveOrAddTx(isAdd) {
         }
     }
 
-    const url    = isAdd ? '/api/depot/transactions' : '/api/depot/transactions/' + id;
+    const url    = isAdd ? '/api/btc-tracking/transactions' : '/api/btc-tracking/transactions/' + id;
     const method = isAdd ? 'POST' : 'PUT';
     fetch(url, {
         method,
@@ -762,7 +762,7 @@ function saveOrAddTx(isAdd) {
 
 async function removeAll() {
     if (!await showConfirm(t('nav.btn.removeAll'), t('confirm.deleteAll'))) return;
-    fetch('/api/depot/', { method: 'DELETE' })
+    fetch('/api/btc-tracking/', { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
             loadTransactions();
@@ -774,7 +774,7 @@ async function removeAll() {
 
 async function deleteTx(id) {
     if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTx'))) return;
-    fetch('/api/depot/transactions/' + id, { method: 'DELETE' })
+    fetch('/api/btc-tracking/transactions/' + id, { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
             loadTransactions();
@@ -1005,7 +1005,7 @@ function confirmCsvImport() {
     bootstrap.Modal.getInstance(document.getElementById('csvMappingModal'))?.hide();
     showToast('⏳ ' + t('toast.importProgress'), '');
 
-    fetch('/api/depot/import-mapped', {
+    fetch('/api/btc-tracking/import-mapped', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ rows })
@@ -1043,7 +1043,7 @@ async function openPositionModal(id) {
     if (id) {
         titleEl.setAttribute('data-i18n', 'form.position.titleEdit');
         titleEl.textContent = t('form.position.titleEdit');
-        const data = await fetch('/api/depot/positions/' + id).then(r => r.json());
+        const data = await fetch('/api/btc-tracking/positions/' + id).then(r => r.json());
         document.getElementById('positionLabel').value = data.label || '';
         document.getElementById('positionType').value  = data.type  || 'EXCHANGE';
     } else {
@@ -1065,7 +1065,7 @@ function savePosition() {
         return;
     }
 
-    const url    = id ? '/api/depot/positions/' + id : '/api/depot/positions';
+    const url    = id ? '/api/btc-tracking/positions/' + id : '/api/btc-tracking/positions';
     const method = id ? 'PUT' : 'POST';
 
     fetch(url, {
@@ -1105,7 +1105,7 @@ function _doRefreshPrices() {
     btn.disabled = true;
     btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
 
-    fetch('/api/depot/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
+    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
         .then(r => r.json())
         .then(data => {
             const n = data.totalNew || 0;
@@ -1168,7 +1168,7 @@ function savePriceEdit() {
         return;
     }
 	
-    fetch('/api/depot/current-price', {
+    fetch('/api/btc-tracking/current-price', {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ price, currency: CURRENCY.current() })
@@ -1218,7 +1218,7 @@ function confirmEncImport() {
     formData.append('file', file);
     formData.append('password', password);
  
-    fetch('/api/depot/import-enc', { method: 'POST', body: formData })
+    fetch('/api/btc-tracking/import-enc', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
             if (data.error) {
@@ -1250,7 +1250,7 @@ function doExport() {
  
     bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
  
-    fetch('/api/depot/export', {
+    fetch('/api/btc-tracking/export', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ password: pw || null })
@@ -1392,7 +1392,7 @@ async function bulkDelete() {
     if (!ids.length) return;
     if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTxs', { COUNT: ids.length }))) return;
 
-    fetch('/api/depot/transactions/bulk', {
+    fetch('/api/btc-tracking/transactions/bulk', {
         method:  'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(ids)
@@ -1440,7 +1440,7 @@ async function bulkPair() {
                 t('toast.pairing.info.id', { COUNT: existingPaired.length }))) return;
     }
 
-    fetch('/api/depot/transactions/bulk-pair', {
+    fetch('/api/btc-tracking/transactions/bulk-pair', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids })
@@ -1470,7 +1470,7 @@ function openBulkMove() {
             sel.innerHTML += `<option value="${esc(p.label)}">${esc(p.label)}</option>`;
         });
     } else {
-        fetch('/api/depot/positions').then(r => r.json()).then(data => {
+        fetch('/api/btc-tracking/positions').then(r => r.json()).then(data => {
             _positionsCache = data;
             data.forEach(p => {
                 sel.innerHTML += `<option value="${esc(p.label)}">${esc(p.label)}</option>`;
@@ -1495,7 +1495,7 @@ function confirmBulkMove() {
     const ids = _getSelectedIds();
     bootstrap.Modal.getInstance(document.getElementById('bulkMoveModal'))?.hide();
 
-    fetch('/api/depot/transactions/bulk-move', {
+    fetch('/api/btc-tracking/transactions/bulk-move', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids, targetExchange: target })
@@ -1529,7 +1529,7 @@ function confirmBulkExRate() {
     const ids = _getSelectedIds();
     bootstrap.Modal.getInstance(document.getElementById('bulkExRateModal'))?.hide();
 
-    fetch('/api/depot/transactions/bulk-exrate', {
+    fetch('/api/btc-tracking/transactions/bulk-exrate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids, exchangeRate: rate })

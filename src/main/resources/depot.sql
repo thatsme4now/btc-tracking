@@ -2,8 +2,8 @@
 -- Bitcoin Portfolio Schema
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS depot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE depot;
+CREATE DATABASE IF NOT EXISTS `btc-tracking` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `btc-tracking`;
 
 -- position: one row per exchange/wallet
 CREATE TABLE IF NOT EXISTS `position` (

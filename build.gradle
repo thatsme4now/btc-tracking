@@ -54,7 +54,7 @@ jar {
 }
  
 bootJar {
-    archiveFileName = 'depot.jar'
+    archiveFileName = 'btc-tracking.jar'
 }
 
 // ── Portable ZIP: JAR + bundled JRE, no installer needed ────────────────────
