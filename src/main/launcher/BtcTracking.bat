@@ -6,7 +6,7 @@ setlocal
 
 set SCRIPT_DIR=%~dp0
 set JRE=%SCRIPT_DIR%jre\bin\java.exe
-set JAR=%SCRIPT_DIR%app\depot.jar
+set JAR=%SCRIPT_DIR%app\btc-tracking.jar
 
 if not exist "%JRE%" (
     echo ERROR: Bundled JRE not found at %JRE%
@@ -32,7 +32,7 @@ start "BtcTracking" /min "%JRE%" ^
     -Xmx256m ^
     -Dfile.encoding=UTF-8 ^
     -jar "%JAR%" ^
-    --depot.db=inmemory
+    --depot.db=h2file
 
 :: Wait for Spring Boot to initialize (~5 seconds)
 echo Waiting for server to start...

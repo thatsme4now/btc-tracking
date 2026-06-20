@@ -91,7 +91,11 @@ public class CsvImportService {
         
         CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElseGet(null);
         List<CsvRow> reversed = csvRows.reversed();
-        csvRows = assignTransferIds(reversed);
+        try {        	
+        	assignTransferIds(reversed);
+        } catch (Exception e) {
+			// nothing to do. just automatic transfer id assigning failed
+		}
 
         String currency = lastPrice != null && lastPrice.currency != null ? lastPrice.currency.toUpperCase() : "EUR";
         CurrentPrice cp = depotService.getCurrentPrice(currency).orElse(new CurrentPrice());
@@ -202,6 +206,7 @@ public class CsvImportService {
 				break;
 			} catch (Exception e) {
 				// nothing
+				System.out.println();
 			}
 		}
 		return dateTime;
@@ -345,7 +350,7 @@ public class CsvImportService {
 
     // ── Transfer pairing ──────────────────────────────────────────────────────
 
-    private List<CsvRow> assignTransferIds(List<CsvRow> rows) {
+    private void assignTransferIds(List<CsvRow> rows) {
         for (int i = 0; i < rows.size() - 1; i++) {
             CsvRow curr = rows.get(i);
             CsvRow next1 = rows.get(i + 1);
@@ -378,7 +383,6 @@ public class CsvImportService {
             }
             
         }
-        return rows;
     }
 
     // ── Position resolution ───────────────────────────────────────────────────

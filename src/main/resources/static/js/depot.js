@@ -813,22 +813,45 @@ function importCsv(input) {
     }
  
     // Plain CSV: existing PapaParse + column mapping flow
-    Papa.parse(file, {
-        header:         true,
-        skipEmptyLines: true,
-        complete(results) {
-            if (!results.data || results.data.length === 0) {
-                showToast('✗ ' + t('toast.csvEmpty'), 'error');
-                return;
-            }
-            csvImport.rawData = results.data;
-            csvImport.headers = results.meta.fields || [];
-            openMappingModal();
-        },
-        error(err) {
-            showToast('✗ ' + t('toast.csvError') + ': ' + err.message, 'error');
-        }
-    });
+	Papa.parse(file, {
+	    header:         false,   // ← wichtig: kein automatisches Header-Parsing
+	    skipEmptyLines: true,
+	    quoteChar:      '"',
+	    complete(results) {
+	        if (!results.data || results.data.length < 2) {
+	            showToast('✗ ' + t('toast.csvEmpty'), 'error');
+	            return;
+	        }
+
+	        // Erste Zeile = Header, doppelte Namen mit Suffix versehen
+	        const rawHeaders = results.data[0];
+	        const seen = {};
+	        const headers = rawHeaders.map(h => {
+	            const key = h.trim();
+	            if (seen[key] === undefined) {
+	                seen[key] = 0;
+	                return key;
+	            } else {
+	                seen[key]++;
+	                return key + '_' + seen[key];
+	            }
+	        });
+
+	        // Restliche Zeilen als Objekte mappen
+	        const data = results.data.slice(1).map(row => {
+	            const obj = {};
+	            headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+	            return obj;
+	        });
+
+	        csvImport.rawData = data;
+	        csvImport.headers = headers;
+	        openMappingModal();
+	    },
+	    error(err) {
+	        showToast('✗ ' + t('toast.csvError') + ': ' + err.message, 'error');
+	    }
+	});
 }
 
 function openMappingModal() {
@@ -841,10 +864,10 @@ function openMappingModal() {
         { id: 'map_typ',          label: I18N.t('table.col.type'),                			required: true  },
         { id: 'map_date',         label: I18N.t('table.col.date'),               			required: true  },
         { id: 'map_exchange',     label: I18N.t('table.wallets'),           				required: true  },
-        { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: false },
-        { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: false },
-        { id: 'map_sellQty',      label: I18N.t('csv.import.mapping.sell.quantity'),       	required: false },
-        { id: 'map_sellCur',      label: I18N.t('csv.import.mapping.sell.currency'),       	required: false },
+        { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: true },
+        { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: true },
+        { id: 'map_sellQty',      label: I18N.t('csv.import.mapping.sell.quantity'),       	required: true },
+        { id: 'map_sellCur',      label: I18N.t('csv.import.mapping.sell.currency'),       	required: true },
         { id: 'map_fee',          label: I18N.t('table.col.fees'),                			required: false },
 		{ id: 'map_feeCur',       label: I18N.t('csv.import.mapping.fee.currency'),        	required: false },
         { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
