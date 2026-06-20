@@ -88,18 +88,23 @@ public class CsvImportService {
                 log.warn("Skipping mapped row: {}", e.getMessage());
             }
         }
+        
+        CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElseGet(null);
         List<CsvRow> reversed = csvRows.reversed();
         csvRows = assignTransferIds(reversed);
-        CsvRow last = reversed.getLast();
-        
-        String currency = last.currency != null ? last.currency.toUpperCase() : "EUR";
+
+        String currency = lastPrice != null && lastPrice.currency != null ? lastPrice.currency.toUpperCase() : "EUR";
         CurrentPrice cp = depotService.getCurrentPrice(currency).orElse(new CurrentPrice());
         // set price with value from last import
         if (cp.getPrice() == null || cp.getPrice().intValue() == BigDecimal.ZERO.intValue()) {        	
         	cp.setTicker("BTC");
         	cp.setCurrency(currency);
-        	cp.setPrice(last.pricePerBtc);
-        	cp.setPriceDate(last.dateTime != null ? last.dateTime.toLocalDate() : java.time.LocalDate.now());
+        	if(lastPrice != null) {        		
+        		cp.setPrice(lastPrice.pricePerBtc);
+        	} else {
+        		cp.setPrice(new BigDecimal(50000));
+        	}
+        	cp.setPriceDate(lastPrice.dateTime != null ? lastPrice.dateTime.toLocalDate() : java.time.LocalDate.now());
         	cp.setLoadedAt(java.time.LocalDateTime.now());
         	depotService.saveCurrentPrice(cp);
         }
