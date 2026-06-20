@@ -197,103 +197,119 @@
     <div class="row g-3 mb-3">
         <div class="col-lg-8">
             <div class="depot-card h-100">
-                <div class="depot-card-header">
-                    <span data-i18n="table.wallets">Wallets &amp; Exchanges</span>
-                    <span class="text-muted ms-2" style="font-size:.75rem"
-                          data-i18n="table.wallets.hint">— click a row to show price chart</span>
-                </div>
-                <div class="table-responsive no-overflow">
-                	<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
+            	<div class="depot-card-header" style="display:flex;justify-content:space-between;align-items:center">
+				    <span>
+				        <span data-i18n="table.wallets">Wallets &amp; Exchanges</span>
+				        <span class="text-muted ms-2" style="font-size:.75rem"
+				              data-i18n="table.wallets.hint">— click a row to show price chart</span>
+				    </span>
+				    <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('posCardBody', this)">
+				        <i class="bi bi-dash-lg"></i>
+				    </button>
+				</div>
+				<div id="posCardBody">
+	               <div class="table-responsive no-overflow">
+	               	<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
 					     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
 					     <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
 						    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
 						</button>
 					  
 					</div>
-                    <table class="table dataTable depot-table mb-0" id="posTable">
-                        <thead>
-                        <tr>
-                            <th data-i18n="table.col.label">Label</th>
-                             <th data-i18n="table.col.type">Type</th>
-                            <th class="text-end" data-i18n="table.col.btc">BTC</th>
-                            <th class="text-end" data-i18n="table.col.sats">Sats</th>
-                            <th class="text-end" data-i18n="table.col.value">Value</th>
-                            <th class="text-end" data-i18n="table.col.gl">G/L</th>
-                            <th class="text-end" data-i18n="table.col.glPct">G/L %</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody id="posTableBody">
-                        <tr th:each="p : ${positions}"
-                            class="depot-row"
-                            th:data-label="${p.label}"
-                            onclick="filterExchangeTransaction(this.dataset.label)">
-
-                            <td th:text="${p.label}" class="fw-medium"></td>
-                            <td th:if="${p.type.name == 'EXCHANGE'}" data-i18n="form.position.type.exchange" class="fw-medium"></td>
-                            <td th:if="${p.type.name == 'WALLET'}" data-i18n="form.position.type.wallet" class="fw-medium"></td>
-                            
-                            <td class="text-end"
-                                th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
-                            <td class="text-end text-muted"
-                                th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
-                            <td class="text-end fw-medium"
-                                th:if="${p.totalValue != null}"
-                                >
-                                <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
-                                <span class="currency-symbol"></span>
-                            </td>
-                            <td class="text-end text-muted" th:if="${p.totalValue == null}">–</td>
-                            <td class="text-end"
-                                th:if="${p.gainLoss != null}"
-                                th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
-                            	<span th:text="${(p.gainLoss >= 0 ? '+' : '') +
-                                           #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
-                                <span class="currency-symbol"></span>               
-                            </td>
-                            <td class="text-end text-muted" th:if="${p.gainLoss == null}">–</td>
-                            <td class="text-end"
-                                th:if="${p.performancePct != null}"
-                                th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
-                                th:text="${(p.performancePct >= 0 ? '+' : '') +
-                                           #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
-                            <td class="text-end text-muted" th:if="${p.performancePct == null}">–</td>
-                            <td class="text-end depot-actions" onclick="event.stopPropagation()">
-                               <button class="btn btn-xs depot-btn-icon"
-                              		th:data-id="${p.id}"
+	                   <table class="table dataTable depot-table mb-0" id="posTable">
+	                       <thead>
+	                       <tr>
+	                           <th data-i18n="table.col.label">Label</th>
+	                            <th data-i18n="table.col.type">Type</th>
+	                           <th class="text-end" data-i18n="table.col.btc">BTC</th>
+	                           <th class="text-end" data-i18n="table.col.sats">Sats</th>
+	                           <th class="text-end" data-i18n="table.col.value">Value</th>
+	                           <th class="text-end" data-i18n="table.col.gl">G/L</th>
+	                           <th class="text-end" data-i18n="table.col.glPct">G/L %</th>
+	                           <th></th>
+	                       </tr>
+	                       </thead>
+	                       <tbody id="posTableBody">
+	                       <tr th:each="p : ${positions}"
+	                           class="depot-row"
+	                           th:data-label="${p.label}"
+	                           onclick="filterExchangeTransaction(this.dataset.label)">
+	
+	                           <td th:text="${p.label}" class="fw-medium"></td>
+	                           <td th:if="${p.type.name == 'EXCHANGE'}" data-i18n="form.position.type.exchange" class="fw-medium"></td>
+	                           <td th:if="${p.type.name == 'WALLET'}" data-i18n="form.position.type.wallet" class="fw-medium"></td>
+	                           
+	                           <td class="text-end"
+	                               th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
+	                           <td class="text-end text-muted"
+	                               th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
+	                           <td class="text-end fw-medium"
+	                               th:if="${p.totalValue != null}"
+	                               >
+	                               <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
+	                               <span class="currency-symbol"></span>
+	                           </td>
+	                           <td class="text-end text-muted" th:if="${p.totalValue == null}">–</td>
+	                           <td class="text-end"
+	                               th:if="${p.gainLoss != null}"
+	                               th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
+	                           	<span th:text="${(p.gainLoss >= 0 ? '+' : '') +
+	                                          #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
+	                               <span class="currency-symbol"></span>               
+	                           </td>
+	                           <td class="text-end text-muted" th:if="${p.gainLoss == null}">–</td>
+	                           <td class="text-end"
+	                               th:if="${p.performancePct != null}"
+	                               th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
+	                               th:text="${(p.performancePct >= 0 ? '+' : '') +
+	                                          #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
+	                           <td class="text-end text-muted" th:if="${p.performancePct == null}">–</td>
+	                           <td class="text-end depot-actions" onclick="event.stopPropagation()">
+	                              <button class="btn btn-xs depot-btn-icon"
+	                             		th:data-id="${p.id}"
 							        onclick="event.stopPropagation(); openPositionModal(this.dataset.id)"
 							        title="Edit">
 								    <i class="bi bi-pencil"></i>
 								</button>
-                                <a th:href="@{/depot/delete/{id}(id=${p.id})}"
+	                               <a th:href="@{/depot/delete/{id}(id=${p.id})}"
 								   th:data-id="${p.id}"
 								   class="btn btn-xs depot-btn-icon text-neg"
 								   title="Delete"
 								   onclick="event.preventDefault(); confirmDeletePosition(this.dataset.id)">
 								    <i class="bi bi-trash"></i>
 								</a>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(positions)}">
-                            <td></td><td></td><td></td><td class="text-center text-muted py-4">
-                                <span data-i18n="table.empty">No positions yet.</span>
-                                <a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
-                            </td><td></td><td></td><td></td><td></td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+	                           </td>
+	                       </tr>
+	                       <tr th:if="${#lists.isEmpty(positions)}">
+	                           <td></td><td></td><td></td><td class="text-center text-muted py-4">
+	                               <span data-i18n="table.empty">No positions yet.</span>
+	                               <a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
+	                           </td><td></td><td></td><td></td><td></td>
+	                       </tr>
+	                       </tbody>
+	                   </table>
+	               </div>
+            	</div>
             </div>
         </div>
-
+      
         <!-- Allocation Donut -->
         <div class="col-lg-4">
             <div class="depot-card h-100">
-                <div class="depot-card-header" data-i18n="chart.allocation">Allocation by Wallet / Exchange</div>
-                <div id="donutChart"></div>
+                <div class="depot-card-header" style="display:flex;justify-content:space-between;align-items:center">
+				    <span data-i18n="chart.allocation">Allocation by Wallet / Exchange</span>
+				    <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('donutCardBody', this)">
+				        <i class="bi bi-dash-lg"></i>
+				    </button>
+				</div>
+				<div id="donutCardBody">
+                	<div id="donutChart"></div>
+                </div>
             </div>
-        </div>
-    </div>
+		</div>
+            </div>
+
+
 
     <!-- Transactions Panel -->
     <div id="transactionsPanel" class="depot-card mb-3 d-none">

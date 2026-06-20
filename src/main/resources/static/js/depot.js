@@ -1317,6 +1317,20 @@ function _updateBulkToolbar() {
     }
 }
 
+function toggleCard(bodyId, btn) {
+    const ids = ['posCardBody', 'donutCardBody'];
+    const body = document.getElementById(ids[0]);
+    const collapsed = !body.classList.contains('d-none');
+    
+    ids.forEach(id => {
+        document.getElementById(id).classList.toggle('d-none', collapsed);
+    });
+    
+    document.querySelectorAll('.card-toggle-btn i').forEach(icon => {
+        icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+    });
+}
+
 function toggleSelectAll(cb) {
     document.querySelectorAll('.tx-row-check')
         .forEach(el => { el.checked = cb.checked; });

@@ -565,9 +565,10 @@ div.dt-container .dt-length select {
     z-index: 1030;
 }
 
-/* .table-responsive.no-overflow { */
-/* 	overflow-x: hidden; */
-/* } */
+input#dt-search-0,
+input#dt-search-1 {
+	margin-right: 5px;			
+}
 
 #posTable_wrapper {
     max-height: 30vh;
@@ -575,32 +576,37 @@ div.dt-container .dt-length select {
     overflow-x: hidden;
 }
 
-input#dt-search-0,
-input#dt-search-1 {
-	margin-right: 5px;			
+#txTable_wrapper {
+    max-height: 55vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-#posTable_wrapper {
+#posTable_wrapper, 
+#txTable_wrapper {
     scrollbar-color: var(--border) var(--bg-card);
     scrollbar-width: thin;
 }
 
-#posTable_wrapper::-webkit-scrollbar {
+#posTable_wrapper::-webkit-scrollbar, 
+#txTable_wrapper::-webkit-scrollbar {
     width: 6px;
 }
 
-#posTable_wrapper::-webkit-scrollbar-track {
+#posTable_wrapper::-webkit-scrollbar-track, 
+#txTable_wrapper::-webkit-scrollbar {
     background: var(--bg-card);
 }
 
-#posTable_wrapper::-webkit-scrollbar-thumb {
+#posTable_wrapper::-webkit-scrollbar-thumb, 
+#txTable_wrapper::-webkit-scrollbar {
     background: var(--border);
     border-radius: 3px;
 }
 
-#posTable_wrapper::-webkit-scrollbar-thumb:hover {
+#posTable_wrapper::-webkit-scrollbar-thumb:hover, 
+#txTable_wrapper::-webkit-scrollbar {
     background: var(--text-muted);
 }
-
 
     
