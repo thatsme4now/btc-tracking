@@ -135,5 +135,14 @@
   "modal.settings.font": "Fuente",
   "modal.offline.title": "Modo sin conexión",
   "modal.offline.body": "El modo sin conexión está activo. ¿Obtener el precio actual de internet de todas formas?",
-  "modal.offline.confirm": "Obtener de todas formas"
+  "modal.offline.confirm": "Obtener de todas formas",
+  "csv.import.mapping.buy.quantity": "Importe de compra",
+  "csv.import.mapping.buy.currency": "Moneda de compra",
+  "csv.import.mapping.sell.quantity": "Importe de venta",
+  "csv.import.mapping.sell.currency": "Moneda de venta",
+  "csv.import.mapping.fee.currency": "Moneda de comisión",
+  "csv.import.mapping.fee.exchange.rate": "Tipo de cambio para visualización (Opcional)",
+  "table.col.profit": "Ganancia/Pérdida",
+  "modal.field.transaction.id": "ID de transacción",
+  "modal.ok": "Aceptar"
 }

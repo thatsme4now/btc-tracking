@@ -565,6 +565,42 @@ div.dt-container .dt-length select {
     z-index: 1030;
 }
 
-.table-responsive.no-overflow {
-	overflow-x: hidden;
+/* .table-responsive.no-overflow { */
+/* 	overflow-x: hidden; */
+/* } */
+
+#posTable_wrapper {
+    max-height: 30vh;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
+
+input#dt-search-0,
+input#dt-search-1 {
+	margin-right: 5px;			
+}
+
+#posTable_wrapper {
+    scrollbar-color: var(--border) var(--bg-card);
+    scrollbar-width: thin;
+}
+
+#posTable_wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+#posTable_wrapper::-webkit-scrollbar-track {
+    background: var(--bg-card);
+}
+
+#posTable_wrapper::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+#posTable_wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+
+    

@@ -135,5 +135,14 @@
   "modal.settings.font": "แบบอักษร",
   "modal.offline.title": "โหมดออฟไลน์",
   "modal.offline.body": "โหมดออฟไลน์เปิดอยู่ ต้องการดึงราคาจากอินเทอร์เน็ตอยู่ดีหรือไม่?",
-  "modal.offline.confirm": "ดึงข้อมูลต่อไป"
+  "modal.offline.confirm": "ดึงข้อมูลต่อไป",
+  "csv.import.mapping.buy.quantity": "มูลค่าซื้อ",
+  "csv.import.mapping.buy.currency": "สกุลเงินซื้อ",
+  "csv.import.mapping.sell.quantity": "มูลค่าขาย",
+  "csv.import.mapping.sell.currency": "สกุลเงินขาย",
+  "csv.import.mapping.fee.currency": "สกุลเงินค่าธรรมเนียม",
+  "csv.import.mapping.fee.exchange.rate": "อัตราแลกเปลี่ยนแสดงผล (ไม่บังคับ)",
+  "table.col.profit": "กำไร/ขาดทุน",
+  "modal.field.transaction.id": "รหัสธุรกรรม",
+  "modal.ok": "ตกลง"
 }

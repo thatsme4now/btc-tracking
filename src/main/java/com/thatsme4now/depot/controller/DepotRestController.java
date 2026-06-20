@@ -127,7 +127,12 @@ public class DepotRestController {
                     r.setFeeCurrency(rec.get("feeCurrency"));
                     r.setExchangeRate(rec.get("exchangeRate"));
                     r.setComment(rec.get("comment"));
-                    r.setTransactionId(rec.get("transactionId"));
+                    try {                    	
+                    	r.setTransactionId(rec.get("transactionId"));
+                    } catch (Exception e) {
+						// does not exists
+                    	r.setTransactionId(UUID.randomUUID().toString());
+					}
                     rows.add(r);
                 }
             }

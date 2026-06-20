@@ -76,11 +76,7 @@
             <!-- CSV Export -->
             <button class="btn depot-btn-outline" onclick="openExportModal()">
 	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	        </button>
-            <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
-			    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
-			</button>
-            
+	        </button>  
         </div>
         <div class="ms-auto d-flex align-items-right gap-3">
   
@@ -134,18 +130,38 @@
         </div>
         <div class="col-3">
             <div class="depot-card depot-card-metric">
-                <div class="metric-label" data-i18n="metric.totalSats">Total Sats</div>
-                <div class="metric-value sats-value"
-                     th:text="${#numbers.formatInteger(totalSats, 1, 'POINT')}">–</div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
                 <div class="metric-value">
                      <span th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA')}">–</span>
                      <span class="currency-symbol"></span>         
                 </div>
+            </div>
+        </div>
+         <div class="col-3">
+            <div class="depot-card depot-card-metric">
+                <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
+                <div class="metric-value"
+                     th:classappend="${gainLoss >= 0} ? 'text-pos' : 'text-neg'">
+                 	<span th:text="${(gainLoss >= 0 ? '+' : '') +
+                                #numbers.formatDecimal(gainLoss, 1, 'POINT', 2, 'COMMA')}">–</span>
+                    <span class="currency-symbol"></span>                  
+                 </div>
+            </div>
+        </div>
+         <div class="col-3">
+            <div class="depot-card depot-card-metric">
+                <div class="metric-label" data-i18n="metric.performance">Performance</div>
+                <div class="metric-value"
+                     th:classappend="${performancePct >= 0} ? 'text-pos' : 'text-neg'"
+                     th:text="${(performancePct >= 0 ? '+' : '') +
+                                #numbers.formatDecimal(performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}">–</div>
+            </div>
+        </div>
+         <div class="col-3">
+            <div class="depot-card depot-card-metric">
+                <div class="metric-label" data-i18n="metric.totalSats">Total Sats</div>
+                <div class="metric-value sats-value"
+                     th:text="${#numbers.formatInteger(totalSats, 1, 'POINT')}">–</div>
             </div>
         </div>
         <div class="col-3">
@@ -158,41 +174,21 @@
             </div>
         </div>
         <div class="col-3">
-            <div class="depot-card depot-card-metric" style="cursor:pointer" onclick="toggleTransactions()">
-                <div class="metric-label">
-                    <span data-i18n="metric.transactions">Transactions</span>
-                    <i class="bi bi-chevron-down" id="txChevron" style="font-size:.6rem"></i>
-                </div>
-                <div class="metric-value" th:text="${transactionCount}">–</div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="depot-card depot-card-metric">
-                <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
-                <div class="metric-value"
-                     th:classappend="${gainLoss >= 0} ? 'text-pos' : 'text-neg'">
-                 	<span th:text="${(gainLoss >= 0 ? '+' : '') +
-                                #numbers.formatDecimal(gainLoss, 1, 'POINT', 2, 'COMMA')}">–</span>
-                    <span class="currency-symbol"></span>                  
-                 </div>
-            </div>
-        </div>
-        <div class="col-3">
-            <div class="depot-card depot-card-metric">
-                <div class="metric-label" data-i18n="metric.performance">Performance</div>
-                <div class="metric-value"
-                     th:classappend="${performancePct >= 0} ? 'text-pos' : 'text-neg'"
-                     th:text="${(performancePct >= 0 ? '+' : '') +
-                                #numbers.formatDecimal(performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}">–</div>
-            </div>
-        </div>
-        <div class="col-3">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.realized">Realized</div>
                 <div class="metric-value">
                 	<span th:text="${#numbers.formatDecimal(realized, 1, 'POINT', 2, 'COMMA')}">–</span>
                     <span class="currency-symbol"></span>                   
                 </div>
+            </div>
+        </div>
+        <div class="col-3">
+            <div class="depot-card depot-card-metric" style="cursor:pointer" onclick="toggleTransactions()">
+                <div class="metric-label">
+                    <span data-i18n="metric.transactions">Transactions</span>
+                    <i class="bi bi-chevron-down" id="txChevron" style="font-size:.6rem"></i>
+                </div>
+                <div class="metric-value" th:text="${transactionCount}">–</div>
             </div>
         </div>
     </div>
@@ -207,6 +203,13 @@
                           data-i18n="table.wallets.hint">— click a row to show price chart</span>
                 </div>
                 <div class="table-responsive no-overflow">
+                	<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
+					     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
+					     <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
+						    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
+						</button>
+					  
+					</div>
                     <table class="table dataTable depot-table mb-0" id="posTable">
                         <thead>
                         <tr>
@@ -274,7 +277,7 @@
                         <tr th:if="${#lists.isEmpty(positions)}">
                             <td></td><td></td><td></td><td class="text-center text-muted py-4">
                                 <span data-i18n="table.empty">No positions yet.</span>
-                                <a th:href="@{/depot/new}" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
+                                <a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
                             </td><td></td><td></td><td></td><td></td>
                         </tr>
                         </tbody>
@@ -847,7 +850,7 @@
 	            </div>
 	            <div class="modal-footer" style="border-top:1px solid var(--border)">
 	                <button class="btn depot-btn-primary" id="confirmModalOk">
-	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.save">OK</span>
+	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">OK</span>
 	                </button>
 	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
 	            </div>

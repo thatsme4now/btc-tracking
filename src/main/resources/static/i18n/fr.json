@@ -135,5 +135,14 @@
   "modal.settings.font": "Police",
   "modal.offline.title": "Mode hors ligne",
   "modal.offline.body": "Le mode hors ligne est actif. Récupérer quand même le prix actuel depuis internet ?",
-  "modal.offline.confirm": "Récupérer quand même"
+  "modal.offline.confirm": "Récupérer quand même",
+  "csv.import.mapping.buy.quantity": "Montant achat",
+  "csv.import.mapping.buy.currency": "Devise achat",
+  "csv.import.mapping.sell.quantity": "Montant vente",
+  "csv.import.mapping.sell.currency": "Devise vente",
+  "csv.import.mapping.fee.currency": "Devise frais",
+  "csv.import.mapping.fee.exchange.rate": "Taux de change affichage (Optionnel)",
+  "table.col.profit": "Profit/Perte",
+  "modal.field.transaction.id": "ID transaction",
+  "modal.ok": "OK"
 }

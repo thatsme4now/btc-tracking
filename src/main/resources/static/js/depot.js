@@ -222,7 +222,7 @@ I18N.ready.then(() => {
         order:      [[2, 'desc']],
         pageLength: 100,
 		paging:     false,
-		searching:  false, 
+		searching:  true, 
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -1188,13 +1188,17 @@ function savePriceEdit() {
 }
 
 function _importEnc(file) {
-    // Show password modal, store file reference
     window._pendingEncFile = file;
-    const modal = bootstrap.Modal.getInstance(document.getElementById('encPasswordModal'))
-        || new bootstrap.Modal(document.getElementById('encPasswordModal'));
+    const modalEl = document.getElementById('encPasswordModal');
+    const modal = bootstrap.Modal.getInstance(modalEl)
+        || new bootstrap.Modal(modalEl);
     document.getElementById('encImportPassword').value = '';
+    
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById('encImportPassword').focus();
+    }, { once: true });
+    
     modal.show();
-    setTimeout(() => document.getElementById('encImportPassword').focus(), 400);
 }
  
 function confirmEncImport() {

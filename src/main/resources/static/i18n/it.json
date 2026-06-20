@@ -135,5 +135,14 @@
   "modal.settings.font": "Carattere",
   "modal.offline.title": "Modalità offline",
   "modal.offline.body": "La modalità offline è attiva. Recuperare comunque il prezzo attuale da internet?",
-  "modal.offline.confirm": "Recupera comunque"
+  "modal.offline.confirm": "Recupera comunque",
+  "csv.import.mapping.buy.quantity": "Importo acquisto",
+  "csv.import.mapping.buy.currency": "Valuta acquisto",
+  "csv.import.mapping.sell.quantity": "Importo vendita",
+  "csv.import.mapping.sell.currency": "Valuta vendita",
+  "csv.import.mapping.fee.currency": "Valuta commissione",
+  "csv.import.mapping.fee.exchange.rate": "Tasso di cambio visualizzazione (Opzionale)",
+  "table.col.profit": "Profitto/Perdita",
+  "modal.field.transaction.id": "ID transazione",
+  "modal.ok": "OK"
 }
