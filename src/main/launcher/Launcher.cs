@@ -30,8 +30,5 @@ class Launcher {
         p.Start();
 
         Thread.Sleep(5000);
-        Process.Start(new ProcessStartInfo("http://localhost:8080/btc-tracking") {
-            UseShellExecute = true
-        });
     }
 }
