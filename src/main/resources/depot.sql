@@ -2,8 +2,8 @@
 -- Bitcoin Portfolio Schema
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS depot CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE depot;
+CREATE DATABASE IF NOT EXISTS `btc-tracking` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `btc-tracking`;
 
 -- position: one row per exchange/wallet
 CREATE TABLE IF NOT EXISTS `position` (
@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `position` (
 -- 2. Neue Tabelle: transaction
 CREATE TABLE IF NOT EXISTS transaction (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id    VARCHAR(36),
     position_id   BIGINT        NOT NULL,
     type          VARCHAR(20)   NOT NULL COMMENT 'BUY, SELL, TRANSFER_IN, TRANSFER_OUT',
     date          DATETIME          NOT NULL,
@@ -33,7 +34,6 @@ CREATE TABLE IF NOT EXISTS transaction (
     created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tx_position FOREIGN KEY (position_id) REFERENCES `position`(id) ON DELETE CASCADE,
     INDEX idx_tx_position (position_id),
-    INDEX idx_tx_date     (date),
     INDEX idx_tx_transfer (transfer_id)
 ) ENGINE=InnoDB;
 

@@ -6,7 +6,7 @@ setlocal
 
 set SCRIPT_DIR=%~dp0
 set JRE=%SCRIPT_DIR%jre\bin\java.exe
-set JAR=%SCRIPT_DIR%app\depot.jar
+set JAR=%SCRIPT_DIR%app\btc-tracking.jar
 
 if not exist "%JRE%" (
     echo ERROR: Bundled JRE not found at %JRE%
@@ -28,11 +28,11 @@ echo ======================================
 echo.
 
 :: Start Spring Boot in background (new window, hidden after startup)
-start "DepotBitcoin" /min "%JRE%" ^
+start "BtcTracking" /min "%JRE%" ^
     -Xmx256m ^
     -Dfile.encoding=UTF-8 ^
     -jar "%JAR%" ^
-    --depot.db=inmemory
+    --depot.db=h2file
 
 :: Wait for Spring Boot to initialize (~5 seconds)
 echo Waiting for server to start...
@@ -40,7 +40,7 @@ timeout /t 5 /nobreak > nul
 
 :: Open default browser
 echo Opening browser...
-start "" "http://localhost:8080/depot"
+start "" "http://localhost:8080/btc-tracking"
 
 echo.
 echo Server is running. Close the DepotBitcoin console window to stop.

@@ -1,4 +1,5 @@
 {
+  "nav.btn.density": "Text size",
   "nav.brand": "BITCOIN PORTFOLIO",
   "nav.btn.refresh": "Refresh",
   "nav.btn.addTransaction": "Add Transaction",
@@ -32,7 +33,7 @@
   "table.col.type": "Type",
   "table.col.pricePerBtc": "Price/BTC",
   "table.col.fees": "Fees",
-  "table.col.totalEur": "Total EUR",
+  "table.col.total": "Total",
   "table.col.transferId": "Transfer ID",
   "table.action.pair.transfer": "Pair Transfers",
   "table.action.move.position": "Change wallet or exchange",
@@ -116,22 +117,37 @@
   "currency.no_price": "No {currency} price available — please click Refresh.",
   "toast.currencyChanged": "Currency changed to {currency} — reloading…",
   "toast.deleteTxs.success": "{COUNT} transaction(s) deleted", 
-  
   "toast.move.position.missing.target" : "Select exchange or wallet as target",
   "toast.move.position.success" : "{COUNT} transaction(s) moved to {TARGET}",
-  
   "toast.exchange.rate.invalid" : "Invalid exchange rate",
   "toast.exchange.rate.success" : "Exchange rate updated for {COUNT} transaction(s)",
-
   "toast.pairing.error.uneven" : "Select an even number of transactions (2, 4, ...)",
   "toast.pairing.error.type.wrong" : "Only transactions of type TRANSFER_IN and TRANSFER_OUT are allowed.",
   "toast.pairing.error.type.unequal" : "Count of TRANSFER_IN({IN}) and TRANSFER_OUT({OUT}) are not equal.",
   "toast.pairing.info.id" : "{COUNT} transaction(s) already have a Transfer ID. Overwrite?",
   "toast.pairing.success" : "{COUNT} transactions paired",
-  
-  
   "offline.blocked": "Offline mode active – internet access disabled",
   "offline.priceLocalOnly": "Price updated locally (offline mode – not saved to DB)",
   "nav.btn.offline.on": "Offline mode ON",
-  "nav.btn.offline.off": "Online mode – click to go offline"
+  "nav.btn.offline.off": "Online mode – click to go offline",
+  "sats.modal.title": "Send some Sats",
+  "sats.modal.text": "If you find this app useful, feel free to send a few sats!",
+  "modal.settings.font": "Font",
+  "modal.offline.title": "Offline Mode",
+  "modal.offline.body": "Offline mode is active. Fetch current price from internet anyway?",
+  "modal.offline.confirm": "Fetch anyway",
+  "csv.import.mapping.buy.quantity": "Buy Amount",
+  "csv.import.mapping.buy.currency": "Buy Currency",
+  "csv.import.mapping.sell.quantity": "Sell Amount",
+  "csv.import.mapping.sell.currency": "Sell Currency",
+  "csv.import.mapping.fee.currency": "Fee Currency",
+  "csv.import.mapping.fee.exchange.rate": "Exchange Rate to Display (Optional)",
+  "table.col.profit": "Profit/Loss",
+  "modal.field.transaction.id": "Transaction ID",
+  "modal.ok": "OK",
+  "legend.warn.currency": "Foreign currency without exchange rate",
+  "legend.warn.duplicate": "Possible duplicate",
+  "table.action.clear.duplicate": "Not a duplicate",
+  "toast.importDuplicates": "{COUNT} possible duplicate(s) marked",
+  "toast.import.transaction.already": "{COUNT} entries ignored, internal ID already exists."
 }

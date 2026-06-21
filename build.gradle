@@ -54,7 +54,7 @@ jar {
 }
  
 bootJar {
-    archiveFileName = 'depot.jar'
+    archiveFileName = 'btc-tracking.jar'
 }
 
 // ── Portable ZIP: JAR + bundled JRE, no installer needed ────────────────────
@@ -85,7 +85,7 @@ tasks.register('jlink', Exec) {
 tasks.register('portableZip', Zip) {
     dependsOn bootJar, 'jlink'
  
-    archiveFileName = 'DepotBitcoin-portable.zip'
+    archiveFileName = 'BtcTracking-portable.zip'
     destinationDirectory = layout.buildDirectory.dir('dist')
  
     // Bundled minimal JRE
@@ -95,7 +95,7 @@ tasks.register('portableZip', Zip) {
  
     // Application JAR
     from(layout.buildDirectory.dir('libs')) {
-        include 'depot.jar'
+        include 'btc-tracking.jar'
         into 'app'
     }
  
@@ -106,28 +106,28 @@ tasks.register('portableZip', Zip) {
     }
  
     doLast {
-        println "Portable ZIP: build/dist/DepotBitcoin-portable.zip"
+        println "Portable ZIP: build/dist/BTC-Tracking-portable.zip"
     }
 }
 
 
-// ── Portable Windows ZIP ─────────────────────────────────────────────────────
-// Downloads a pre-built Windows x64 JRE from Adoptium (Temurin 21)
-// and packages it together with depot.jar + launcher scripts.
-// Run with: ./gradlew portableWinZip
-// Result:   build/dist/DepotBitcoin-portable-win.zip  (~90 MB)
+// ── Portable Windows ZIP mit nativem .exe Launcher ──────────────────────────
+// Voraussetzungen (nur auf Windows Build-Maschine nötig):
+//   - .NET Framework 4.x (csc.exe) – auf jedem modernen Windows vorhanden
+// Ausführen mit: gradlew.bat portableWinZip
+// Output: build/dist/BtcTracking-portable-win.zip
 // ---------------------------------------------------------------------------
- 
-def jreVersion    = '21.0.3+9'
-def jreVersionShort = '21.0.3_9'  // used in Adoptium filename
-def adoptiumUrl   = "https://github.com/adoptium/temurin21-binaries/releases/download/" +
-                    "jdk-${jreVersion}/OpenJDK21U-jre_x64_windows_hotspot_${jreVersionShort}.zip"
-def jreZipFile    = layout.buildDirectory.file("tmp/jre-win.zip").get().asFile
-def jreExtractDir = layout.buildDirectory.dir("tmp/jre-win").get().asFile
- 
+
+def jreVersion      = '21.0.3+9'
+def jreVersionShort = '21.0.3_9'
+def adoptiumUrl     = "https://github.com/adoptium/temurin21-binaries/releases/download/" +
+                      "jdk-${jreVersion}/OpenJDK21U-jre_x64_windows_hotspot_${jreVersionShort}.zip"
+def jreZipFile      = layout.buildDirectory.file("tmp/jre-win.zip").get().asFile
+def jreExtractDir   = layout.buildDirectory.dir("tmp/jre-win").get().asFile
+
 tasks.register('downloadWinJre') {
     outputs.file jreZipFile
- 
+
     doLast {
         if (jreZipFile.exists()) {
             println "Windows JRE already downloaded: ${jreZipFile}"
@@ -135,22 +135,18 @@ tasks.register('downloadWinJre') {
         }
         jreZipFile.parentFile.mkdirs()
         println "Downloading Windows JRE from Adoptium..."
-        println "URL: ${adoptiumUrl}"
- 
         new URL(adoptiumUrl).withInputStream { is ->
-            jreZipFile.withOutputStream { os ->
-                os << is
-            }
+            jreZipFile.withOutputStream { os -> os << is }
         }
         println "Downloaded: ${jreZipFile} (${jreZipFile.length() / 1024 / 1024} MB)"
     }
 }
- 
+
 tasks.register('extractWinJre') {
     dependsOn 'downloadWinJre'
     inputs.file  jreZipFile
     outputs.dir  jreExtractDir
- 
+
     doLast {
         if (jreExtractDir.exists()) jreExtractDir.deleteDir()
         jreExtractDir.mkdirs()
@@ -159,20 +155,38 @@ tasks.register('extractWinJre') {
             from zipTree(jreZipFile)
             into jreExtractDir
         }
-        println "Extracted to: ${jreExtractDir}"
     }
 }
- 
+
+tasks.register('compileLauncher', Exec) {
+    // csc.exe ist Teil von .NET Framework 4.x – auf jedem Windows vorhanden
+    def csc     = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe"
+    def srcFile = file('src/main/launcher/Launcher.cs').absolutePath
+    def outDir  = layout.buildDirectory.dir('launcher').get().asFile
+    def outFile = new File(outDir, 'BtcTracking.exe')
+
+    doFirst {
+        outDir.mkdirs()
+        println "Compiling launcher EXE..."
+    }
+
+    commandLine csc,
+        '/nologo',
+        '/optimize',
+        '/target:winexe',
+        '/reference:System.Windows.Forms.dll',
+        "/out:${outFile.absolutePath}",
+        srcFile
+}
+
 tasks.register('portableWinZip', Zip) {
-    dependsOn bootJar, 'extractWinJre'
- 
-    archiveFileName      = 'DepotBitcoin-portable-win.zip'
+    dependsOn bootJar, 'extractWinJre', 'compileLauncher'
+
+    archiveFileName      = 'BtcTracking-portable-win.zip'
     destinationDirectory = layout.buildDirectory.dir('dist')
- 
-    // JRE – strip the top-level folder name from the zip (jdk-21.0.3+9-jre/)
+
+    // Bundled JRE – Adoptium Top-Level-Ordner auf 'jre' umbenennen
     from(jreExtractDir) {
-        // Adoptium zip has one top-level dir like "jdk-21.0.3+9-jre"
-        // we rename it to "jre" inside our zip
         eachFile { details ->
             def parts = details.relativePath.segments
             if (parts.length > 0) {
@@ -185,22 +199,21 @@ tasks.register('portableWinZip', Zip) {
         includeEmptyDirs = false
         into '.'
     }
- 
+
     // Application JAR
     from(layout.buildDirectory.dir('libs')) {
         include 'depot.jar'
         into 'app'
     }
- 
-    // Launcher scripts
-    from('src/main/launcher') {
-        include '*.bat'
-        include '*.sh'
+
+    // Nativer EXE Launcher
+    from(layout.buildDirectory.dir('launcher')) {
+        include 'BtcTracking.exe'
         into '.'
     }
- 
+
     doLast {
-        println "Windows portable ZIP: build/dist/DepotBitcoin-portable-win.zip"
+        println "Windows portable ZIP: build/dist/BtcTracking-portable-win.zip"
     }
 }
  
@@ -214,12 +227,12 @@ tasks.register('jpackageWin', Exec) {
  
     commandLine jpackage,
         '--type',            'exe',
-        '--name',            'DepotBitcoin',
+        '--name',            'BtcTracking',
         '--app-version',     '1.0.0',
         '--description',     'Bitcoin Portfolio Tracker',
-        '--vendor',          'depot',
-        '--input',           file('build/libs').absolutePath,
-        '--main-jar',        'depot.jar',
+        '--vendor',          'btc-tracking',
+        '--input',    		 file('build/libs').absolutePath,
+		'--main-jar', 		 'btc-tracking.jar',
         '--main-class',      'de.depot.DepotApplication',
         '--dest',            outputDir,
         '--icon',            iconPath,
@@ -228,7 +241,7 @@ tasks.register('jpackageWin', Exec) {
         '--win-per-user-install',
         '--java-options',    '-Xmx256m',
         '--java-options',    '-Dfile.encoding=UTF-8',
-        '--java-options',    '-Ddepot.db=inmemory'
+        '--java-options',    '-Ddepot.db=h2file'
  
     doFirst {
         new File(outputDir).mkdirs()

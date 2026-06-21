@@ -1,4 +1,5 @@
 {
+  "nav.btn.density": "Schriftgröße",
   "nav.brand": "BITCOIN PORTFOLIO",
   "nav.btn.refresh": "Aktualisieren",
   "nav.btn.addTransaction": "Transaktion hinzufügen",
@@ -32,13 +33,12 @@
   "table.col.type": "Typ",
   "table.col.pricePerBtc": "Preis/BTC",
   "table.col.fees": "Gebühren",
-  "table.col.totalEur": "Gesamt EUR",
+  "table.col.total": "Gesamt",
   "table.col.transferId": "Transfer-ID",
   "table.action.pair.transfer": "Transfer paaren",
   "table.action.move.position": "Wallet/Börse anpassen",
   "table.action.exchange.rate": "Wechselkurs anpassen",
   "table.action.delete": "Löschen",
-
   "chart.allocation": "Aufteilung nach Wallet / Börse",
   "chart.history": "Bitcoin (BTC/EUR) · 1 Jahr Kursverlauf",
   "chart.history.loading": "BTC-Kursdaten werden geladen…",
@@ -117,10 +117,8 @@
   "currency.no_price": "Kein {currency}-Kurs vorhanden — bitte Refresh klicken.",
   "toast.currencyChanged": "Währung auf {currency} geändert — wird neu geladen…",
   "toast.deleteTxs.success": "{COUNT} Transaktion(en) gelöscht", 
-
   "toast.exchange.rate.invalid" : "Unerlaubter Wechselkurs.",
   "toast.exchange.rate.success" : "Wechselkurs für {COUNT} Transaktion(en) angepasst.",
-
   "toast.move.position.missing.target" : "Wähle eine Wallet/Börse aus",
   "toast.move.position.success" : "{COUNT} Transaktion(en) wurden verschoben nach {TARGET}",
   "toast.pairing.error.uneven" : "Anzahl der Transaktionen muss gerade sein. (2, 4, ...)",
@@ -131,5 +129,25 @@
   "offline.blocked": "Offline-Modus aktiv – Internetzugriff deaktiviert",
   "offline.priceLocalOnly": "Preis lokal aktualisiert (Offline-Modus – nicht in DB gespeichert)",
   "nav.btn.offline.on": "Offline-Modus AN",
-  "nav.btn.offline.off": "Online-Modus – klicken für Offline"
+  "nav.btn.offline.off": "Online-Modus – klicken für Offline",
+  "sats.modal.title": "Sats spenden",
+  "sats.modal.text": "Wenn dir die App gefällt, freue ich mich über ein paar Sats!",
+  "modal.settings.font": "Schriftart",
+  "modal.offline.title": "Offline-Modus",
+  "modal.offline.body": "Offline-Modus ist aktiv. Trotzdem den aktuellen Preis online abrufen? Du kannst den Preis auch manuell anpassen.",
+  "modal.offline.confirm": "Trotzdem abrufen",
+  "csv.import.mapping.buy.quantity": "Kauf-Wert",
+  "csv.import.mapping.buy.currency": "Kauf-Währung",
+  "csv.import.mapping.sell.quantity": "Verkauf-Wert",
+  "csv.import.mapping.sell.currency": "Verkauf-Währung",
+  "csv.import.mapping.fee.currency": "Gebühr-Währung",
+  "csv.import.mapping.fee.exchange.rate": "Wechselkurs zur Anzeige (Optional)",
+  "table.col.profit": "Gewinn/Verlust",
+  "modal.field.transaction.id": "Transaktions-Id",
+  "modal.ok": "Ok",
+  "legend.warn.currency": "Fremdwährung ohne Wechselkurs",
+  "legend.warn.duplicate": "Mögliches Duplikat",
+  "table.action.clear.duplicate": "Kein Duplikat",
+  "toast.importDuplicates": "{COUNT} mögliche Duplikate markiert",
+  "toast.import.transaction.already": "{COUNT} Einträge ignoriert, da Interne Id bereits vorhanden ist."
 }

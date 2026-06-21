@@ -17,8 +17,7 @@ const I18N = (() => {
 
     const STORAGE_KEY = 'depot-lang';
     const DEFAULT_LANG = 'en';
-    const SUPPORTED = { en: 'English', de: 'Deutsch', th: 'ภาษาไทย' };
-
+	const SUPPORTED = { en: 'English', de: 'Deutsch', th: 'ภาษาไทย', es: 'Español', it: 'Italiano', fr: 'Français' };
     let _strings = {};
     let _lang    = localStorage.getItem(STORAGE_KEY) || DEFAULT_LANG;
 

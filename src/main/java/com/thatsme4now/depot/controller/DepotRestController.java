@@ -1,13 +1,13 @@
 package com.thatsme4now.depot.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.ResponseEntity.BodyBuilder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +26,7 @@ import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.entity.TransactionType;
 import com.thatsme4now.depot.service.CsvEncryptionService;
 import com.thatsme4now.depot.service.CsvImportService;
+import com.thatsme4now.depot.service.CsvImportService.ImportResult;
 import com.thatsme4now.depot.service.DepotService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +34,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/depot")
+@RequestMapping("/api/btc-tracking")
 @RequiredArgsConstructor
 public class DepotRestController {
 
@@ -58,8 +59,12 @@ public class DepotRestController {
     public ResponseEntity<Map<String, Object>> importMapped(
             @RequestBody MappedImportRequest req) {
         try {
-            int inserted = csvImportService.importMapped(req.getRows());
-            return ResponseEntity.ok(Map.of("inserted", inserted));
+            ImportResult result = csvImportService.importMapped(req.getRows());
+            return ResponseEntity.ok(Map.of(
+            	    "inserted", result.inserted,
+            	    "duplicateIds", result.duplicateIds,
+            	    "ignoredByTransactionId", result.ignoredByTransactionId
+            	));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -108,7 +113,7 @@ public class DepotRestController {
                     .setHeader("typ", "date", "exchange",
                                "buyQuantity", "buyCurrency",
                                "sellQuantity", "sellCurrency",
-                               "fee", "feeCurrency", "exchangeRate", "comment")
+                               "fee", "feeCurrency", "exchangeRate", "comment", "transactionId")
                     .setSkipHeaderRecord(true)
                     .setTrim(true)
                     .build()
@@ -127,12 +132,22 @@ public class DepotRestController {
                     r.setFeeCurrency(rec.get("feeCurrency"));
                     r.setExchangeRate(rec.get("exchangeRate"));
                     r.setComment(rec.get("comment"));
+                    try {                    	
+                    	r.setTransactionId(rec.get("transactionId"));
+                    } catch (Exception e) {
+						// does not exists
+                    	r.setTransactionId(UUID.randomUUID().toString());
+					}
                     rows.add(r);
                 }
             }
  
-            int inserted = csvImportService.importMapped(rows);
-            return ResponseEntity.ok(Map.of("inserted", inserted));
+            ImportResult result = csvImportService.importMapped(rows);
+            return ResponseEntity.ok(Map.of(
+            	    "inserted", result.inserted,
+            	    "duplicateIds", result.duplicateIds,
+            	    "ignoredByTransactionId", result.ignoredByTransactionId
+            	));
  
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -157,7 +172,7 @@ public class DepotRestController {
 		}
         Position position = csvImportService.resolvePosition(req.getExchange());
         tx.setPosition(position);
-
+        tx.setTransactionId(UUID.randomUUID().toString());
         // Pairing: wenn TRANSFER_OUT + transferTarget gesetzt → UUID vergeben
         if (tx.getType() == TransactionType.TRANSFER_OUT
                 && req.getTransferTarget() != null
@@ -197,14 +212,15 @@ public class DepotRestController {
     }
 
 	private void mapTransactionRequestToTransaction(TransactionUpdateRequest req, Transaction tx) {
-		if (req.getDate()         != null) tx.setDate(req.getDate());
+		LocalDateTime dateTime = csvImportService.getLocalDateTimeByString(req.getDate());
+		
+		if (req.getDate()         != null) tx.setDate(dateTime);
 		if (req.getType()         != null) tx.setType(req.getType());
 		if (req.getQuantity() != null) tx.setQuantity(req.getQuantity());
 		if (req.getQuantityFiat() != null && req.getQuantity() != null) {
 		    java.math.BigDecimal rate = req.getExchangeRate() != null ? req.getExchangeRate() : java.math.BigDecimal.ONE;
 		    tx.setPricePerBtc(req.getQuantityFiat()
-		        .divide(req.getQuantity(), 2, java.math.RoundingMode.HALF_UP)
-		        .divide(rate, 2, java.math.RoundingMode.HALF_UP));
+		        .divide(req.getQuantity(), 2, java.math.RoundingMode.HALF_UP));
 		    tx.setQuantityFiat(req.getQuantityFiat());
 		}
 		if (req.getCurrency()     != null) tx.setCurrency(req.getCurrency());
@@ -260,7 +276,8 @@ public class DepotRestController {
                     .setHeader("typ", "date", "exchange",
                                "buyQty", "buyCur",
                                "sellQty", "sellCur",
-                               "fee", "feeCur", "exchangeRate", "comment")
+                               "fee", "feeCur", "exchangeRate", "comment",
+                               "transactionId")
                     .setDelimiter(",")
                     .setQuote('"')
                     .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
@@ -310,13 +327,15 @@ public class DepotRestController {
                 String datum = tx.getDate() != null
                     ? tx.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
                     : "";
+//                String datum = "";
                 String fee          = tx.getFees()         != null ? tx.getFees().toPlainString()         : "";
                 String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
                 String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
- 
+                String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
+
                 printer.printRecord(typ, datum, tx.getPositionLabel(),
                                     kauf, kaufCur, verkauf, verkCur,
-                                    fee, feeCurrency, exchangeRate, tx.getComment());
+                                    fee, feeCurrency, exchangeRate, tx.getComment(), transactionId);
             }
         }
  
@@ -358,6 +377,38 @@ public class DepotRestController {
         ));
     }
     
+    @GetMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
+        return depotService.getPosition(id)
+            .map(p -> ResponseEntity.ok(Map.<String, Object>of(
+                "id",    p.getId(),
+                "label", p.getLabel(),
+                "type",  p.getType().name()
+            )))
+            .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/positions")
+    public ResponseEntity<Map<String, Object>> createPosition(@RequestBody PositionRequest req) {
+        Position p = new Position();
+        p.setLabel(req.getLabel());
+        p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+        depotService.save(p);
+        return ResponseEntity.ok(Map.of("id", p.getId(), "label", p.getLabel()));
+    }
+
+    @PutMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> updatePosition(
+            @PathVariable("id") Long id,
+            @RequestBody PositionRequest req) {
+        return depotService.getPosition(id).map(p -> {
+            p.setLabel(req.getLabel());
+            p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+            depotService.save(p);
+            return ResponseEntity.ok(Map.<String, Object>of("id", p.getId(), "label", p.getLabel()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/positions")
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
@@ -447,11 +498,13 @@ public class DepotRestController {
         private String feeCurrency;
         private String exchangeRate;
         private String comment;
+        private String transactionId;
     }
 
     @lombok.Data
     public static class TransactionUpdateRequest {
-        private java.time.LocalDateTime date;
+//        private java.time.LocalDateTime date;
+    	private String date;
         private TransactionType type;
         private java.math.BigDecimal quantity;
         private java.math.BigDecimal quantityFiat;
@@ -486,5 +539,11 @@ public class DepotRestController {
     public static class BulkExRateRequest {
         private List<Long> ids;
         private java.math.BigDecimal exchangeRate;
+    }
+    
+    @lombok.Data
+    public static class PositionRequest {
+        private String label;
+        private String type;
     }
 }

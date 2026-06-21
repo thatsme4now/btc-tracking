@@ -56,7 +56,7 @@ public class CoinGeckoService {
             // Update current_price for this currency with the last candle's close
             JsonNode lastCandle = root.get(root.size() - 1);
             if (lastCandle != null && lastCandle.size() >= 5) {
-                BigDecimal latestClose = toDecimal(lastCandle.get(4));
+                BigDecimal latestClose = toDecimal(lastCandle.get(2));
                 LocalDate  latestDate  = Instant.ofEpochMilli(lastCandle.get(0).asLong())
                     .atZone(ZoneId.of("Europe/Berlin"))
                     .toLocalDate();

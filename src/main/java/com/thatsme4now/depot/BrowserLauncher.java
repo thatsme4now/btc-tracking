@@ -22,7 +22,7 @@ public class BrowserLauncher {
     @EventListener(ApplicationReadyEvent.class)
     public void openBrowser() {
         String port = env.getProperty("server.port", "8080");
-        String url  = "http://localhost:" + port + "/depot";
+        String url  = "http://localhost:" + port + "/btc-tracking";
 
         // Try java.awt.Desktop first (works on most OS)
         if (Desktop.isDesktopSupported()) {

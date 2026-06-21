@@ -35,6 +35,102 @@ const APEX_DEFAULTS = {
     },
     grid: { borderColor: '#252830' }
 };
+// ── Density Toggle ────────────────────────────────────────
+//const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
+//const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
+//const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
+
+const DENSITY_CYCLE = ['default', 'comfortable'];
+const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
+const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
+const FONTS = [
+    { key: 'ibm',   label: 'IBM Plex Mono', family: "'IBM Plex Mono', 'Courier New', monospace" },
+    { key: 'inter', label: 'Inter',          family: "'Inter', sans-serif" },
+    { key: 'roboto',label: 'Roboto',         family: "'Roboto', sans-serif" },
+];
+
+(function initFont() {
+    const saved = localStorage.getItem('depot-font') || 'ibm';
+    applyFont(saved);
+})();
+
+function applyFont(key) {
+    const font = FONTS.find(f => f.key === key) || FONTS[0];
+    document.documentElement.style.setProperty('--font', font.family);
+    localStorage.setItem('depot-font', key);
+}
+
+(function initDensity() {
+    const saved = localStorage.getItem('depot-density') || 'default';
+    applyDensity(saved);
+})();
+
+
+function cycleDensity() {
+    const current = localStorage.getItem('depot-density') || 'default';
+    const next    = DENSITY_CYCLE[(DENSITY_CYCLE.indexOf(current) + 1) % DENSITY_CYCLE.length];
+    applyDensity(next);
+    localStorage.setItem('depot-density', next);
+}
+
+function applyDensity(density) {
+    document.body.classList.remove('density-comfortable', 'density-spacious');
+    if (density !== 'default') {
+        document.body.classList.add('density-' + density);
+    }
+    const icon = document.getElementById('densityIcon');
+    if (icon) icon.className = DENSITY_ICONS[density] || 'bi-type';
+    const btn = document.getElementById('btnDensity');
+    if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
+}
+
+// ── Flatpickr Date Pickers ────────────────────────────────
+const FLATPICKR_LOCALES = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
+
+let _fpAdd  = null;
+let _fpEdit = null;
+let _fpTransferIn = null;
+
+function _fpLocale() {
+    const lang = I18N.currentLang();
+    return FLATPICKR_LOCALES[lang] || 'default';
+}
+
+function _fpConfig(inputEl) {
+    return {
+        enableTime:  true,
+        time_24hr:   true,
+        dateFormat:  'Y-m-d H:i',     // internes Format — bleibt immer ISO für JS-Logik
+        altInput:    true,
+        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        locale:      _fpLocale(),
+        allowInput:  true,
+        minuteIncrement: 1,
+    };
+}
+
+function initFlatpickr() {
+    const locale = _fpLocale();
+    const isEn   = locale === 'default';
+    const cfg = {
+        enableTime:     true,
+        time_24hr:      !isEn,
+        dateFormat:     'Y-m-d H:i',
+        altInput:       true,
+        altFormat:      isEn ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        locale:         locale,
+        allowInput:     true,
+        minuteIncrement: 1,
+    };
+
+    if (_fpAdd)        { _fpAdd.destroy();        _fpAdd = null; }
+    if (_fpEdit)       { _fpEdit.destroy();       _fpEdit = null; }
+    if (_fpTransferIn) { _fpTransferIn.destroy(); _fpTransferIn = null; }
+
+    _fpAdd        = flatpickr('#addTxDate',       cfg);
+    _fpEdit       = flatpickr('#editTxDate',      cfg);
+    _fpTransferIn = flatpickr('#transferInDate',  cfg);
+}
 
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
@@ -45,7 +141,7 @@ async function _ensurePositionsLoaded(prefix) {
         _fillExchangeDropdown(sel, _positionsCache);
         return;
     }
-    const data = await fetch('/api/depot/positions').then(r => r.json());
+    const data = await fetch('/api/btc-tracking/positions').then(r => r.json());
     _positionsCache = data;
     _fillExchangeDropdown(sel, data);
 }
@@ -115,13 +211,33 @@ I18N.ready.then(() => {
     }
 
     initDonut();
+	initFlatpickr();
+	
+	// sorting for exchange/wallet table
+	if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().destroy();
+    }
+
+    $('#posTable').DataTable({
+        order:      [[2, 'desc']],
+        pageLength: 100,
+		paging:     false,
+		searching:  true, 
+        language: {
+            search:     t('dt.search'),
+            lengthMenu: t('dt.lengthMenu'),
+            info:       t('dt.info'),
+            paginate:   { previous: t('dt.previous'), next: t('dt.next') }
+        },
+        columnDefs: [{ orderable: false, targets: [-1] }]
+    });	
+
 });
 
 // ── Settings Modal ────────────────────────────────────────
 let settingsModal = null;
 
 function openSettings() {
-    // Language options
     const langContainer = document.getElementById('langOptions');
     const supported     = I18N.supported();
     const currentLang   = I18N.currentLang();
@@ -135,9 +251,8 @@ function openSettings() {
         </label>
     `).join('');
 
-    // Currency options
-    const curContainer  = document.getElementById('currencyOptions');
-    const currentCur    = CURRENCY.current();
+    const curContainer = document.getElementById('currencyOptions');
+    const currentCur   = CURRENCY.current();
 
     curContainer.innerHTML = CURRENCY.all().map(c => `
         <label class="d-flex align-items-center gap-2" style="cursor:pointer">
@@ -150,23 +265,54 @@ function openSettings() {
         </label>
     `).join('');
 
+    const fontContainer = document.getElementById('fontOptions');
+    const currentFont   = localStorage.getItem('depot-font') || 'ibm';
+
+    fontContainer.innerHTML = FONTS.map(f => `
+        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
+            <input type="radio" name="fontChoice" value="${f.key}"
+                   ${f.key === currentFont ? 'checked' : ''}
+                   style="accent-color:var(--accent)"/>
+            <span style="font-size:.82rem;font-family:${f.family};color:var(--text)">${f.label}</span>
+        </label>
+    `).join('');
+
     if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
     settingsModal.show();
+}
+
+function sendSomeSats() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('sendsomesatsModal'))
+        || new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
+    modal.show();
+}
+
+function copySatsAddress() {
+    const addr = document.getElementById('satsAddress').textContent;
+    navigator.clipboard.writeText(addr).then(() => {
+        const btn = document.getElementById('btnCopySats');
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        setTimeout(() => btn.innerHTML = '<i class="bi bi-copy"></i>', 1500);
+    });
 }
 
 function saveSettings() {
     const selLang = document.querySelector('input[name="langChoice"]:checked');
     const selCur  = document.querySelector('input[name="curChoice"]:checked');
+    const selFont = document.querySelector('input[name="fontChoice"]:checked');
 
     const langChanged = selLang && selLang.value !== I18N.currentLang();
     const curChanged  = selCur  && selCur.value  !== CURRENCY.current();
+
+    if (selFont) applyFont(selFont.value);
 
     const applyLang = selLang
         ? I18N.setLanguage(selLang.value)
         : Promise.resolve();
 
     applyLang.then(() => {
-        if (curChanged) {
+		initFlatpickr();
+		if (curChanged) {
             CURRENCY.setCurrency(selCur.value);
             settingsModal.hide();
             showToast('✓ ' + t('toast.currencyChanged', { currency: selCur.value }), 'success');
@@ -189,6 +335,7 @@ function initDonut() {
     if (!labels.length) return;
     if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
 
+	
     const options = {
         ...APEX_DEFAULTS,
         series: values,
@@ -196,20 +343,20 @@ function initDonut() {
         chart: {
             ...APEX_DEFAULTS.chart,
             type:   'donut',
-            height: 280
+            height: window.innerHeight / 3
         },
         colors: CHART_COLORS,
         plotOptions: {
             pie: {
                 donut: {
-                    size: '62%',
+                    size: '80%',
                     labels: {
                         show: true,
                         total: {
                             show:      true,
                             label:     t('chart.total'),
                             color:     '#6b6f7a',
-                            fontSize:  '11px',
+                            fontSize:  '30px',
                             formatter: (w) => {
                                 const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                                 return formatEur(total);
@@ -217,7 +364,7 @@ function initDonut() {
                         },
                         value: {
                             color:     '#ddd9d0',
-                            fontSize:  '13px',
+                            fontSize:  '30px',
                             formatter: (val) => formatEur(Number(val))
                         }
                     }
@@ -247,7 +394,7 @@ function filterExchangeTransaction(exchange) {
     panel.classList.remove('d-none');
 
     const doSearch = () => {
-        $('#txTable').DataTable().search(exchange).draw();
+        $('#txTable').DataTable().search('"' + exchange + '"').draw();
     };
 
     if (!txLoaded) {
@@ -266,7 +413,7 @@ function showHistory() {
     document.getElementById('historyChart').innerHTML =
         `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.loading')}</div>`;
 
-    fetch('/api/depot/history')
+    fetch('/api/btc-tracking/history')
         .then(r => r.json())
         .then(data => {
             if (!data.length) {
@@ -354,15 +501,29 @@ function toggleTransactions() {
 }
 
 async function loadTransactions() {
-    return fetch('/api/depot/transactions')
+	
+    return fetch('/api/btc-tracking/transactions')
         .then(r => r.json())
         .then(data => {
             txLoaded = true;
             renderTxTable(data);
         })
         .catch(err => {select
+			// Legende aktualisieren
+			const legend = document.getElementById('txLegend');
+			if (legend) {
+			    legend.innerHTML = `
+			        <span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--warn)"></span>
+			            <span>${t('legend.warn.currency')}</span>
+			        </span>
+			        <span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
+			            <span>${t('legend.warn.duplicate')}</span>
+			        </span>`;
+			}
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -378,7 +539,26 @@ function renderTxTable(data) {
         const color   = TYPE_COLORS[tx.type] || '';
         const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 16) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-        return `<tr class="depot-row" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
+		
+		let earning;
+		let posNeg = "";
+		if (tx.type == "BUY") {		
+			if(tx.currency !== CURRENCY.current()) {
+				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity);
+			} else {
+				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity);
+			}
+
+			if (earning.startsWith("-")) {
+				posNeg = "text-neg";
+			} else {
+				posNeg = "text-pos";
+			}
+		} else {
+			earning="–";
+		}
+		
+        return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
@@ -387,10 +567,15 @@ function renderTxTable(data) {
             <td>${tx.positionLabel || '–'}</td>
             <td><span class="${color}">${tx.type}</span></td>
             <td class="text-end">${fmt8(tx.quantity)}</td>
-            <td class="text-end">${tx.pricePerBtc != null ? formatEur(tx.pricePerBtc) : '–'}</td>
+            <td class="text-end">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
             
-            <td class="text-end">${tx.quantityFiat != null ? formatEur(tx.quantityFiat * tx.exchangeRate) + (tx.currency && tx.currency !== 'EUR' ? ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : '') : '–'}</td>
-            <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
+            <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+			
+			
+			<td class="text-end"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+	
+			
+			 <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
             <td class="text-end depot-actions" style="white-space:nowrap">
                 <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
                     <i class="bi bi-pencil"></i>
@@ -411,11 +596,13 @@ function renderTxTable(data) {
 
     document.getElementById('txTableBody').innerHTML =
         rows.length ? rows.join('') :
-        `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td></tr>`;
-
+        `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+	_markDuplicates();
+	
     $('#txTable').DataTable({
         order:      [[1, 'desc']],
-        pageLength: 25,
+        pageLength: 500,
+		lengthMenu: [25, 50, 100, 250, 500],
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -441,7 +628,10 @@ function updateRelevantFields() {
         const qty  = document.getElementById('addTxQty').value;
         const tDate = document.getElementById('transferInDate');
         const tQty  = document.getElementById('transferInQty');
-        if (!tDate.value && date) tDate.value = date;
+        //if (!tDate.value && date) tDate.value = date;
+		if (_fpTransferIn && !_fpTransferIn.selectedDates.length && date) {
+		    _fpTransferIn.setDate(date, false);
+		}
         if (!tQty.value  && qty)  tQty.value  = qty;
     }
 }
@@ -449,7 +639,7 @@ function updateRelevantFields() {
 function _loadPositionsDropdown() {
     const sel = document.getElementById('transferTargetSelect');
     if (sel.dataset.loaded) return;
-    fetch('/api/depot/positions')
+    fetch('/api/btc-tracking/positions')
         .then(r => r.json())
         .then(data => {
             sel.innerHTML =
@@ -468,7 +658,7 @@ async function openAddTx(tx) {
 
     if (tx !== undefined) {
        document.getElementById('addTxId').value           = '';
-       document.getElementById('addTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
+	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
        document.getElementById('addTxType').value         = tx.type;
        document.getElementById('addTxQty').value          = tx.quantity;
        document.getElementById('addTxQuantityFiat').value = tx.quantityFiat || '';
@@ -484,7 +674,7 @@ async function openAddTx(tx) {
 		document.getElementById('addTxId').value           = '';
 		var now = new Date();
 		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-		document.getElementById('addTxDate').value = now.toISOString().slice(0,16);;
+		if (_fpAdd) _fpAdd.setDate(now, false);
         document.getElementById('addTxType').value         = 'BUY';
         document.getElementById('addTxQty').value          = '';
         document.getElementById('addTxQuantityFiat').value = '';
@@ -507,9 +697,9 @@ async function openEditTx(tx) {
     // Reset new-position input
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
-
     document.getElementById('editTxId').value           = tx.id;
-    document.getElementById('editTxDate').value         = tx.date ? tx.date.substring(0, 16) : '';
+	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+
     document.getElementById('editTxType').value         = tx.type;
     document.getElementById('editTxQty').value          = tx.quantity;
     document.getElementById('editTxQuantityFiat').value = tx.quantityFiat || '';
@@ -563,9 +753,8 @@ function saveOrAddTx(isAdd) {
         }
     }
 
-    const url    = isAdd ? '/api/depot/transactions' : '/api/depot/transactions/' + id;
+    const url    = isAdd ? '/api/btc-tracking/transactions' : '/api/btc-tracking/transactions/' + id;
     const method = isAdd ? 'POST' : 'PUT';
-
     fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -585,9 +774,9 @@ function saveOrAddTx(isAdd) {
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-function removeAll() {
-    if (!confirm(t('confirm.deleteAll'))) return;
-    fetch('/api/depot/', { method: 'DELETE' })
+async function removeAll() {
+    if (!await showConfirm(t('nav.btn.removeAll'), t('confirm.deleteAll'))) return;
+    fetch('/api/btc-tracking/', { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
             loadTransactions();
@@ -597,15 +786,21 @@ function removeAll() {
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-function deleteTx(id) {
-    if (!confirm(t('confirm.deleteTx'))) return;
-    fetch('/api/depot/transactions/' + id, { method: 'DELETE' })
+async function deleteTx(id) {
+    if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTx'))) return;
+    fetch('/api/btc-tracking/transactions/' + id, { method: 'DELETE' })
         .then(() => {
             txLoaded = false;
             loadTransactions();
             showToast('✓ ' + t('toast.txDeleted'), 'success');
         })
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+function confirmDeletePosition(id) {
+    showConfirm(t('table.action.delete'), t('confirm.deletePosition')).then(ok => {
+        if (ok) window.location.href = '/depot/delete/' + id;
+    });
 }
 
 function fmt8(val) {
@@ -632,49 +827,91 @@ function importCsv(input) {
     }
  
     // Plain CSV: existing PapaParse + column mapping flow
-    Papa.parse(file, {
-        header:         true,
-        skipEmptyLines: true,
-        complete(results) {
-            if (!results.data || results.data.length === 0) {
-                showToast('✗ ' + t('toast.csvEmpty'), 'error');
-                return;
-            }
-            csvImport.rawData = results.data;
-            csvImport.headers = results.meta.fields || [];
-            openMappingModal();
-        },
-        error(err) {
-            showToast('✗ ' + t('toast.csvError') + ': ' + err.message, 'error');
-        }
-    });
+	Papa.parse(file, {
+	    header:         false,   // ← wichtig: kein automatisches Header-Parsing
+	    skipEmptyLines: true,
+	    quoteChar:      '"',
+	    complete(results) {
+	        if (!results.data || results.data.length < 2) {
+	            showToast('✗ ' + t('toast.csvEmpty'), 'error');
+	            return;
+	        }
+
+	        // Erste Zeile = Header, doppelte Namen mit Suffix versehen
+	        const rawHeaders = results.data[0];
+	        const seen = {};
+	        const headers = rawHeaders.map(h => {
+	            const key = h.trim();
+	            if (seen[key] === undefined) {
+	                seen[key] = 0;
+	                return key;
+	            } else {
+	                seen[key]++;
+	                return key + '_' + seen[key];
+	            }
+	        });
+
+	        // Restliche Zeilen als Objekte mappen
+	        const data = results.data.slice(1).map(row => {
+	            const obj = {};
+	            headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+	            return obj;
+	        });
+
+	        csvImport.rawData = data;
+	        csvImport.headers = headers;
+	        openMappingModal();
+	    },
+	    error(err) {
+	        showToast('✗ ' + t('toast.csvError') + ': ' + err.message, 'error');
+	    }
+	});
 }
 
 function openMappingModal() {
     const headers = csvImport.headers;
     const NONE    = `<option value="">${t('modal.csv.field.notMapped')}</option>`;
 
+	
+	
     const FIELDS = [
-        { id: 'map_typ',          label: 'typ',                required: true  },
-        { id: 'map_date',         label: 'date',               required: true  },
-        { id: 'map_exchange',     label: 'exchange',           required: true  },
-        { id: 'map_buyQty',       label: 'buyQuantity',        required: false },
-        { id: 'map_buyCur',       label: 'buyCurrency',        required: false },
-        { id: 'map_sellQty',      label: 'sellQuantity',       required: false },
-        { id: 'map_sellCur',      label: 'sellCurrency',       required: false },
-        { id: 'map_fee',          label: 'fee',                required: false },
-		{ id: 'map_feeCur',       label: 'feeCurrency',        required: false },
-        { id: 'map_exchangeRate', label: 'exchangeRate (opt.)', required: false },
-        { id: 'map_comment',      label: 'comment',            required: false },
-    ];
+        { id: 'map_typ',          label: I18N.t('table.col.type'),                			required: true  },
+        { id: 'map_date',         label: I18N.t('table.col.date'),               			required: true  },
+        { id: 'map_exchange',     label: I18N.t('table.wallets'),           				required: true  },
+        { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: true },
+        { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: true },
+        { id: 'map_sellQty',      label: I18N.t('csv.import.mapping.sell.quantity'),       	required: true },
+        { id: 'map_sellCur',      label: I18N.t('csv.import.mapping.sell.currency'),       	required: true },
+        { id: 'map_fee',          label: I18N.t('table.col.fees'),                			required: false },
+		{ id: 'map_feeCur',       label: I18N.t('csv.import.mapping.fee.currency'),        	required: false },
+        { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
+        { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
+		{ id: 'map_transactionId',label: I18N.t('modal.field.transaction.id'),            	required: false },
+		 ]
 
-    const autoMatch = (fieldLabel) => {
-        const candidates = [fieldLabel, fieldLabel.toLowerCase(), fieldLabel.toUpperCase()];
-        return headers.find(h => candidates.includes(h)) || '';
-    };
+	 const FIELD_ALIASES = {
+	     map_typ:          ['Typ', 'typ', 'type', 'Type'],
+	     map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime'],
+	     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
+	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty'],
+	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur'],
+	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty'],
+	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur'],
+	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
+	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feeCur'],
+	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
+	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
+	     map_transactionId:['transactionId'],
+	 };
 
+	 const autoMatch = (fieldId) => {
+	     const aliases = FIELD_ALIASES[fieldId] || [];
+	     return headers.find(h => aliases.includes(h)) || '';
+	 };
+	 
     const mappingRows = FIELDS.map(f => {
-        const matched = autoMatch(f.id.replace('map_', ''));
+        const matched = autoMatch(f.id); 
+
         const opts    = NONE + headers.map(h =>
             `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
         ).join('');
@@ -772,6 +1009,7 @@ function confirmCsvImport() {
 		feeCur:       document.getElementById('map_feeCur')?.value,
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
+		transactionId:      document.getElementById('map_transactionId')?.value,
     };
 
     const missing = [];
@@ -807,6 +1045,7 @@ function confirmCsvImport() {
 			feeCur:       mapping.feeCur  ? (r[mapping.feeCur]  || '').trim() : null,
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
+			transactionId :mapping.transactionId      ? (r[mapping.transactionId]      || '').trim() : null,
         };
     }).filter(Boolean);
 
@@ -818,7 +1057,7 @@ function confirmCsvImport() {
     bootstrap.Modal.getInstance(document.getElementById('csvMappingModal'))?.hide();
     showToast('⏳ ' + t('toast.importProgress'), '');
 
-    fetch('/api/depot/import-mapped', {
+    fetch('/api/btc-tracking/import-mapped', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ rows })
@@ -828,8 +1067,25 @@ function confirmCsvImport() {
         if (data.error) {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
-            showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess'), 'success');
-            setTimeout(() => window.location.reload(), 1800);
+			sessionStorage.setItem('depot-duplicate-ids', JSON.stringify(data.duplicateIds || []));
+			let toastText = '';
+			let toastType = 'success';
+			if (data.inserted > 0) {
+				toastText = '✓ ' + data.inserted + ' ' + t('toast.importSuccess') + '\n';
+			}
+			if (data.ignoredByTransactionId) {
+				toastText += '✗ ' + t('toast.import.transaction.already', { COUNT: data.ignoredByTransactionId }) + '\n';
+				toastType = 'warning';
+			}
+			if(data.duplicateIds.length > 0) {
+				toastText += '✗ ' + t('toast.importDuplicates', { COUNT: data.duplicateIds.length });
+				toastType = 'warning';
+			}
+					
+	        showToast(toastText, toastType);
+			if (data.inserted > 0) {				
+	            setTimeout(() => window.location.reload(), 1800);
+			}
         }
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
@@ -844,17 +1100,81 @@ function esc(str) {
         .replace(/>/g, '&gt;');
 }
 
+// ── Position Modal ────────────────────────────────────────
+let _positionModal = null;
+
+async function openPositionModal(id) {
+    document.getElementById('positionId').value    = id || '';
+    document.getElementById('positionLabel').value = '';
+    document.getElementById('positionType').value  = 'EXCHANGE';
+
+    const titleEl = document.getElementById('positionModalTitle');
+    if (id) {
+        titleEl.setAttribute('data-i18n', 'form.position.titleEdit');
+        titleEl.textContent = t('form.position.titleEdit');
+        const data = await fetch('/api/btc-tracking/positions/' + id).then(r => r.json());
+        document.getElementById('positionLabel').value = data.label || '';
+        document.getElementById('positionType').value  = data.type  || 'EXCHANGE';
+    } else {
+        titleEl.setAttribute('data-i18n', 'form.position.titleNew');
+        titleEl.textContent = t('form.position.titleNew');
+    }
+
+    if (!_positionModal) _positionModal = new bootstrap.Modal(document.getElementById('positionModal'));
+    _positionModal.show();
+}
+
+function savePosition() {
+    const id    = document.getElementById('positionId').value;
+    const label = document.getElementById('positionLabel').value.trim();
+    const type  = document.getElementById('positionType').value;
+
+    if (!label) {
+        showToast('✗ ' + t('toast.error') + ': Label required', 'error');
+        return;
+    }
+
+    const url    = id ? '/api/btc-tracking/positions/' + id : '/api/btc-tracking/positions';
+    const method = id ? 'PUT' : 'POST';
+
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ label, type })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
+        _positionModal.hide();
+        _positionsCache = null;
+        showToast('✓ ' + t(id ? 'toast.txUpdated' : 'toast.txAdded'), 'success');
+        setTimeout(() => window.location.reload(), 800);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
 // ── Refresh Prices ────────────────────────────────────────
 function refreshPrices() {
     if (!OFFLINE.isOnline()) {
-        showToast('✗ ' + t('offline.blocked'), 'error');
+        const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
+            || new bootstrap.Modal(document.getElementById('offlineConfirmModal'));
+        modal.show();
         return;
     }
+    _doRefreshPrices();
+}
+
+function confirmOfflineRefresh() {
+    bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
+    _doRefreshPrices();
+}
+
+function _doRefreshPrices() {
     const btn = document.getElementById('btnRefresh');
     btn.disabled = true;
     btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
 
-    fetch('/api/depot/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
+    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
         .then(r => r.json())
         .then(data => {
             const n = data.totalNew || 0;
@@ -870,11 +1190,11 @@ function refreshPrices() {
 
 // ── Toast ─────────────────────────────────────────────────
 function showToast(msg, type) {
-    const toast       = document.getElementById('statusToast');
-    toast.textContent = msg;
-    toast.className   = 'depot-toast ' + (type || '');
-    toast.classList.remove('d-none');
-    setTimeout(() => toast.classList.add('d-none'), 5000);
+	const toast     = document.getElementById('statusToast');
+	    toast.innerHTML = msg.replace(/\n/g, '<br>');
+	    toast.className = 'depot-toast ' + (type || '');
+	    toast.classList.remove('d-none');
+	    setTimeout(() => toast.classList.add('d-none'), 5000);
 }
 
 // ── Formatters ────────────────────────────────────────────
@@ -894,7 +1214,8 @@ function openPriceEdit() {
     const editor = document.getElementById('btcPriceEditor');
     // Read current display value → strip formatting
     const raw = document.getElementById('btcPriceDisplay')
-        .textContent.replace(/[^\d,]/g, '').replace(',', '.');
+        .textContent.slice(0, -4).replace(/[^\d,]/g, '').replace(',', '.');
+
     document.getElementById('btcPriceInput').value = parseFloat(raw) || '';
     badge.classList.add('d-none');
     editor.classList.remove('d-none');
@@ -916,7 +1237,7 @@ function savePriceEdit() {
         return;
     }
 	
-    fetch('/api/depot/current-price', {
+    fetch('/api/btc-tracking/current-price', {
         method:  'PUT',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ price, currency: CURRENCY.current() })
@@ -936,13 +1257,17 @@ function savePriceEdit() {
 }
 
 function _importEnc(file) {
-    // Show password modal, store file reference
     window._pendingEncFile = file;
-    const modal = bootstrap.Modal.getInstance(document.getElementById('encPasswordModal'))
-        || new bootstrap.Modal(document.getElementById('encPasswordModal'));
+    const modalEl = document.getElementById('encPasswordModal');
+    const modal = bootstrap.Modal.getInstance(modalEl)
+        || new bootstrap.Modal(modalEl);
     document.getElementById('encImportPassword').value = '';
+    
+    modalEl.addEventListener('shown.bs.modal', () => {
+        document.getElementById('encImportPassword').focus();
+    }, { once: true });
+    
     modal.show();
-    setTimeout(() => document.getElementById('encImportPassword').focus(), 400);
 }
  
 function confirmEncImport() {
@@ -962,7 +1287,7 @@ function confirmEncImport() {
     formData.append('file', file);
     formData.append('password', password);
  
-    fetch('/api/depot/import-enc', { method: 'POST', body: formData })
+    fetch('/api/btc-tracking/import-enc', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
             if (data.error) {
@@ -994,7 +1319,7 @@ function doExport() {
  
     bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
  
-    fetch('/api/depot/export', {
+    fetch('/api/btc-tracking/export', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ password: pw || null })
@@ -1061,6 +1386,20 @@ function _updateBulkToolbar() {
     }
 }
 
+function toggleCard(bodyId, btn) {
+    const ids = ['posCardBody', 'donutCardBody'];
+    const body = document.getElementById(ids[0]);
+    const collapsed = !body.classList.contains('d-none');
+    
+    ids.forEach(id => {
+        document.getElementById(id).classList.toggle('d-none', collapsed);
+    });
+    
+    document.querySelectorAll('.card-toggle-btn i').forEach(icon => {
+        icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+    });
+}
+
 function toggleSelectAll(cb) {
     document.querySelectorAll('.tx-row-check')
         .forEach(el => { el.checked = cb.checked; });
@@ -1096,6 +1435,7 @@ document.addEventListener('contextmenu', e => {
         ${_ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()')}
         ${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
         ${_ctxItem('bi-percent',           t("table.action.exchange.rate"), 'openBulkExRate()')}
+		${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
         <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
         ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
 
@@ -1117,19 +1457,19 @@ function _ctxItem(icon, label, action, danger = false) {
 }
 
 // ── Bulk: Delete ──────────────────────────────────────────
-function bulkDelete() {
+async function bulkDelete() {
     const ids = _getSelectedIds();
     if (!ids.length) return;
-	if (!confirm(t("confirm.deleteTxs", {COUNT: ids.length}))) return;
+    if (!await showConfirm(t('table.action.delete'), t('confirm.deleteTxs', { COUNT: ids.length }))) return;
 
-    fetch('/api/depot/transactions/bulk', {
+    fetch('/api/btc-tracking/transactions/bulk', {
         method:  'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(ids)
     })
     .then(r => r.json())
     .then(d => {
-        showToast("✓ " + t("toast.deleteTxs.success", {COUNT: d.deleted}), 'success');
+        showToast('✓ ' + t('toast.deleteTxs.success', { COUNT: d.deleted }), 'success');
         _positionsCache = null;
         txLoaded = false;
         loadTransactions();
@@ -1138,35 +1478,39 @@ function bulkDelete() {
 }
 
 // ── Bulk: Pair Transfers ──────────────────────────────────
-function bulkPair() {
+async function bulkPair() {
     const ids = _getSelectedIds();
     if (ids.length < 2 || ids.length % 2 !== 0) {
-		showToast("✗ " + t("toast.pairing.error.uneven"), 'error');
+        showToast('✗ ' + t('toast.pairing.error.uneven'), 'error');
         return;
     }
-	
-	const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
-	        .map(cb => cb.closest('tr'));
-	const types   = selectedRows.map(tr => tr.dataset.type);
+
+    const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(cb => cb.closest('tr'));
+    const types    = selectedRows.map(tr => tr.dataset.type);
     const inCount  = types.filter(t => t === 'TRANSFER_IN').length;
     const outCount = types.filter(t => t === 'TRANSFER_OUT').length;
     const invalid  = types.filter(t => t !== 'TRANSFER_IN' && t !== 'TRANSFER_OUT');
 
     if (invalid.length > 0) {
-        showToast("✗ " + t("toast.pairing.error.type.wrong"), 'error');
+        showToast('✗ ' + t('toast.pairing.error.type.wrong'), 'error');
         return;
     }
     if (inCount !== outCount) {
-		showToast("✗ " + t("toast.pairing.error.type.unequal", {IN: inCount, OUT: outCount}), 'error');
+        showToast('✗ ' + t('toast.pairing.error.type.unequal', { IN: inCount, OUT: outCount }), 'error');
         return;
     }
-			
-    // Check existing transferIds
+
     const existingPaired = [...document.querySelectorAll('.tx-row-check:checked')]
         .map(cb => cb.closest('tr'))
-		.filter(cb => cb.closest('tr').dataset.transferId);
+        .filter(tr => tr.dataset.transferId);
 
-    const doIt = () => fetch('/api/depot/transactions/bulk-pair', {
+    if (existingPaired.length > 0) {
+        if (!await showConfirm(t('table.action.pair.transfer'),
+                t('toast.pairing.info.id', { COUNT: existingPaired.length }))) return;
+    }
+
+    fetch('/api/btc-tracking/transactions/bulk-pair', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids })
@@ -1174,16 +1518,11 @@ function bulkPair() {
     .then(r => r.json())
     .then(d => {
         if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
-        showToast("✓ " + t("toast.pairing.success", {COUNT: d.paired}), 'success');
+        showToast('✓ ' + t('toast.pairing.success', { COUNT: d.paired }), 'success');
         txLoaded = false;
         loadTransactions();
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
-
-    if (existingPaired.length > 0) {
-        if (!confirm(t("toast.pairing.info.id", {COUNT: existingPaired.length}))) return;
-    }
-    doIt();
 }
 
 // ── Bulk: Move Position ───────────────────────────────────
@@ -1201,7 +1540,7 @@ function openBulkMove() {
             sel.innerHTML += `<option value="${esc(p.label)}">${esc(p.label)}</option>`;
         });
     } else {
-        fetch('/api/depot/positions').then(r => r.json()).then(data => {
+        fetch('/api/btc-tracking/positions').then(r => r.json()).then(data => {
             _positionsCache = data;
             data.forEach(p => {
                 sel.innerHTML += `<option value="${esc(p.label)}">${esc(p.label)}</option>`;
@@ -1226,7 +1565,7 @@ function confirmBulkMove() {
     const ids = _getSelectedIds();
     bootstrap.Modal.getInstance(document.getElementById('bulkMoveModal'))?.hide();
 
-    fetch('/api/depot/transactions/bulk-move', {
+    fetch('/api/btc-tracking/transactions/bulk-move', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids, targetExchange: target })
@@ -1260,7 +1599,7 @@ function confirmBulkExRate() {
     const ids = _getSelectedIds();
     bootstrap.Modal.getInstance(document.getElementById('bulkExRateModal'))?.hide();
 
-    fetch('/api/depot/transactions/bulk-exrate', {
+    fetch('/api/btc-tracking/transactions/bulk-exrate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids, exchangeRate: rate })
@@ -1275,3 +1614,74 @@ function confirmBulkExRate() {
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
 }
+
+// ── Generic Confirm Dialog ────────────────────────────────
+let _confirmModal     = null;
+let _confirmResolve   = null;
+
+function showConfirm(title, body) {
+    document.getElementById('confirmModalTitle').textContent = title;
+    document.getElementById('confirmModalBody').textContent  = body;
+
+    if (!_confirmModal) {
+        _confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    }
+
+    return new Promise(resolve => {
+        _confirmResolve = resolve;
+
+        const okBtn = document.getElementById('confirmModalOk');
+        // Alten Listener entfernen um Doppel-Trigger zu vermeiden
+        const newOk = okBtn.cloneNode(true);
+        okBtn.parentNode.replaceChild(newOk, okBtn);
+        newOk.addEventListener('click', () => {
+            _confirmModal.hide();
+            resolve(true);
+        });
+
+        document.getElementById('confirmModal')
+            .addEventListener('hidden.bs.modal', () => resolve(false), { once: true });
+
+        _confirmModal.show();
+    });
+}
+
+function _markDuplicates() {
+	const ids       = JSON.parse(sessionStorage.getItem('depot-duplicate-ids') || '[]');
+    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+    if (!ids.length) return;
+    document.querySelectorAll('.tx-row-check').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (ids.includes(id) && !confirmed.includes(id)) {
+            cb.closest('tr').classList.add('warning-duplicate');
+        }
+    });
+}
+
+function clearDuplicateMark() {
+    const ids       = _getSelectedIds();
+    if (!ids.length) return;
+    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+    ids.forEach(id => { if (!confirmed.includes(id)) confirmed.push(id); });
+    sessionStorage.setItem('depot-confirmed-ids', JSON.stringify(confirmed));
+    // Klasse von betroffenen Rows entfernen
+    ids.forEach(id => {
+        const cb = document.querySelector(`.tx-row-check[data-id="${id}"]`);
+        if (cb) cb.closest('tr').classList.remove('warning-duplicate');
+    });
+    // Checkboxen zurücksetzen
+    document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
+    _updateBulkToolbar();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Sicherstellen, dass CURRENCY Objekt existiert
+    if (typeof CURRENCY !== 'undefined' && CURRENCY.current) {
+        const symbol = CURRENCY.symbol(CURRENCY.current());
+        
+        // Alle Währungssymbol-Platzhalter im Dokument finden und füllen
+        document.querySelectorAll('.currency-symbol').forEach(function(el) {
+            el.textContent = ' ' + symbol;
+        });
+    }
+});

@@ -2,7 +2,7 @@ package com.thatsme4now.depot.controller;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Arrays;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -17,12 +17,11 @@ import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.service.DepotService;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping("/depot")
+@RequestMapping("/btc-tracking")
 @RequiredArgsConstructor
 public class DepotViewController {
 
@@ -30,7 +29,7 @@ public class DepotViewController {
 
     @GetMapping("/")
     public String root() {
-        return "redirect:/depot";
+    	return "redirect:/btc-tracking";
     }
 
     @GetMapping
@@ -54,17 +53,18 @@ public class DepotViewController {
             .map(PositionDTO::getQuantity)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal gainLoss = totalValue.subtract(invested);
+        BigDecimal realized = positions.stream()
+        		.map(PositionDTO::getRealized)
+        		.filter(v -> v != null)
+        		.reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal gainLoss = totalValue.subtract(invested).add(realized);
         BigDecimal performancePct = invested.compareTo(BigDecimal.ZERO) > 0
             ? gainLoss.divide(invested, 4, RoundingMode.HALF_UP)
                       .multiply(BigDecimal.valueOf(100))
                       .setScale(2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
-        BigDecimal realized = positions.stream()
-            .map(PositionDTO::getRealized)
-            .filter(v -> v != null)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalSats = totalBtc.multiply(BigDecimal.valueOf(100_000_000))
             .setScale(0, RoundingMode.HALF_UP);
@@ -80,14 +80,24 @@ public class DepotViewController {
         model.addAttribute("currency",       currency);
 
         // BTC price for header badge – from selected currency
-		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> model.addAttribute("btcPrice", p.getPrice()),
-				() -> model.addAttribute("btcPrice", new BigDecimal(0L)));
+		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> {
+    			model.addAttribute("btcPrice", p.getPrice());
+    			model.addAttribute("btcPriceDate", 
+    					p.getPriceDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+                model.addAttribute("currentPrice", p.getPrice());
+
+    	}, () -> {
+    		model.addAttribute("btcPrice", new BigDecimal(0L));
+    		model.addAttribute("btcPriceDate", "");
+            model.addAttribute("currentPrice", new BigDecimal(0L));
+
+    	});
         
         // Flag: no price available for selected currency
         boolean noPriceAvailable = positions.stream()
             .allMatch(p -> p.getCurrentPrice() == null);
         model.addAttribute("noPriceAvailable", noPriceAvailable);
-
+        
         model.addAttribute("transactionCount", depotService.getTransactionCount());
         return "depot/overview";
     }

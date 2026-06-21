@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `position` (
 
 CREATE TABLE IF NOT EXISTS `transaction` (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_id    VARCHAR(36),
     position_id   BIGINT        NOT NULL,
     type          VARCHAR(20)   NOT NULL,
     date          TIMESTAMP     NOT NULL,
@@ -32,7 +33,6 @@ CREATE TABLE IF NOT EXISTS `transaction` (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tx_position ON `transaction`(position_id);
-CREATE INDEX IF NOT EXISTS idx_tx_date     ON `transaction`(date);
 CREATE INDEX IF NOT EXISTS idx_tx_transfer ON `transaction`(transfer_id);
 
 CREATE TABLE IF NOT EXISTS price_history (
