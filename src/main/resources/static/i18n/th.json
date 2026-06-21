@@ -147,5 +147,7 @@
   "modal.ok": "ตกลง",
   "legend.warn.currency": "สกุลเงินต่างประเทศไม่มีอัตราแลกเปลี่ยน",
   "legend.warn.duplicate": "อาจเป็นรายการซ้ำ",
-  "table.action.clear.duplicate": "ไม่ใช่รายการซ้ำ"
+  "table.action.clear.duplicate": "ไม่ใช่รายการซ้ำ",
+  "toast.importDuplicates": "พบ {COUNT} รายการที่อาจซ้ำกัน",
+  "toast.import.transaction.already": "ละเว้น {COUNT} รายการ เนื่องจากมี ID ภายในอยู่แล้ว"
 }

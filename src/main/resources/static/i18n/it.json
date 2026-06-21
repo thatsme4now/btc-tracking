@@ -147,5 +147,7 @@
   "modal.ok": "OK",
   "legend.warn.currency": "Valuta estera senza tasso di cambio",
   "legend.warn.duplicate": "Possibile duplicato",
-  "table.action.clear.duplicate": "Non è un duplicato"
+  "table.action.clear.duplicate": "Non è un duplicato",
+  "toast.importDuplicates": "{COUNT} possibile/i duplicato/i contrassegnato/i",
+  "toast.import.transaction.already": "{COUNT} voce/i ignorata/e, l'ID interno esiste già."
 }

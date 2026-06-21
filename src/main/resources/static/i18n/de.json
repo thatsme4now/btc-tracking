@@ -148,6 +148,6 @@
   "legend.warn.currency": "Fremdwährung ohne Wechselkurs",
   "legend.warn.duplicate": "Mögliches Duplikat",
   "table.action.clear.duplicate": "Kein Duplikat",
-  
-  "toast.importDuplicates": "{COUNT} mögliche Duplikate markiert"
+  "toast.importDuplicates": "{COUNT} mögliche Duplikate markiert",
+  "toast.import.transaction.already": "{COUNT} Einträge ignoriert, da Interne Id bereits vorhanden ist."
 }

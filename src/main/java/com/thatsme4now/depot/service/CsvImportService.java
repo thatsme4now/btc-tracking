@@ -220,6 +220,12 @@ public class CsvImportService {
 	        boolean isDuplicate = row.transactionId == null && transactionRepo
 	            .existsByPositionIdAndDateAndTypeAndQuantity(position.getId(), row.dateTime, row.type, row.quantity);
 
+	        // row with transactionId already exists
+	        if(row.transactionId != null && transactionRepo.existsByTransactionId(row.transactionId)) {
+	        	result.ignoredByTransactionId++;
+	        	continue;
+	        }
+	        
 	        Transaction tx = new Transaction();
 	        tx.setPosition(position);
 	        tx.setType(row.type);
@@ -439,6 +445,7 @@ public class CsvImportService {
     
     public static class ImportResult {
         public int inserted;
+        public int ignoredByTransactionId;
         public List<Long> duplicateIds = new ArrayList<>();
     }
 }

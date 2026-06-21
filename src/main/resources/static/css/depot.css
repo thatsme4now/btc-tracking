@@ -349,6 +349,14 @@ table.dataTable tbody tr {
     background-color: transparent !important;
 }
 
+.depot-row:hover td                        { background: var(--bg-row) !important; }
+.depot-row.warning:hover td                { background: var(--warn) !important; }
+.depot-row.warning-duplicate:hover td      { background: var(--warn-duplicate) !important; }
+.depot-row.selected:hover td               { background: var(--bg-row) !important; }
+.depot-row.warning.selected:hover td       { background: var(--warn) !important; }
+.depot-row.warning-duplicate.selected:hover td { background: var(--warn-duplicate) !important; }
+
+
 table.dataTable tbody tr.warning {
     background-color: var(--warn) !important;
 }
@@ -356,6 +364,10 @@ table.dataTable tbody tr.warning {
 table.dataTable tbody tr.warning-duplicate {
     background-color: var(--warn-duplicate) !important;
 }
+
+
+table.dataTable tbody tr.warning:hover td           { background-color: var(--warn) !important; }
+table.dataTable tbody tr.warning-duplicate:hover td { background-color: var(--warn-duplicate) !important; }
 
 .tx-legend-item {
     display:     flex;

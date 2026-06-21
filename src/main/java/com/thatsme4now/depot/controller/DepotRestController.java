@@ -62,7 +62,8 @@ public class DepotRestController {
             ImportResult result = csvImportService.importMapped(req.getRows());
             return ResponseEntity.ok(Map.of(
             	    "inserted", result.inserted,
-            	    "duplicateIds", result.duplicateIds
+            	    "duplicateIds", result.duplicateIds,
+            	    "ignoredByTransactionId", result.ignoredByTransactionId
             	));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -144,7 +145,8 @@ public class DepotRestController {
             ImportResult result = csvImportService.importMapped(rows);
             return ResponseEntity.ok(Map.of(
             	    "inserted", result.inserted,
-            	    "duplicateIds", result.duplicateIds
+            	    "duplicateIds", result.duplicateIds,
+            	    "ignoredByTransactionId", result.ignoredByTransactionId
             	));
  
         } catch (Exception e) {

@@ -147,5 +147,7 @@
   "modal.ok": "OK",
   "legend.warn.currency": "Devise étrangère sans taux de change",
   "legend.warn.duplicate": "Doublon possible",
-  "table.action.clear.duplicate": "Pas un doublon"
+  "table.action.clear.duplicate": "Pas un doublon",
+  "toast.importDuplicates": "{COUNT} doublon(s) possible(s) marqué(s)",
+  "toast.import.transaction.already": "{COUNT} entrée(s) ignorée(s), l'ID interne existe déjà."
 }

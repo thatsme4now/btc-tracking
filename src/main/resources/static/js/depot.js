@@ -887,16 +887,31 @@ function openMappingModal() {
         { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
         { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
 		{ id: 'map_transactionId',label: I18N.t('modal.field.transaction.id'),            	required: false },
+		 ]
 
-		 ];
+	 const FIELD_ALIASES = {
+	     map_typ:          ['Typ', 'typ', 'type', 'Type'],
+	     map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime'],
+	     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
+	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty'],
+	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur'],
+	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty'],
+	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur'],
+	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
+	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feeCur'],
+	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
+	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
+	     map_transactionId:['transactionId'],
+	 };
 
-    const autoMatch = (fieldLabel) => {
-        const candidates = [fieldLabel, fieldLabel.toLowerCase(), fieldLabel.toUpperCase()];
-        return headers.find(h => candidates.includes(h)) || '';
-    };
-
+	 const autoMatch = (fieldId) => {
+	     const aliases = FIELD_ALIASES[fieldId] || [];
+	     return headers.find(h => aliases.includes(h)) || '';
+	 };
+	 
     const mappingRows = FIELDS.map(f => {
-        const matched = autoMatch(f.id.replace('map_', ''));
+        const matched = autoMatch(f.id); 
+
         const opts    = NONE + headers.map(h =>
             `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
         ).join('');
@@ -1053,14 +1068,24 @@ function confirmCsvImport() {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
 			sessionStorage.setItem('depot-duplicate-ids', JSON.stringify(data.duplicateIds || []));
-			if(data.duplicateIds.length > 0) {
-				showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess') + '\n' +
-				'✗ ' + t('toast.importDuplicates', { COUNT: data.duplicateIds.length }), 'warning');
-			} else {				
-	            showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess'), 'success');
+			let toastText = '';
+			let toastType = 'success';
+			if (data.inserted > 0) {
+				toastText = '✓ ' + data.inserted + ' ' + t('toast.importSuccess') + '\n';
 			}
-
-            setTimeout(() => window.location.reload(), 1800);
+			if (data.ignoredByTransactionId) {
+				toastText += '✗ ' + t('toast.import.transaction.already', { COUNT: data.ignoredByTransactionId }) + '\n';
+				toastType = 'warning';
+			}
+			if(data.duplicateIds.length > 0) {
+				toastText += '✗ ' + t('toast.importDuplicates', { COUNT: data.duplicateIds.length });
+				toastType = 'warning';
+			}
+					
+	        showToast(toastText, toastType);
+			if (data.inserted > 0) {				
+	            setTimeout(() => window.location.reload(), 1800);
+			}
         }
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
