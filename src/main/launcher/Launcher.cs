@@ -7,7 +7,7 @@ class Launcher {
     static void Main() {
         string dir  = AppDomain.CurrentDomain.BaseDirectory;
         string java = Path.Combine(dir, "jre", "bin", "java.exe");
-        string jar  = Path.Combine(dir, "app", "depot.jar");
+        string jar  = Path.Combine(dir, "app", "btc-tracking.jar");
 
         if (!File.Exists(java)) {
             System.Windows.Forms.MessageBox.Show(
@@ -17,7 +17,7 @@ class Launcher {
         }
         if (!File.Exists(jar)) {
             System.Windows.Forms.MessageBox.Show(
-                "depot.jar not found at: " + jar,
+                "btc-tracking.jar not found at: " + jar,
                 "BtcTracking – Error");
             return;
         }
