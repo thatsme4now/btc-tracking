@@ -144,5 +144,8 @@
   "csv.import.mapping.fee.exchange.rate": "Taux de change affichage (Optionnel)",
   "table.col.profit": "Profit/Perte",
   "modal.field.transaction.id": "ID transaction",
-  "modal.ok": "OK"
+  "modal.ok": "OK",
+  "legend.warn.currency": "Devise étrangère sans taux de change",
+  "legend.warn.duplicate": "Doublon possible",
+  "table.action.clear.duplicate": "Pas un doublon"
 }

@@ -22,7 +22,6 @@ import lombok.Data;
 @Table(name = "transaction",
        indexes = {
            @Index(name = "idx_tx_position", columnList = "position_id"),
-           @Index(name = "idx_tx_date",     columnList = "date"),
            @Index(name = "idx_tx_transfer", columnList = "transfer_id")
        })
 public class Transaction {

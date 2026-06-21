@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS transaction (
     created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tx_position FOREIGN KEY (position_id) REFERENCES `position`(id) ON DELETE CASCADE,
     INDEX idx_tx_position (position_id),
-    INDEX idx_tx_type_date_quantity_quantity_fiat     (type, date, quantity, quantity_fiat),
     INDEX idx_tx_transfer (transfer_id)
 ) ENGINE=InnoDB;
 

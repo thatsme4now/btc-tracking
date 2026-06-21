@@ -73,8 +73,8 @@ public class CsvImportService {
      * Imports pre-mapped rows sent as JSON from the frontend.
      * Each row is already normalized to the internal CSV format.
      */
-    public int importMapped(List<MappedRow> rows) {
-        if (rows == null || rows.isEmpty()) return 0;
+    public ImportResult importMapped(List<MappedRow> rows) {
+        if (rows == null || rows.isEmpty()) return null;
 
         // Convert MappedRow → CsvRow using the same logic as parseCsv
         List<CsvRow> csvRows = new ArrayList<>();
@@ -212,43 +212,39 @@ public class CsvImportService {
 		return dateTime;
 	}
 
-    private int persistRows(List<CsvRow> rows) {
-        int inserted = 0;
-        for (CsvRow row : rows) {
-            Position position = resolvePosition(row.exchange);
+	private ImportResult persistRows(List<CsvRow> rows) {
+	    ImportResult result = new ImportResult();
+	    for (CsvRow row : rows) {
+	        Position position = resolvePosition(row.exchange);
 
-            boolean exists = transactionRepo
-                .existsByPositionIdAndDateAndTypeAndQuantity(
-                    position.getId(), row.dateTime, row.type, row.quantity);
+	        boolean isDuplicate = row.transactionId == null && transactionRepo
+	            .existsByPositionIdAndDateAndTypeAndQuantity(position.getId(), row.dateTime, row.type, row.quantity);
 
-            if (exists) {
-                log.debug("Skipping duplicate: {} {} {} {}", row.exchange, row.dateTime, row.type, row.quantity);
-                continue;
-            }
-
-            Transaction tx = new Transaction();
-            tx.setPosition(position);
-            tx.setType(row.type);
-            tx.setDate(row.dateTime);
-            tx.setQuantity(row.quantity);
-            tx.setPricePerBtc(row.pricePerBtc);
-            tx.setFees(row.fees);
-            tx.setFeesCurrency(row.feesCurrency);
-            tx.setQuantityFiat(row.quantityFiat);
-            tx.setCurrency(row.currency != null ? row.currency : "EUR");
-            tx.setExchangeRate(row.exchangeRate != null ? row.exchangeRate : BigDecimal.ONE);
-            tx.setTransferId(row.transferId);
-            tx.setComment(row.comment);
-            tx.setTransactionId(row.transactionId);
-            if(tx.getTransactionId() == null) {
-            		tx.setTransactionId(UUID.randomUUID().toString());
-            }
-            transactionRepo.save(tx);
-            inserted++;
-        }
-        log.info("Import: {} rows processed, {} inserted", rows.size(), inserted);
-        return inserted;
-    }
+	        Transaction tx = new Transaction();
+	        tx.setPosition(position);
+	        tx.setType(row.type);
+	        tx.setDate(row.dateTime);
+	        tx.setQuantity(row.quantity);
+	        tx.setPricePerBtc(row.pricePerBtc);
+	        tx.setFees(row.fees);
+	        tx.setFeesCurrency(row.feesCurrency);
+	        tx.setQuantityFiat(row.quantityFiat);
+	        tx.setCurrency(row.currency != null ? row.currency : "EUR");
+	        tx.setExchangeRate(row.exchangeRate != null ? row.exchangeRate : BigDecimal.ONE);
+	        tx.setTransferId(row.transferId);
+	        tx.setComment(row.comment);
+	        tx.setTransactionId(row.transactionId);
+	        if (tx.getTransactionId() == null) {
+	            tx.setTransactionId(UUID.randomUUID().toString());
+	        }
+	        transactionRepo.save(tx);
+	        result.inserted++;
+	        if (isDuplicate) {
+	            result.duplicateIds.add(tx.getId());
+	        }
+	    }
+	    return result;
+	}
 
     // ── CSV Parsing (legacy) ──────────────────────────────────────────────────
 
@@ -439,5 +435,10 @@ public class CsvImportService {
         String          currency;
         String          comment;
         String          transactionId;
+    }
+    
+    public static class ImportResult {
+        public int inserted;
+        public List<Long> duplicateIds = new ArrayList<>();
     }
 }

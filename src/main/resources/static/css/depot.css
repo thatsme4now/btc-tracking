@@ -63,6 +63,7 @@
     --accent:           #F7931A;   /* Bitcoin orange */
     --accent-dim:       #3a2200;
     --warn:				#6b3d04;
+    --warn-duplicate:		#403483;
     --radius:           6px;
     --font:             'IBM Plex Mono', 'Courier New', monospace;
 }
@@ -90,6 +91,8 @@ body.light {
     --accent:           #e07b00;
     --accent-dim:       #fde8c8;
     --warn:       		  #e0ceb9;
+    --warn-duplicate:		#baa0d5;
+    
 }
 
 /* ── Navbar ──────────────────────────────────────────────── */
@@ -306,6 +309,7 @@ body.light {
 }
 .depot-toast.success { border-left: 3px solid var(--pos); }
 .depot-toast.error   { border-left: 3px solid var(--neg); }
+.depot-toast.warning { border-left: 3px solid var(--accent); }
 
 /* ── Button spinner ──────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -348,6 +352,24 @@ table.dataTable tbody tr {
 table.dataTable tbody tr.warning {
     background-color: var(--warn) !important;
 }
+
+table.dataTable tbody tr.warning-duplicate {
+    background-color: var(--warn-duplicate) !important;
+}
+
+.tx-legend-item {
+    display:     flex;
+    align-items: center;
+    gap:         .4rem;
+}
+
+.tx-legend-dot {
+    width:         10px;
+    height:        10px;
+    border-radius: 2px;
+    flex-shrink:   0;
+}
+
 
 table.dataTable tbody tr:hover td {
     background-color: var(--bg-row) !important;

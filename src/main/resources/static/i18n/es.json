@@ -144,5 +144,8 @@
   "csv.import.mapping.fee.exchange.rate": "Tipo de cambio para visualización (Opcional)",
   "table.col.profit": "Ganancia/Pérdida",
   "modal.field.transaction.id": "ID de transacción",
-  "modal.ok": "Aceptar"
+  "modal.ok": "Aceptar",
+  "legend.warn.currency": "Moneda extranjera sin tipo de cambio",
+  "legend.warn.duplicate": "Posible duplicado",
+  "table.action.clear.duplicate": "No es duplicado"
 }

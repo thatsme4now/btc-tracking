@@ -26,6 +26,7 @@ import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.entity.TransactionType;
 import com.thatsme4now.depot.service.CsvEncryptionService;
 import com.thatsme4now.depot.service.CsvImportService;
+import com.thatsme4now.depot.service.CsvImportService.ImportResult;
 import com.thatsme4now.depot.service.DepotService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -58,8 +59,11 @@ public class DepotRestController {
     public ResponseEntity<Map<String, Object>> importMapped(
             @RequestBody MappedImportRequest req) {
         try {
-            int inserted = csvImportService.importMapped(req.getRows());
-            return ResponseEntity.ok(Map.of("inserted", inserted));
+            ImportResult result = csvImportService.importMapped(req.getRows());
+            return ResponseEntity.ok(Map.of(
+            	    "inserted", result.inserted,
+            	    "duplicateIds", result.duplicateIds
+            	));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -137,8 +141,11 @@ public class DepotRestController {
                 }
             }
  
-            int inserted = csvImportService.importMapped(rows);
-            return ResponseEntity.ok(Map.of("inserted", inserted));
+            ImportResult result = csvImportService.importMapped(rows);
+            return ResponseEntity.ok(Map.of(
+            	    "inserted", result.inserted,
+            	    "duplicateIds", result.duplicateIds
+            	));
  
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

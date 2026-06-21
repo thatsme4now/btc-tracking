@@ -144,5 +144,8 @@
   "csv.import.mapping.fee.exchange.rate": "Exchange Rate to Display (Optional)",
   "table.col.profit": "Profit/Loss",
   "modal.field.transaction.id": "Transaction ID",
-  "modal.ok": "OK"
+  "modal.ok": "OK",
+  "legend.warn.currency": "Foreign currency without exchange rate",
+  "legend.warn.duplicate": "Possible duplicate",
+  "table.action.clear.duplicate": "Not a duplicate"
 }

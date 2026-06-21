@@ -144,5 +144,10 @@
   "csv.import.mapping.fee.exchange.rate": "Wechselkurs zur Anzeige (Optional)",
   "table.col.profit": "Gewinn/Verlust",
   "modal.field.transaction.id": "Transaktions-Id",
-  "modal.ok": "Ok"
+  "modal.ok": "Ok",
+  "legend.warn.currency": "Fremdwährung ohne Wechselkurs",
+  "legend.warn.duplicate": "Mögliches Duplikat",
+  "table.action.clear.duplicate": "Kein Duplikat",
+  
+  "toast.importDuplicates": "{COUNT} mögliche Duplikate markiert"
 }

@@ -509,6 +509,19 @@ async function loadTransactions() {
             renderTxTable(data);
         })
         .catch(err => {select
+			// Legende aktualisieren
+			const legend = document.getElementById('txLegend');
+			if (legend) {
+			    legend.innerHTML = `
+			        <span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--warn)"></span>
+			            <span>${t('legend.warn.currency')}</span>
+			        </span>
+			        <span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
+			            <span>${t('legend.warn.duplicate')}</span>
+			        </span>`;
+			}
             document.getElementById('txTableBody').innerHTML =
                 `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
@@ -584,7 +597,8 @@ function renderTxTable(data) {
     document.getElementById('txTableBody').innerHTML =
         rows.length ? rows.join('') :
         `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
-
+	_markDuplicates();
+	
     $('#txTable').DataTable({
         order:      [[1, 'desc']],
         pageLength: 500,
@@ -1038,7 +1052,14 @@ function confirmCsvImport() {
         if (data.error) {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
-            showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess'), 'success');
+			sessionStorage.setItem('depot-duplicate-ids', JSON.stringify(data.duplicateIds || []));
+			if(data.duplicateIds.length > 0) {
+				showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess') + '\n' +
+				'✗ ' + t('toast.importDuplicates', { COUNT: data.duplicateIds.length }), 'warning');
+			} else {				
+	            showToast('✓ ' + data.inserted + ' ' + t('toast.importSuccess'), 'success');
+			}
+
             setTimeout(() => window.location.reload(), 1800);
         }
     })
@@ -1144,11 +1165,11 @@ function _doRefreshPrices() {
 
 // ── Toast ─────────────────────────────────────────────────
 function showToast(msg, type) {
-    const toast       = document.getElementById('statusToast');
-    toast.textContent = msg;
-    toast.className   = 'depot-toast ' + (type || '');
-    toast.classList.remove('d-none');
-    setTimeout(() => toast.classList.add('d-none'), 5000);
+	const toast     = document.getElementById('statusToast');
+	    toast.innerHTML = msg.replace(/\n/g, '<br>');
+	    toast.className = 'depot-toast ' + (type || '');
+	    toast.classList.remove('d-none');
+	    setTimeout(() => toast.classList.add('d-none'), 5000);
 }
 
 // ── Formatters ────────────────────────────────────────────
@@ -1389,6 +1410,7 @@ document.addEventListener('contextmenu', e => {
         ${_ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()')}
         ${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
         ${_ctxItem('bi-percent',           t("table.action.exchange.rate"), 'openBulkExRate()')}
+		${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
         <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
         ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
 
@@ -1597,6 +1619,34 @@ function showConfirm(title, body) {
 
         _confirmModal.show();
     });
+}
+
+function _markDuplicates() {
+	const ids       = JSON.parse(sessionStorage.getItem('depot-duplicate-ids') || '[]');
+    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+    if (!ids.length) return;
+    document.querySelectorAll('.tx-row-check').forEach(cb => {
+        const id = parseInt(cb.dataset.id);
+        if (ids.includes(id) && !confirmed.includes(id)) {
+            cb.closest('tr').classList.add('warning-duplicate');
+        }
+    });
+}
+
+function clearDuplicateMark() {
+    const ids       = _getSelectedIds();
+    if (!ids.length) return;
+    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+    ids.forEach(id => { if (!confirmed.includes(id)) confirmed.push(id); });
+    sessionStorage.setItem('depot-confirmed-ids', JSON.stringify(confirmed));
+    // Klasse von betroffenen Rows entfernen
+    ids.forEach(id => {
+        const cb = document.querySelector(`.tx-row-check[data-id="${id}"]`);
+        if (cb) cb.closest('tr').classList.remove('warning-duplicate');
+    });
+    // Checkboxen zurücksetzen
+    document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
+    _updateBulkToolbar();
 }
 
 document.addEventListener("DOMContentLoaded", function() {

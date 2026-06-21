@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS `transaction` (
 );
 
 CREATE INDEX IF NOT EXISTS idx_tx_position ON `transaction`(position_id);
-CREATE INDEX IF NOT EXISTS idx_tx_type_date_quantity_quantity_fiat ON `transaction`(type, date, quantity, quantity_fiat);
 CREATE INDEX IF NOT EXISTS idx_tx_transfer ON `transaction`(transfer_id);
 
 CREATE TABLE IF NOT EXISTS price_history (

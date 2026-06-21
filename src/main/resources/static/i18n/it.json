@@ -144,5 +144,8 @@
   "csv.import.mapping.fee.exchange.rate": "Tasso di cambio visualizzazione (Opzionale)",
   "table.col.profit": "Profitto/Perdita",
   "modal.field.transaction.id": "ID transazione",
-  "modal.ok": "OK"
+  "modal.ok": "OK",
+  "legend.warn.currency": "Valuta estera senza tasso di cambio",
+  "legend.warn.duplicate": "Possibile duplicato",
+  "table.action.clear.duplicate": "Non è un duplicato"
 }
