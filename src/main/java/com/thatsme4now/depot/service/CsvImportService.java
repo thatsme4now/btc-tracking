@@ -202,7 +202,6 @@ public class CsvImportService {
 		for (DateTimeFormatter format : TIME_FORMATS) {
 			try {
 				dateTime = LocalDateTime.parse(date, format);
-				dateTime = dateTime.withSecond(0);
 				break;
 			} catch (Exception e) {
 				// nothing

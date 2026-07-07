@@ -100,9 +100,10 @@ function _fpConfig(inputEl) {
     return {
         enableTime:  true,
         time_24hr:   true,
-        dateFormat:  'Y-m-d H:i',     // internes Format — bleibt immer ISO für JS-Logik
+		enableSeconds:	true,
+        dateFormat:  'Y-m-d H:i:S',     // internes Format — bleibt immer ISO für JS-Logik
         altInput:    true,
-        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
         locale:      _fpLocale(),
         allowInput:  true,
         minuteIncrement: 1,
@@ -114,10 +115,11 @@ function initFlatpickr() {
     const isEn   = locale === 'default';
     const cfg = {
         enableTime:     true,
+		enableSeconds:	true,
         time_24hr:      !isEn,
-        dateFormat:     'Y-m-d H:i',
+        dateFormat:     'Y-m-d H:i:S',
         altInput:       true,
-        altFormat:      isEn ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        altFormat:      isEn ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
         locale:         locale,
         allowInput:     true,
         minuteIncrement: 1,
@@ -537,7 +539,7 @@ function renderTxTable(data) {
 
     const rows = data.map(tx => {
         const color   = TYPE_COLORS[tx.type] || '';
-        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 16) : '–';
+        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
 		
 		let earning;
@@ -658,7 +660,7 @@ async function openAddTx(tx) {
 
     if (tx !== undefined) {
        document.getElementById('addTxId').value           = '';
-	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
        document.getElementById('addTxType').value         = tx.type;
        document.getElementById('addTxQty').value          = tx.quantity;
        document.getElementById('addTxQuantityFiat').value = tx.quantityFiat || '';
@@ -698,7 +700,7 @@ async function openEditTx(tx) {
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
     document.getElementById('editTxId').value           = tx.id;
-	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
 
     document.getElementById('editTxType').value         = tx.type;
     document.getElementById('editTxQty').value          = tx.quantity;
@@ -726,7 +728,7 @@ function saveOrAddTx(isAdd) {
     const isTrade = txType === 'BUY' || txType === 'SELL';
 
     const payload = {
-        date:         dateVal ? dateVal + ':00' : null,
+        date:         dateVal ? dateVal : null,
         type:         txType,
         quantity:     parseFloat(document.getElementById(pref + 'TxQty').value) || 0,
         quantityFiat: parseFloat(document.getElementById(pref + 'TxQuantityFiat').value) || 0,
@@ -748,7 +750,7 @@ function saveOrAddTx(isAdd) {
             payload.transferTarget    = target;
             const tDate = document.getElementById('transferInDate').value;
             const tQty  = document.getElementById('transferInQty').value;
-            payload.transferInDate     = tDate ? tDate + ':00' : null;
+            payload.transferInDate     = tDate ? tDate : null;
             payload.transferInQuantity = parseFloat(tQty) || null;
         }
     }
