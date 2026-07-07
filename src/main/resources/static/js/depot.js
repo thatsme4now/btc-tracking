@@ -905,6 +905,8 @@ function openMappingModal() {
         { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
         { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
 		{ id: 'map_transactionId',label: I18N.t('modal.field.transaction.id'),            	required: false },
+		{ id: 'map_transferId',   label: I18N.t('modal.field.transfer.id'),               	required: false },
+
 		 ]
 
 	 const FIELD_ALIASES = {
@@ -920,6 +922,8 @@ function openMappingModal() {
 	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
 	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
 	     map_transactionId:['transactionId'],
+		 map_transferId:   ['transferId'],
+
 	 };
 
 	 const autoMatch = (fieldId) => {
@@ -1028,6 +1032,8 @@ function confirmCsvImport() {
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
 		transactionId:      document.getElementById('map_transactionId')?.value,
+		transferId:         document.getElementById('map_transferId')?.value,
+
     };
 
     const missing = [];
@@ -1064,6 +1070,8 @@ function confirmCsvImport() {
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
 			transactionId :mapping.transactionId      ? (r[mapping.transactionId]      || '').trim() : null,
+			transferId    :mapping.transferId         ? (r[mapping.transferId]         || '').trim() : null,
+
         };
     }).filter(Boolean);
 
@@ -1456,17 +1464,26 @@ document.addEventListener('contextmenu', e => {
     const ids = _getSelectedIds();
     if (!ids.length) return;
 
-    _ctxMenu.innerHTML = `
-        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
-            ${ids.length} selected
-        </div>
-        ${_ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()')}
-        ${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
-        ${_ctxItem('bi-percent',           t("table.action.exchange.rate"), 'openBulkExRate()')}
-		${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
-		${_ctxItem('bi-arrow-down-up',     t('table.action.mark.solo'),         'bulkMarkSoloTransfer()')}
-        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
-        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
+	// Typen der Selektion ermitteln
+    const selectedTypes = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(tr => tr.closest('tr').dataset.type);
+    const isAllTransfer = selectedTypes.every(t => t === 'TRANSFER_IN' || t === 'TRANSFER_OUT');
+    const isAllTrade    = selectedTypes.every(t => t === 'BUY' || t === 'SELL');
+	
+	_ctxMenu.innerHTML = `
+	        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
+	            ${ids.length} selected
+	        </div>
+	        ${isAllTransfer ? _ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()') : ''}
+	        ${isAllTransfer ? _ctxItem('bi-arrow-down-up', t('table.action.mark.solo'), 'bulkMarkSoloTransfer()') : ''}
+	        ${isAllTransfer ? _ctxItem('bi-x-circle', t('table.action.remove.transfer'), 'bulkRemoveTransfer()') : ''}
+	        ${isAllTrade ? _ctxItem('bi-percent', t("table.action.exchange.rate"), 'openBulkExRate()') : ''}
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+			${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
+			${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
+	        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+	        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
+
 
     _ctxMenu.style.display = 'block';
     // Position: keep inside viewport
@@ -1671,6 +1688,29 @@ async function bulkMarkSoloTransfer() {
     .then(d => {
         if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
         showToast('✓ ' + t('toast.soloTransfer.success', { COUNT: d.marked }), 'success');
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+// ── Bulk: Remove TransferId ───────────────────────────────
+async function bulkRemoveTransfer() {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+
+    if (!await showConfirm(t('table.action.remove.transfer'),
+            t('confirm.removeTransfer', { COUNT: ids.length }))) return;
+
+    fetch('/api/btc-tracking/transactions/bulk-remove-transfer', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.removeTransfer.success', { COUNT: d.removed }), 'success');
         txLoaded = false;
         loadTransactions();
     })

@@ -154,5 +154,9 @@
   "legend.solo.transfer": "Solo-Transfer (Ein-/Auszahlung ohne Gegenbuchung)",
   "confirm.markSoloTransfer": "{COUNT} Transaktion(en) als Solo-Transfer markieren? Jede erhält eine eigene Transfer-ID.",
   "toast.soloTransfer.success": "{COUNT} Transaktion(en) als Solo-Transfer markiert",
-  "toast.soloTransfer.error.type.wrong": "Es sind nur Transaktionen vom Typ TRANSFER_IN und TRANSFER_OUT erlaubt."
+  "toast.soloTransfer.error.type.wrong": "Es sind nur Transaktionen vom Typ TRANSFER_IN und TRANSFER_OUT erlaubt.",
+  "modal.field.transfer.id": "Transfer-ID",
+  "table.action.remove.transfer": "Transfer-ID entfernen",
+  "confirm.removeTransfer": "Transfer-ID bei {COUNT} Transaktion(en) entfernen?",
+  "toast.removeTransfer.success": "Transfer-ID bei {COUNT} Transaktion(en) entfernt"
 }

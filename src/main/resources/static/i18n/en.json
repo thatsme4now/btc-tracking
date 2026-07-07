@@ -154,5 +154,9 @@
   "legend.solo.transfer": "Solo transfer (deposit/payment, no counterpart)",
   "confirm.markSoloTransfer": "Mark {COUNT} transaction(s) as solo transfer? Each gets its own transfer ID.",
   "toast.soloTransfer.success": "{COUNT} transaction(s) marked as solo transfer",
-  "toast.soloTransfer.error.type.wrong": "Only transactions of type TRANSFER_IN and TRANSFER_OUT are allowed."
+  "toast.soloTransfer.error.type.wrong": "Only transactions of type TRANSFER_IN and TRANSFER_OUT are allowed.",
+  "modal.field.transfer.id": "Transfer ID",
+  "table.action.remove.transfer": "Remove Transfer ID",
+  "confirm.removeTransfer": "Remove transfer ID from {COUNT} transaction(s)?",
+  "toast.removeTransfer.success": "Transfer ID removed from {COUNT} transaction(s)"
 }

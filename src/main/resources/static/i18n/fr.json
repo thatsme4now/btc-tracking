@@ -154,5 +154,9 @@
   "legend.solo.transfer": "Transfert isolé (dépôt/paiement sans contrepartie)",
   "confirm.markSoloTransfer": "Marquer {COUNT} transaction(s) comme transfert isolé ? Chacune recevra son propre ID de transfert.",
   "toast.soloTransfer.success": "{COUNT} transaction(s) marquée(s) comme transfert isolé",
-  "toast.soloTransfer.error.type.wrong": "Seules les transactions de type TRANSFER_IN et TRANSFER_OUT sont autorisées."
+  "toast.soloTransfer.error.type.wrong": "Seules les transactions de type TRANSFER_IN et TRANSFER_OUT sont autorisées.",
+  "modal.field.transfer.id": "ID de virement",
+  "table.action.remove.transfer": "Supprimer l'ID de virement",
+  "confirm.removeTransfer": "Supprimer l'ID de virement de {COUNT} transaction(s) ?",
+  "toast.removeTransfer.success": "ID de virement supprimé de {COUNT} transaction(s)"
 }

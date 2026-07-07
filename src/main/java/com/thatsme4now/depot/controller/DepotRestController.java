@@ -113,7 +113,7 @@ public class DepotRestController {
                     .setHeader("typ", "date", "exchange",
                                "buyQuantity", "buyCurrency",
                                "sellQuantity", "sellCurrency",
-                               "fee", "feeCurrency", "exchangeRate", "comment", "transactionId")
+                               "fee", "feeCurrency", "exchangeRate", "comment", "transactionId", "transferId")
                     .setSkipHeaderRecord(true)
                     .setTrim(true)
                     .build()
@@ -138,6 +138,12 @@ public class DepotRestController {
 						// does not exists
                     	r.setTransactionId(UUID.randomUUID().toString());
 					}
+                    try {
+                        r.setTransferId(rec.get("transferId"));
+                    } catch (Exception e) {
+                        // older .enc export without transferId column
+                        r.setTransferId(null);
+                    }
                     rows.add(r);
                 }
             }
@@ -277,7 +283,7 @@ public class DepotRestController {
                                "buyQty", "buyCur",
                                "sellQty", "sellCur",
                                "fee", "feeCur", "exchangeRate", "comment",
-                               "transactionId")
+                               "transactionId", "transferId")
                     .setDelimiter(",")
                     .setQuote('"')
                     .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
@@ -332,10 +338,12 @@ public class DepotRestController {
                 String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
                 String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
                 String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
+                String transferId     = tx.getTransferId()    != null ? tx.getTransferId()                : "";
+
 
                 printer.printRecord(typ, datum, tx.getPositionLabel(),
                                     kauf, kaufCur, verkauf, verkCur,
-                                    fee, feeCurrency, exchangeRate, tx.getComment(), transactionId);
+                                    fee, feeCurrency, exchangeRate, tx.getComment(), transactionId, transferId);
             }
         }
  
@@ -497,6 +505,24 @@ public class DepotRestController {
         }
         return ResponseEntity.ok(Map.of("marked", marked));
     }
+    
+ // Bulk Remove TransferId
+    @PostMapping("/transactions/bulk-remove-transfer")
+    public ResponseEntity<Map<String, Object>> bulkRemoveTransfer(@RequestBody BulkRemoveTransferRequest req) {
+        if (req.getIds() == null || req.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
+        }
+
+        int removed = 0;
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx == null || tx.getTransferId() == null) continue;
+            tx.setTransferId(null);
+            depotService.saveTransaction(tx);
+            removed++;
+        }
+        return ResponseEntity.ok(Map.of("removed", removed));
+    }
 
     // ── Inner DTOs ────────────────────────────────────────────────────────────
     @lombok.Data
@@ -526,6 +552,7 @@ public class DepotRestController {
         private String exchangeRate;
         private String comment;
         private String transactionId;
+        private String transferId;
     }
 
     @lombok.Data
@@ -576,6 +603,11 @@ public class DepotRestController {
     
     @lombok.Data
     public static class BulkSoloTransferRequest {
+        private List<Long> ids;
+    }
+    
+    @lombok.Data
+    public static class BulkRemoveTransferRequest {
         private List<Long> ids;
     }
 }

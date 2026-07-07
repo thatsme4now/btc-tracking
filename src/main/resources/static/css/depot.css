@@ -365,7 +365,10 @@ table.dataTable tbody tr {
     box-shadow: var(--accent-dim) !important;
 }
 
-table.dataTable tbody tr.selected {
+table.dataTable tbody tr.selected, 
+table.dataTable tbody tr.selected.solo-transfer, 
+table.dataTable tbody tr.selected.warning-duplicate,
+table.dataTable tbody tr.selected.warning {
     background-color: var(--accent-dim) !important;
     box-shadow: var(--accent-dim) !important;
 }

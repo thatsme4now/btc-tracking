@@ -135,6 +135,7 @@ public class CsvImportService {
         String sellCur = r.getSellCurrency() != null ? r.getSellCurrency().trim() : null;
         String comment  = r.getComment()  != null ? r.getComment().trim()  : null;
         String transactionId  = r.getTransactionId()  != null ? r.getTransactionId().trim()  : null;
+        String transferId     = r.getTransferId()     != null && !r.getTransferId().trim().isBlank() ? r.getTransferId().trim() : null;
 
         TransactionType txType;
         BigDecimal quantity;
@@ -191,6 +192,7 @@ public class CsvImportService {
         row.feesCurrency = feeCurrency;
         row.comment		 = comment;
         row.transactionId = transactionId;
+        row.transferId   = transferId;
         row.exchangeRate = (exRate != null && exRate.compareTo(BigDecimal.ZERO) > 0)
             ? exRate : BigDecimal.ONE;
         return row;

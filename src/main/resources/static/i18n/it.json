@@ -154,5 +154,9 @@
   "legend.solo.transfer": "Trasferimento singolo (deposito/pagamento senza controparte)",
   "confirm.markSoloTransfer": "Contrassegnare {COUNT} transazione/i come trasferimento singolo? Ognuna riceverà un proprio ID di trasferimento.",
   "toast.soloTransfer.success": "{COUNT} transazione/i contrassegnata/e come trasferimento singolo",
-  "toast.soloTransfer.error.type.wrong": "Sono consentite solo transazioni di tipo TRANSFER_IN e TRANSFER_OUT."
+  "toast.soloTransfer.error.type.wrong": "Sono consentite solo transazioni di tipo TRANSFER_IN e TRANSFER_OUT.",
+  "modal.field.transfer.id": "ID trasferimento",
+  "table.action.remove.transfer": "Rimuovi ID trasferimento",
+  "confirm.removeTransfer": "Rimuovere l'ID trasferimento da {COUNT} transazione/i?",
+  "toast.removeTransfer.success": "ID trasferimento rimosso da {COUNT} transazione/i"
 }
