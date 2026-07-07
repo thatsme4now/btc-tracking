@@ -149,5 +149,10 @@
   "legend.warn.duplicate": "Doublon possible",
   "table.action.clear.duplicate": "Pas un doublon",
   "toast.importDuplicates": "{COUNT} doublon(s) possible(s) marqué(s)",
-  "toast.import.transaction.already": "{COUNT} entrée(s) ignorée(s), l'ID interne existe déjà."
+  "toast.import.transaction.already": "{COUNT} entrée(s) ignorée(s), l'ID interne existe déjà.",
+  "table.action.mark.solo": "Marquer comme transfert isolé",
+  "legend.solo.transfer": "Transfert isolé (dépôt/paiement sans contrepartie)",
+  "confirm.markSoloTransfer": "Marquer {COUNT} transaction(s) comme transfert isolé ? Chacune recevra son propre ID de transfert.",
+  "toast.soloTransfer.success": "{COUNT} transaction(s) marquée(s) comme transfert isolé",
+  "toast.soloTransfer.error.type.wrong": "Seules les transactions de type TRANSFER_IN et TRANSFER_OUT sont autorisées."
 }

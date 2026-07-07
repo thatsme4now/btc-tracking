@@ -469,7 +469,34 @@ public class DepotRestController {
         }));
         return ResponseEntity.ok(Map.of("updated", req.getIds().size()));
     }
+    
+ // Bulk Mark Solo Transfer (einseitiger Transfer: erhaltene Einzahlung / bezahlte Leistung)
+    @PostMapping("/transactions/bulk-solo-transfer")
+    public ResponseEntity<Map<String, Object>> bulkSoloTransfer(@RequestBody BulkSoloTransferRequest req) {
+        if (req.getIds() == null || req.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
+        }
 
+        // Vorab validieren: nur TRANSFER_IN / TRANSFER_OUT erlaubt
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx != null
+                    && tx.getType() != TransactionType.TRANSFER_IN
+                    && tx.getType() != TransactionType.TRANSFER_OUT) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Only TRANSFER_IN and TRANSFER_OUT allowed"));
+            }
+        }
+
+        int marked = 0;
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx == null) continue;
+            tx.setTransferId(UUID.randomUUID().toString());
+            depotService.saveTransaction(tx);
+            marked++;
+        }
+        return ResponseEntity.ok(Map.of("marked", marked));
+    }
 
     // ── Inner DTOs ────────────────────────────────────────────────────────────
     @lombok.Data
@@ -545,5 +572,10 @@ public class DepotRestController {
     public static class PositionRequest {
         private String label;
         private String type;
+    }
+    
+    @lombok.Data
+    public static class BulkSoloTransferRequest {
+        private List<Long> ids;
     }
 }

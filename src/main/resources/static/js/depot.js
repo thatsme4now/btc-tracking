@@ -522,6 +522,10 @@ async function loadTransactions() {
 			        <span class="tx-legend-item">
 			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
 			            <span>${t('legend.warn.duplicate')}</span>
+			        </span>
+					<span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
+			            <span>${t('legend.solo.transfer')}</span>
 			        </span>`;
 			}
             document.getElementById('txTableBody').innerHTML =
@@ -536,12 +540,25 @@ function renderTxTable(data) {
         TRANSFER_IN:  'text-pos',
         TRANSFER_OUT: 'text-neg'
     };
+	
+	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
+    const transferIdCounts = {};
+    data.forEach(tx => {
+        if (tx.transferId) {
+            transferIdCounts[tx.transferId] = (transferIdCounts[tx.transferId] || 0) + 1;
+        }
+    });
 
     const rows = data.map(tx => {
         const color   = TYPE_COLORS[tx.type] || '';
         const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
 		
+		// NEU
+        const isSolo = tx.transferId
+            && transferIdCounts[tx.transferId] === 1
+            && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
+					
 		let earning;
 		let posNeg = "";
 		if (tx.type == "BUY") {		
@@ -559,8 +576,7 @@ function renderTxTable(data) {
 		} else {
 			earning="–";
 		}
-		
-        return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
+		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
@@ -1403,14 +1419,20 @@ function toggleCard(bodyId, btn) {
 }
 
 function toggleSelectAll(cb) {
-    document.querySelectorAll('.tx-row-check')
-        .forEach(el => { el.checked = cb.checked; });
+	document.querySelectorAll('.tx-row-check')
+    .forEach(el => {
+        el.checked = cb.checked;
+        el.closest('tr').classList.toggle('selected', cb.checked);
+    });
     _updateBulkToolbar();
 }
 
 // Row-Checkbox click (stopPropagation damit Row-Click nicht feuert)
 document.addEventListener('change', e => {
-    if (e.target.classList.contains('tx-row-check')) _updateBulkToolbar();
+	if (e.target.classList.contains('tx-row-check')) {
+        e.target.closest('tr').classList.toggle('selected', e.target.checked);
+        _updateBulkToolbar();
+    }
 });
 
 // Rechtsklick auf txTableBody → Kontextmenü
@@ -1422,8 +1444,12 @@ document.addEventListener('contextmenu', e => {
     // Wenn die geklickte Row nicht selektiert ist → nur diese selektieren
     const cb = row.querySelector('.tx-row-check');
     if (cb && !cb.checked) {
-        document.querySelectorAll('.tx-row-check').forEach(c => c.checked = false);
+		document.querySelectorAll('.tx-row-check').forEach(c => {
+            c.checked = false;
+            c.closest('tr').classList.remove('selected');
+        });
         cb.checked = true;
+        row.classList.add('selected');
         _updateBulkToolbar();
     }
 
@@ -1438,6 +1464,7 @@ document.addEventListener('contextmenu', e => {
         ${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
         ${_ctxItem('bi-percent',           t("table.action.exchange.rate"), 'openBulkExRate()')}
 		${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
+		${_ctxItem('bi-arrow-down-up',     t('table.action.mark.solo'),         'bulkMarkSoloTransfer()')}
         <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
         ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
 
@@ -1611,6 +1638,39 @@ function confirmBulkExRate() {
         if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
 		showToast("✓ " + t("toast.exchange.rate.success", {COUNT: d.updated}), 'success');
 
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+// ── Bulk: Mark Solo Transfer ──────────────────────────────
+async function bulkMarkSoloTransfer() {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+
+    const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(cb => cb.closest('tr'));
+    const invalid = selectedRows.some(tr =>
+        tr.dataset.type !== 'TRANSFER_IN' && tr.dataset.type !== 'TRANSFER_OUT');
+
+    if (invalid) {
+        showToast('✗ ' + t('toast.soloTransfer.error.type.wrong'), 'error');
+        return;
+    }
+
+    if (!await showConfirm(t('table.action.mark.solo'),
+            t('confirm.markSoloTransfer', { COUNT: ids.length }))) return;
+
+    fetch('/api/btc-tracking/transactions/bulk-solo-transfer', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.soloTransfer.success', { COUNT: d.marked }), 'success');
         txLoaded = false;
         loadTransactions();
     })

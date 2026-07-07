@@ -149,5 +149,10 @@
   "legend.warn.duplicate": "Posible duplicado",
   "table.action.clear.duplicate": "No es duplicado",
   "toast.importDuplicates": "{COUNT} posible(s) duplicado(s) marcado(s)",
-  "toast.import.transaction.already": "{COUNT} entrada(s) ignorada(s), el ID interno ya existe."
+  "toast.import.transaction.already": "{COUNT} entrada(s) ignorada(s), el ID interno ya existe.",
+  "table.action.mark.solo": "Marcar como transferencia individual",
+  "legend.solo.transfer": "Transferencia individual (depósito/pago sin contrapartida)",
+  "confirm.markSoloTransfer": "¿Marcar {COUNT} transacción(es) como transferencia individual? Cada una recibirá su propio ID de transferencia.",
+  "toast.soloTransfer.success": "{COUNT} transacción(es) marcada(s) como transferencia individual",
+  "toast.soloTransfer.error.type.wrong": "Solo se permiten transacciones de tipo TRANSFER_IN y TRANSFER_OUT."
 }

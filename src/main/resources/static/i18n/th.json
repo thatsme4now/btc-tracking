@@ -149,5 +149,10 @@
   "legend.warn.duplicate": "อาจเป็นรายการซ้ำ",
   "table.action.clear.duplicate": "ไม่ใช่รายการซ้ำ",
   "toast.importDuplicates": "พบ {COUNT} รายการที่อาจซ้ำกัน",
-  "toast.import.transaction.already": "ละเว้น {COUNT} รายการ เนื่องจากมี ID ภายในอยู่แล้ว"
+  "toast.import.transaction.already": "ละเว้น {COUNT} รายการ เนื่องจากมี ID ภายในอยู่แล้ว",
+  "table.action.mark.solo": "ทำเครื่องหมายเป็นการโอนเดี่ยว",
+  "legend.solo.transfer": "การโอนเดี่ยว (ฝาก/ถอนโดยไม่มีรายการคู่)",
+  "confirm.markSoloTransfer": "ทำเครื่องหมาย {COUNT} ธุรกรรมเป็นการโอนเดี่ยว? แต่ละรายการจะได้รับรหัสโอนของตัวเอง",
+  "toast.soloTransfer.success": "ทำเครื่องหมาย {COUNT} ธุรกรรมเป็นการโอนเดี่ยวแล้ว",
+  "toast.soloTransfer.error.type.wrong": "อนุญาตเฉพาะธุรกรรมประเภท TRANSFER_IN และ TRANSFER_OUT เท่านั้น"
 }

@@ -336,6 +336,9 @@
 			    <button class="btn btn-xs depot-btn-outline" onclick="clearDuplicateMark()">
 				    <i class="bi bi-check-circle me-1"></i><span data-i18n="table.action.clear.duplicate"></span>
 				</button>
+				<button class="btn btn-xs depot-btn-outline" onclick="bulkMarkSoloTransfer()">
+				    <i class="bi bi-arrow-down-up me-1"></i><span data-i18n="table.action.mark.solo"></span>
+				</button>
 			    <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			        <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			    </button>
@@ -348,6 +351,10 @@
 			    <span class="tx-legend-item">
 			        <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
 			        <span data-i18n="legend.warn.duplicate"></span>
+			    </span>
+			    <span class="tx-legend-item">
+			        <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
+			        <span data-i18n="legend.solo.transfer"></span>
 			    </span>
 			</div>
             <table class="table depot-table mb-0" id="txTable">

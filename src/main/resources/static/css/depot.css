@@ -63,7 +63,8 @@
     --accent:           #F7931A;   /* Bitcoin orange */
     --accent-dim:       #3a2200;
     --warn:				#6b3d04;
-    --warn-duplicate:		#403483;
+    --warn-duplicate: #403483;
+    --solo-transfer:    #1b4f72;
     --radius:           6px;
     --font:             'IBM Plex Mono', 'Courier New', monospace;
 }
@@ -90,8 +91,9 @@ body.light {
     --neg:              #c0431f;
     --accent:           #e07b00;
     --accent-dim:       #fde8c8;
-    --warn:       		  #e0ceb9;
-    --warn-duplicate:		#baa0d5;
+    --warn:       		#e0ceb9;
+    --warn-duplicate:  #baa0d5;
+    --solo-transfer:      #aed6f1;
     
 }
 
@@ -355,6 +357,18 @@ table.dataTable tbody tr {
 .depot-row.selected:hover td               { background: var(--bg-row) !important; }
 .depot-row.warning.selected:hover td       { background: var(--warn) !important; }
 .depot-row.warning-duplicate.selected:hover td { background: var(--warn-duplicate) !important; }
+.depot-row.solo-transfer:hover td            { background: var(--solo-transfer) !important; }
+.depot-row.solo-transfer.selected:hover td   { background: var(--solo-transfer) !important; }
+
+.depot-row.selected td {
+    background: var(--accent-dim) !important;
+    box-shadow: var(--accent-dim) !important;
+}
+
+table.dataTable tbody tr.selected {
+    background-color: var(--accent-dim) !important;
+    box-shadow: var(--accent-dim) !important;
+}
 
 
 table.dataTable tbody tr.warning {
@@ -365,9 +379,13 @@ table.dataTable tbody tr.warning-duplicate {
     background-color: var(--warn-duplicate) !important;
 }
 
+table.dataTable tbody tr.solo-transfer {
+    background-color: var(--solo-transfer) !important;
+}
 
 table.dataTable tbody tr.warning:hover td           { background-color: var(--warn) !important; }
 table.dataTable tbody tr.warning-duplicate:hover td { background-color: var(--warn-duplicate) !important; }
+table.dataTable tbody tr.solo-transfer:hover td { background-color: var(--solo-transfer) !important; }
 
 .tx-legend-item {
     display:     flex;
