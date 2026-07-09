@@ -533,6 +533,10 @@ async function loadTransactions() {
         });
 }
 
+function truncateTwoDecimals(num) {
+  return Math.trunc(num * 100 + 1e-8) / 100;
+}
+
 function renderTxTable(data) {
     const TYPE_COLORS = {
         BUY:          'text-pos',
@@ -560,13 +564,21 @@ function renderTxTable(data) {
             && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
 					
 		let earning;
+		let paid;
 		let posNeg = "";
 		if (tx.type == "BUY") {		
 			if(tx.currency !== CURRENCY.current()) {
-				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity);
+				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+				paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+				changes = (paid + earning) * tx.quantity;
 			} else {
-				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity);
+				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+				paid = (tx.quantityFiat + tx.fees);
+				changes = (paid + earning) * tx.quantity;
 			}
+			
+			let percentage = (100/paid * (paid + earning)) - 100;
+			earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
 
 			if (earning.startsWith("-")) {
 				posNeg = "text-neg";
@@ -1278,6 +1290,7 @@ function savePriceEdit() {
         document.getElementById('btcPriceDisplay').textContent = fmt;
         closePriceEdit();
         showToast('✓ BTC price updated', 'success');
+		setTimeout(() => window.location.reload(), 1000);
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }

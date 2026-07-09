@@ -162,7 +162,7 @@ public class DepotService {
                 .filter(tx -> tx.getType() == TransactionType.SELL)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-                    if (cp.getCurrency().equals(tx.getCurrency())) {
+                    if (cp != null && cp.getCurrency().equals(tx.getCurrency())) {
                     	return tx.getQuantityFiat();
                     } else {                    	
                     	return tx.getQuantityFiat().multiply(tx.getPricePerBtc()).multiply(rate);
