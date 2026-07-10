@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "Supprimer l'ID de virement",
   "confirm.removeTransfer": "Supprimer l'ID de virement de {COUNT} transaction(s) ?",
   "toast.removeTransfer.success": "ID de virement supprimé de {COUNT} transaction(s)",
-  "legend.last.import": "Importé récemment (cette session)"
+  "legend.last.import": "Importé récemment (cette session)",
+  "csv.import.fixedExchange": "Portefeuille / Exchange fixe",
+  "csv.import.fixedExchange.none": "— utiliser le mappage de colonne —",
+  "csv.import.fixedExchange.hint": "Remplace le mappage de colonne — même portefeuille pour toutes les lignes"
 }

@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "Eliminar ID de transferencia",
   "confirm.removeTransfer": "¿Eliminar el ID de transferencia de {COUNT} transacción(es)?",
   "toast.removeTransfer.success": "ID de transferencia eliminado de {COUNT} transacción(es)",
-  "legend.last.import": "Importado recientemente (esta sesión)"
+  "legend.last.import": "Importado recientemente (esta sesión)",
+  "csv.import.fixedExchange": "Cartera / Exchange fijo",
+  "csv.import.fixedExchange.none": "— usar mapeo de columna —",
+  "csv.import.fixedExchange.hint": "Sobrescribe el mapeo de columna — misma cartera para todas las filas"
 }

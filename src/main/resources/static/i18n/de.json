@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "Transfer-ID entfernen",
   "confirm.removeTransfer": "Transfer-ID bei {COUNT} Transaktion(en) entfernen?",
   "toast.removeTransfer.success": "Transfer-ID bei {COUNT} Transaktion(en) entfernt",
-  "legend.last.import": "Kürzlich importiert (diese Sitzung)"
+  "legend.last.import": "Kürzlich importiert (diese Sitzung)",
+  "csv.import.fixedExchange": "Feste Wallet / Börse",
+  "csv.import.fixedExchange.none": "— Spaltenzuordnung verwenden —",
+  "csv.import.fixedExchange.hint": "Überschreibt die Spaltenzuordnung — gleiche Wallet für alle Zeilen"
 }

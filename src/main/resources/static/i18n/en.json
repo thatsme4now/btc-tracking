@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "Remove Transfer ID",
   "confirm.removeTransfer": "Remove transfer ID from {COUNT} transaction(s)?",
   "toast.removeTransfer.success": "Transfer ID removed from {COUNT} transaction(s)",
-  "legend.last.import": "Recently imported (this session)"
+  "legend.last.import": "Recently imported (this session)",
+  "csv.import.fixedExchange": "Fixed Wallet / Exchange",
+  "csv.import.fixedExchange.none": "— use column mapping —",
+  "csv.import.fixedExchange.hint": "Overrides column mapping — same wallet for all rows"
 }

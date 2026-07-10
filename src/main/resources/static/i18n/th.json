@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "ลบรหัสโอน",
   "confirm.removeTransfer": "ลบรหัสโอนออกจาก {COUNT} ธุรกรรมหรือไม่?",
   "toast.removeTransfer.success": "ลบรหัสโอนออกจาก {COUNT} ธุรกรรมแล้ว",
-  "legend.last.import": "นำเข้าล่าสุด (เซสชันนี้)"
+  "legend.last.import": "นำเข้าล่าสุด (เซสชันนี้)",
+  "csv.import.fixedExchange": "กระเป๋า/ตลาดคงที่",
+  "csv.import.fixedExchange.none": "— ใช้การแมปคอลัมน์ —",
+  "csv.import.fixedExchange.hint": "แทนที่การแมปคอลัมน์ — ใช้กระเป๋าเดียวกันสำหรับทุกแถว"
 }

@@ -159,5 +159,8 @@
   "table.action.remove.transfer": "Rimuovi ID trasferimento",
   "confirm.removeTransfer": "Rimuovere l'ID trasferimento da {COUNT} transazione/i?",
   "toast.removeTransfer.success": "ID trasferimento rimosso da {COUNT} transazione/i",
-  "legend.last.import": "Importato di recente (in questa sessione)"
+  "legend.last.import": "Importato di recente (in questa sessione)",
+  "csv.import.fixedExchange": "Portafoglio / Exchange fisso",
+  "csv.import.fixedExchange.none": "— usa mappatura colonna —",
+  "csv.import.fixedExchange.hint": "Sovrascrive la mappatura colonna — stesso portafoglio per tutte le righe"
 }

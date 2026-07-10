@@ -950,24 +950,43 @@ function openMappingModal() {
 	 };
 	 
     const mappingRows = FIELDS.map(f => {
-        const matched = autoMatch(f.id); 
+		const matched = autoMatch(f.id);
+	    const opts    = NONE + headers.map(h =>
+	        `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
+	    ).join('');
 
-        const opts    = NONE + headers.map(h =>
-            `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
-        ).join('');
-        return `
-        <tr>
-            <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
-                ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
-            </td>
-            <td>
-                <select id="${f.id}" class="form-select depot-input form-select-sm"
-                        onchange="${f.id === 'map_typ' ? 'refreshTypRemap()' : ''}">
-                    ${opts}
-                </select>
-            </td>
-        </tr>`;
-    }).join('');
+	    let row = `
+	    <tr>
+	        <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
+	            ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
+	        </td>
+	        <td>
+	            <select id="${f.id}" class="form-select depot-input form-select-sm"
+	                    onchange="${f.id === 'map_typ' ? 'refreshTypRemap()' : ''}">
+	                ${opts}
+	            </select>
+	        </td>
+	    </tr>`;
+
+	    if (f.id === 'map_exchange') {
+	        row += `
+	        <tr>
+	            <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
+	                ${t('csv.import.fixedExchange')}
+	            </td>
+	            <td>
+	                <select id="map_exchangeFixed" class="form-select depot-input form-select-sm mb-1"
+	                        onchange="onFixedExchangeChange()">
+	                    <option value="">${t('csv.import.fixedExchange.none')}</option>
+	                </select>
+	                <input type="text" id="map_exchangeFixedNew" class="form-control depot-input d-none"
+	                       placeholder="New position name" maxlength="100"/>
+	                <div class="form-text text-muted" style="font-size:.7rem">${t('csv.import.fixedExchange.hint')}</div>
+	            </td>
+	        </tr>`;
+	    }
+	    return row;
+	}).join('');
 
     const body = `
         <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
@@ -981,7 +1000,7 @@ function openMappingModal() {
         <div id="typRemapContainer"></div>`;
 
     document.getElementById('csvMappingBody').innerHTML = body;
-    setTimeout(refreshTypRemap, 0);
+	setTimeout(() => { refreshTypRemap(); _loadFixedExchangeDropdown(); }, 0);
 
     const el    = document.getElementById('csvMappingModal');
     const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
@@ -1036,6 +1055,32 @@ function refreshTypRemap() {
     container.innerHTML = `<table style="width:100%;border-spacing:0 2px">${rows}</table>`;
 }
 
+function _loadFixedExchangeDropdown() {
+    const sel = document.getElementById('map_exchangeFixed');
+    if (!sel) return;
+    fetch('/api/btc-tracking/positions')
+        .then(r => r.json())
+        .then(data => {
+            _positionsCache = data;
+            sel.innerHTML =
+                `<option value="">${t('csv.import.fixedExchange.none')}</option>` +
+                data.map(p => `<option value="${esc(p.label)}">${esc(p.label)}</option>`).join('') +
+                '<option value="__new__">＋ New position...</option>';
+        });
+}
+
+function onFixedExchangeChange() {
+    const sel         = document.getElementById('map_exchangeFixed');
+    const newInput    = document.getElementById('map_exchangeFixedNew');
+    const exchangeSel = document.getElementById('map_exchange');
+    const isNew       = sel.value === '__new__';
+
+    newInput.classList.toggle('d-none', !isNew);
+    if (isNew) newInput.focus();
+
+    exchangeSel.disabled = sel.value !== '';
+}
+
 function confirmCsvImport() {
     const mapping = {
         typ:          document.getElementById('map_typ')?.value,
@@ -1054,10 +1099,18 @@ function confirmCsvImport() {
 
     };
 
+    const fixedSel    = document.getElementById('map_exchangeFixed');
+    const fixedActive = fixedSel && fixedSel.value !== '';
+    const fixedExchange = fixedActive
+        ? (fixedSel.value === '__new__'
+            ? (document.getElementById('map_exchangeFixedNew').value || '').trim()
+            : fixedSel.value)
+        : '';
+
     const missing = [];
-    if (!mapping.typ)      missing.push('typ');
-    if (!mapping.date)     missing.push('date');
-    if (!mapping.exchange) missing.push('exchange');
+    if (!mapping.typ)  missing.push('typ');
+    if (!mapping.date) missing.push('date');
+    if (fixedActive ? !fixedExchange : !mapping.exchange) missing.push('exchange');
     if (missing.length) {
         showToast('✗ ' + t('toast.csvValidation') + ': ' + missing.join(', '), 'error');
         return;
@@ -1078,18 +1131,17 @@ function confirmCsvImport() {
         return {
             typ:          mappedTyp,
             date:         mapping.date         ? (r[mapping.date]         || '').trim() : null,
-            exchange:     mapping.exchange     ? (r[mapping.exchange]     || '').trim() : null,
+            exchange:     fixedActive ? fixedExchange : (mapping.exchange ? (r[mapping.exchange] || '').trim() : null),
             buyQuantity:  mapping.buyQty       ? (r[mapping.buyQty]       || '').trim() : null,
             buyCurrency:  mapping.buyCur       ? (r[mapping.buyCur]       || '').trim() : null,
             sellQuantity: mapping.sellQty      ? (r[mapping.sellQty]      || '').trim() : null,
             sellCurrency: mapping.sellCur      ? (r[mapping.sellCur]      || '').trim() : null,
             fee:          mapping.fee          ? (r[mapping.fee]          || '').trim() : null,
-			feeCur:       mapping.feeCur  ? (r[mapping.feeCur]  || '').trim() : null,
+            feeCur:       mapping.feeCur       ? (r[mapping.feeCur]       || '').trim() : null,
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
-			transactionId :mapping.transactionId      ? (r[mapping.transactionId]      || '').trim() : null,
-			transferId    :mapping.transferId         ? (r[mapping.transferId]         || '').trim() : null,
-
+            transactionId:mapping.transactionId? (r[mapping.transactionId]|| '').trim() : null,
+            transferId:   mapping.transferId   ? (r[mapping.transferId]   || '').trim() : null,
         };
     }).filter(Boolean);
 
