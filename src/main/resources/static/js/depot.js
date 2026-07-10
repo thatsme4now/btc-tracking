@@ -509,6 +509,8 @@ async function loadTransactions() {
         .then(data => {
             txLoaded = true;
             renderTxTable(data);
+			const countEl = document.getElementById('transactionCountValue');
+			if (countEl) countEl.textContent = data.length;
         })
         .catch(err => {select
 			// Legende aktualisieren
@@ -1750,7 +1752,8 @@ function showConfirm(title, body) {
     return new Promise(resolve => {
         _confirmResolve = resolve;
 
-        const okBtn = document.getElementById('confirmModalOk');
+        const modalEl = document.getElementById('confirmModal');
+        const okBtn   = document.getElementById('confirmModalOk');
         // Alten Listener entfernen um Doppel-Trigger zu vermeiden
         const newOk = okBtn.cloneNode(true);
         okBtn.parentNode.replaceChild(newOk, okBtn);
@@ -1759,8 +1762,23 @@ function showConfirm(title, body) {
             resolve(true);
         });
 
-        document.getElementById('confirmModal')
-            .addEventListener('hidden.bs.modal', () => resolve(false), { once: true });
+        // Enter bestätigt, wenn der OK-Button fokussiert (markiert) ist
+        const onKeydown = (e) => {
+            if (e.key === 'Enter' && document.activeElement === newOk) {
+                e.preventDefault();
+                newOk.click();
+            }
+        };
+        modalEl.addEventListener('keydown', onKeydown);
+
+        modalEl.addEventListener('shown.bs.modal', () => {
+            newOk.focus();
+        }, { once: true });
+
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            modalEl.removeEventListener('keydown', onKeydown);
+            resolve(false);
+        }, { once: true });
 
         _confirmModal.show();
     });
