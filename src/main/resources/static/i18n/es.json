@@ -158,5 +158,6 @@
   "modal.field.transfer.id": "ID de transferencia",
   "table.action.remove.transfer": "Eliminar ID de transferencia",
   "confirm.removeTransfer": "¿Eliminar el ID de transferencia de {COUNT} transacción(es)?",
-  "toast.removeTransfer.success": "ID de transferencia eliminado de {COUNT} transacción(es)"
+  "toast.removeTransfer.success": "ID de transferencia eliminado de {COUNT} transacción(es)",
+  "legend.last.import": "Importado recientemente (esta sesión)"
 }

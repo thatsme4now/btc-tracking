@@ -158,5 +158,6 @@
   "modal.field.transfer.id": "รหัสโอน",
   "table.action.remove.transfer": "ลบรหัสโอน",
   "confirm.removeTransfer": "ลบรหัสโอนออกจาก {COUNT} ธุรกรรมหรือไม่?",
-  "toast.removeTransfer.success": "ลบรหัสโอนออกจาก {COUNT} ธุรกรรมแล้ว"
+  "toast.removeTransfer.success": "ลบรหัสโอนออกจาก {COUNT} ธุรกรรมแล้ว",
+  "legend.last.import": "นำเข้าล่าสุด (เซสชันนี้)"
 }

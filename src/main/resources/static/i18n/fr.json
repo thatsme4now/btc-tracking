@@ -158,5 +158,6 @@
   "modal.field.transfer.id": "ID de virement",
   "table.action.remove.transfer": "Supprimer l'ID de virement",
   "confirm.removeTransfer": "Supprimer l'ID de virement de {COUNT} transaction(s) ?",
-  "toast.removeTransfer.success": "ID de virement supprimé de {COUNT} transaction(s)"
+  "toast.removeTransfer.success": "ID de virement supprimé de {COUNT} transaction(s)",
+  "legend.last.import": "Importé récemment (cette session)"
 }

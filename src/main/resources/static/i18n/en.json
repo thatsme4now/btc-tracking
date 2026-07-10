@@ -158,5 +158,6 @@
   "modal.field.transfer.id": "Transfer ID",
   "table.action.remove.transfer": "Remove Transfer ID",
   "confirm.removeTransfer": "Remove transfer ID from {COUNT} transaction(s)?",
-  "toast.removeTransfer.success": "Transfer ID removed from {COUNT} transaction(s)"
+  "toast.removeTransfer.success": "Transfer ID removed from {COUNT} transaction(s)",
+  "legend.last.import": "Recently imported (this session)"
 }

@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     fees_currency VARCHAR(10)   ,
     comment       VARCHAR(255),
     transfer_id   VARCHAR(36),
+    is_duplicate  BOOLEAN       NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tx_position FOREIGN KEY (position_id)
         REFERENCES `position`(id) ON DELETE CASCADE

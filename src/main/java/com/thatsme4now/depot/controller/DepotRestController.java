@@ -63,6 +63,7 @@ public class DepotRestController {
             return ResponseEntity.ok(Map.of(
             	    "inserted", result.inserted,
             	    "duplicateIds", result.duplicateIds,
+            	    "lastImportIds", result.lastImportIds,
             	    "ignoredByTransactionId", result.ignoredByTransactionId
             	));
         } catch (Exception e) {
@@ -152,6 +153,7 @@ public class DepotRestController {
             return ResponseEntity.ok(Map.of(
             	    "inserted", result.inserted,
             	    "duplicateIds", result.duplicateIds,
+            	    "lastImportIds", result.lastImportIds,
             	    "ignoredByTransactionId", result.ignoredByTransactionId
             	));
  
@@ -251,6 +253,23 @@ public class DepotRestController {
     public ResponseEntity<Void> deleteTransaction(@PathVariable("id") Long id) {
         depotService.deleteTransaction(id);
         return ResponseEntity.noContent().build();
+    }
+	
+	@PostMapping("/transactions/bulk-clear-duplicate")
+    public ResponseEntity<Map<String, Object>> bulkClearDuplicate(@RequestBody BulkClearDuplicateRequest req) {
+        if (req.getIds() == null || req.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
+        }
+
+        int cleared = 0;
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx == null || !tx.isDuplicate()) continue;
+            tx.setDuplicate(false);
+            depotService.saveTransaction(tx);
+            cleared++;
+        }
+        return ResponseEntity.ok(Map.of("cleared", cleared));
     }
 
 
@@ -608,6 +627,11 @@ public class DepotRestController {
     
     @lombok.Data
     public static class BulkRemoveTransferRequest {
+        private List<Long> ids;
+    }
+    
+    @lombok.Data
+    public static class BulkClearDuplicateRequest {
         private List<Long> ids;
     }
 }

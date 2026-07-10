@@ -218,6 +218,7 @@ public class DepotService {
         dto.setExchangeRate(tx.getExchangeRate());
         dto.setTransferId(tx.getTransferId());
         dto.setTransactionId(tx.getTransactionId());
+        dto.setDuplicate(tx.isDuplicate());
 
         if (tx.getQuantityFiat() != null) {
             //BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;

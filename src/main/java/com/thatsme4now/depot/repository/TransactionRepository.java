@@ -24,6 +24,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     boolean existsByPositionIdAndDateAndTypeAndQuantity(
             Long positionId, LocalDateTime date, TransactionType type, BigDecimal quantity);
+   
+    boolean existsByDateAndTypeAndQuantity(
+            LocalDateTime date, TransactionType type, BigDecimal quantity);
     
     boolean existsByTransactionId(String transactionId);
 }

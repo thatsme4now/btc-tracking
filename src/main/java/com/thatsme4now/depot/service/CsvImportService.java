@@ -89,7 +89,7 @@ public class CsvImportService {
             }
         }
         
-        CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElseGet(null);
+        CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElse(null);
         List<CsvRow> reversed = csvRows.reversed();
         try {        	
         	assignTransferIds(reversed);
@@ -219,7 +219,7 @@ public class CsvImportService {
 	        Position position = resolvePosition(row.exchange);
 
 	        boolean isDuplicate = row.transactionId == null && transactionRepo
-	            .existsByPositionIdAndDateAndTypeAndQuantity(position.getId(), row.dateTime, row.type, row.quantity);
+	            .existsByDateAndTypeAndQuantity(row.dateTime, row.type, row.quantity);
 
 	        // row with transactionId already exists
 	        if(row.transactionId != null && transactionRepo.existsByTransactionId(row.transactionId)) {
@@ -241,11 +241,14 @@ public class CsvImportService {
 	        tx.setTransferId(row.transferId);
 	        tx.setComment(row.comment);
 	        tx.setTransactionId(row.transactionId);
+	        tx.setDuplicate(isDuplicate);
+
 	        if (tx.getTransactionId() == null) {
 	            tx.setTransactionId(UUID.randomUUID().toString());
 	        }
 	        transactionRepo.save(tx);
 	        result.inserted++;
+	        result.lastImportIds.add(tx.getId());
 	        if (isDuplicate) {
 	            result.duplicateIds.add(tx.getId());
 	        }
@@ -448,5 +451,7 @@ public class CsvImportService {
         public int inserted;
         public int ignoredByTransactionId;
         public List<Long> duplicateIds = new ArrayList<>();
+        public List<Long> lastImportIds = new ArrayList<>();
+
     }
 }

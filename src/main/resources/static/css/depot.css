@@ -64,6 +64,7 @@
     --accent-dim:       #3a2200;
     --warn:				#6b3d04;
     --warn-duplicate: #403483;
+    --last-import:      #1c8c8c;
     --solo-transfer:    #1b4f72;
     --radius:           6px;
     --font:             'IBM Plex Mono', 'Courier New', monospace;
@@ -94,6 +95,7 @@ body.light {
     --warn:       		#e0ceb9;
     --warn-duplicate:  #baa0d5;
     --solo-transfer:      #aed6f1;
+    --last-import:         #a9dede; 
     
 }
 
@@ -351,7 +353,8 @@ table.dataTable tbody tr {
     background-color: transparent !important;
 }
 
-.depot-row:hover td                        { background: var(--bg-row) !important; }
+.depot-row.last-import:hover td              { background: var(--last-import) !important; }
+.depot-row.last-import.selected:hover td     { background: var(--last-import) !important; }
 .depot-row.warning:hover td                { background: var(--warn) !important; }
 .depot-row.warning-duplicate:hover td      { background: var(--warn-duplicate) !important; }
 .depot-row.selected:hover td               { background: var(--bg-row) !important; }
@@ -366,6 +369,7 @@ table.dataTable tbody tr {
 }
 
 table.dataTable tbody tr.selected, 
+table.dataTable tbody tr.selected.last-import,
 table.dataTable tbody tr.selected.solo-transfer, 
 table.dataTable tbody tr.selected.warning-duplicate,
 table.dataTable tbody tr.selected.warning {
@@ -373,6 +377,9 @@ table.dataTable tbody tr.selected.warning {
     box-shadow: var(--accent-dim) !important;
 }
 
+table.dataTable tbody tr.last-import {
+    background-color: var(--last-import) !important;
+}
 
 table.dataTable tbody tr.warning {
     background-color: var(--warn) !important;
@@ -386,6 +393,8 @@ table.dataTable tbody tr.solo-transfer {
     background-color: var(--solo-transfer) !important;
 }
 
+
+table.dataTable tbody tr.last-import:hover td { background-color: var(--last-import) !important; }
 table.dataTable tbody tr.warning:hover td           { background-color: var(--warn) !important; }
 table.dataTable tbody tr.warning-duplicate:hover td { background-color: var(--warn-duplicate) !important; }
 table.dataTable tbody tr.solo-transfer:hover td { background-color: var(--solo-transfer) !important; }

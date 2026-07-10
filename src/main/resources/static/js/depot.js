@@ -526,7 +526,11 @@ async function loadTransactions() {
 					<span class="tx-legend-item">
 			            <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
 			            <span>${t('legend.solo.transfer')}</span>
-			        </span>`;
+			        </span>
+					<span class="tx-legend-item">
+		                <span class="tx-legend-dot" style="background:var(--last-import)"></span>
+		                <span>${t('legend.last.import')}</span>
+		            </span>`;
 			}
             document.getElementById('txTableBody').innerHTML =
                 `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
@@ -588,7 +592,7 @@ function renderTxTable(data) {
 		} else {
 			earning="–";
 		}
-		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
@@ -1105,7 +1109,8 @@ function confirmCsvImport() {
         if (data.error) {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
-			sessionStorage.setItem('depot-duplicate-ids', JSON.stringify(data.duplicateIds || []));
+			debugger;
+			sessionStorage.setItem('depot-lastimport-ids', JSON.stringify(data.lastImportIds || []));
 			let toastText = '';
 			let toastType = 'success';
 			if (data.inserted > 0) {
@@ -1762,31 +1767,36 @@ function showConfirm(title, body) {
 }
 
 function _markDuplicates() {
-	const ids       = JSON.parse(sessionStorage.getItem('depot-duplicate-ids') || '[]');
-    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+	const ids = JSON.parse(sessionStorage.getItem('depot-lastimport-ids') || '[]');
     if (!ids.length) return;
     document.querySelectorAll('.tx-row-check').forEach(cb => {
         const id = parseInt(cb.dataset.id);
-        if (ids.includes(id) && !confirmed.includes(id)) {
-            cb.closest('tr').classList.add('warning-duplicate');
+        if (ids.includes(id)) {
+            cb.closest('tr').classList.add('last-import');
         }
     });
 }
 
 function clearDuplicateMark() {
-    const ids       = _getSelectedIds();
+    const ids = _getSelectedIds();
     if (!ids.length) return;
-    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
-    ids.forEach(id => { if (!confirmed.includes(id)) confirmed.push(id); });
-    sessionStorage.setItem('depot-confirmed-ids', JSON.stringify(confirmed));
-    // Klasse von betroffenen Rows entfernen
-    ids.forEach(id => {
-        const cb = document.querySelector(`.tx-row-check[data-id="${id}"]`);
-        if (cb) cb.closest('tr').classList.remove('warning-duplicate');
-    });
-    // Checkboxen zurücksetzen
-    document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
-    _updateBulkToolbar();
+
+    fetch('/api/btc-tracking/transactions/bulk-clear-duplicate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+
+      
+        document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
+        _updateBulkToolbar();
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 document.addEventListener("DOMContentLoaded", function() {
