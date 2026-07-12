@@ -176,5 +176,7 @@
   "modal.dbImport.btn": "Importar y sobrescribir",
   "toast.dbImportSuccess": "{POS} posiciones, {TX} transacciones importadas",
   "modal.export.coinTracking": "Formato CoinTracking",
-  "table.action.exportSelected": "Exportar seleccionados"
+  "table.action.exportSelected": "Exportar seleccionados",
+  "csv.import.mapping.time": "Columna de hora (opcional)",
+  "csv.import.dateTimeWarning": "La columna de fecha seleccionada no contiene hora. Asigna una columna de hora separada, o el import quedará bloqueado."
 }

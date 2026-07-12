@@ -53,12 +53,17 @@ public class CsvImportService {
     public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
     public static final DateTimeFormatter ISO_CUSTOM_FORMAT = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
+    
+    private static final DateTimeFormatter DATE_FMT_FLEX = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm:ss");
+    private static final DateTimeFormatter DATE_FMT_FLEX_WITHOUT_SEC = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm");
 
 
     private static final Set<DateTimeFormatter> TIME_FORMATS = new HashSet<>(Arrays.asList(
             DATE_FMT,
+            DATE_FMT_FLEX,
             DATE_FMT_EN,
             DATE_FMT_WITHOUT_SEC,
+            DATE_FMT_FLEX_WITHOUT_SEC,
             DATE_FMT_EN_WITHOUT_SEC,
             ISO_LOCAL_FMT,
             RFC_1123_FMT, 
@@ -80,9 +85,13 @@ public class CsvImportService {
         List<CsvRow> csvRows = new ArrayList<>();
         for (MappedRow r : rows) {
             try {
-                CsvRow row = mapMappedRow(r);
-                if (row != null && row.type != null) {                	
-                	csvRows.add(row);
+            	if ("Selbst".equals(r.getTyp())) {
+                    csvRows.addAll(mapSelfRows(r));
+                } else {
+                    CsvRow row = mapMappedRow(r);
+                    if (row != null && row.type != null) {
+                        csvRows.add(row);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Skipping mapped row: {}", e.getMessage());
@@ -113,6 +122,65 @@ public class CsvImportService {
         	depotService.saveCurrentPrice(cp);
         }
         return persistRows(reversed);
+    }
+    
+    /**
+     * SELF-Zeilen (Wallet-Export) stellen einen Self-Transfer dar: Abgang mit Netzwerk-Fee
+     * und gleichzeitiger Zugang auf DERSELBEN Position, abzüglich der Fee.
+     * Erzeugt zwei gepaarte Transaktionen (TRANSFER_OUT + TRANSFER_IN, gleiche transferId).
+     */
+    private List<CsvRow> mapSelfRows(MappedRow r) {
+        if (r.getDate() == null || r.getExchange() == null) return Collections.emptyList();
+
+        LocalDateTime dateTime = getLocalDateTimeByString(r.getDate().trim());
+        if (dateTime == null) {
+            log.warn("Cannot parse date for Selbst row: {}", r.getDate());
+            return Collections.emptyList();
+        }
+
+        // Amount kann je nach Mapping in buyQty ODER sellQty stehen (Wallet-Export hat nur eine "Amount"-Spalte)
+        BigDecimal amount = decimal(r.getBuyQuantity());
+        if (amount == null) amount = decimal(r.getSellQuantity());
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return Collections.emptyList();
+
+        BigDecimal fee = decimal(r.getFee());
+        if (fee == null) fee = BigDecimal.ZERO;
+
+        BigDecimal inQuantity = amount.subtract(fee);
+        if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount; // Fallback falls Fee >= Amount
+
+        String feeCurrency = r.getFeeCurrency() != null && !r.getFeeCurrency().isBlank()
+                ? r.getFeeCurrency().trim() : "BTC";
+        String comment  = r.getComment() != null ? r.getComment().trim() : null;
+        String exchange = r.getExchange().trim();
+        String transferId = UUID.randomUUID().toString();
+
+        String baseTxId = r.getTransactionId() != null && !r.getTransactionId().isBlank()
+                ? r.getTransactionId().trim() : null;
+
+        CsvRow out = new CsvRow();
+        out.exchange      = exchange;
+        out.dateTime       = dateTime;
+        out.type           = TransactionType.TRANSFER_OUT;
+        out.quantity       = amount;
+        out.fees           = fee;
+        out.feesCurrency   = feeCurrency;
+        out.comment        = comment;
+        out.transferId     = transferId;
+        out.exchangeRate   = BigDecimal.ONE;
+        out.transactionId  = baseTxId != null ? baseTxId + "-out" : null;
+
+        CsvRow in = new CsvRow();
+        in.exchange       = exchange;
+        in.dateTime        = dateTime;
+        in.type            = TransactionType.TRANSFER_IN;
+        in.quantity        = inQuantity;
+        in.comment         = comment;
+        in.transferId      = transferId;
+        in.exchangeRate    = BigDecimal.ONE;
+        in.transactionId   = baseTxId != null ? baseTxId + "-in" : null;
+
+        return new ArrayList<>(List.of(in, out));
     }
 
     private CsvRow mapMappedRow(MappedRow r) {

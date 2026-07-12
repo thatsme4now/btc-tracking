@@ -176,5 +176,7 @@
   "modal.dbImport.btn": "Importieren & Überschreiben",
   "toast.dbImportSuccess": "{POS} Positionen, {TX} Transaktionen importiert",
   "modal.export.coinTracking": "CoinTracking-Format",
-  "table.action.exportSelected": "Auswahl exportieren"
+  "table.action.exportSelected": "Auswahl exportieren",
+  "csv.import.mapping.time": "Uhrzeit-Spalte (optional)",
+  "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert."
 }

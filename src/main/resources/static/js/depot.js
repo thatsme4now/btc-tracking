@@ -913,6 +913,7 @@ function openMappingModal() {
     const FIELDS = [
         { id: 'map_typ',          label: I18N.t('table.col.type'),                			required: true  },
         { id: 'map_date',         label: I18N.t('table.col.date'),               			required: true  },
+		{ id: 'map_time',         label: I18N.t('csv.import.mapping.time'),      			required: false },
         { id: 'map_exchange',     label: I18N.t('table.wallets'),           				required: true  },
         { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: true },
         { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: true },
@@ -930,13 +931,14 @@ function openMappingModal() {
 	 const FIELD_ALIASES = {
 	     map_typ:          ['Typ', 'typ', 'type', 'Type'],
 	     map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime'],
+		 map_time:         ['Time', 'time', 'Zeit', 'Uhrzeit'],
 	     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
-	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty'],
-	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur'],
-	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty'],
-	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur'],
-	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
-	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur'],
+	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty', 'Amount'],
+	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur', 'Amount unit'],
+	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty', 'Amount'],
+	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur', 'Amount unit'],
+	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees', 'Fee'],
+	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur', 'Fee unit'],
 	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
 	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
 	     map_transactionId:['transactionId'],
@@ -955,18 +957,22 @@ function openMappingModal() {
 	        `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
 	    ).join('');
 
+		const extraOnchange =
+	        f.id === 'map_typ' ? 'refreshTypRemap();' :
+	        (f.id === 'map_date' || f.id === 'map_time') ? 'validateDateTimeMapping();' : '';
+
 	    let row = `
-	    <tr>
-	        <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
-	            ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
-	        </td>
-	        <td>
-	            <select id="${f.id}" class="form-select depot-input form-select-sm"
-	                    onchange="${f.id === 'map_typ' ? 'refreshTypRemap()' : ''}">
-	                ${opts}
-	            </select>
-	        </td>
-	    </tr>`;
+			<tr>
+		        <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
+		            ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
+		        </td>
+		        <td>
+		            <select id="${f.id}" class="form-select depot-input form-select-sm"
+		                    onchange="${extraOnchange}">
+		                ${opts}
+		            </select>
+		        </td>
+		    </tr>`;
 
 	    if (f.id === 'map_exchange') {
 	        row += `
@@ -988,26 +994,37 @@ function openMappingModal() {
 	    return row;
 	}).join('');
 
-    const body = `
-        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
-            <strong style="color:var(--text)">${csvImport.rawData.length}</strong>
-            ${t('modal.csv.rowsDetected')}
-        </p>
-        <table style="width:100%;border-spacing:0 6px">${mappingRows}</table>
-        <hr style="border-color:var(--border);margin:1.25rem 0"/>
-        <div class="depot-card-header mb-2">${t('modal.csv.typMapping')}</div>
-        <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem">${t('modal.csv.typHint')}</p>
-        <div id="typRemapContainer"></div>`;
+	const body = `
+	    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
+	        <strong style="color:var(--text)">${csvImport.rawData.length}</strong>
+	        ${t('modal.csv.rowsDetected')}
+	    </p>
+	    <div id="dateTimeWarning" class="d-none"
+	         style="border-left:3px solid var(--neg);padding:.5rem .75rem;margin-bottom:1rem;
+	                font-size:.75rem;color:var(--neg);background:rgba(216,90,48,.08)">
+	        <i class="bi bi-exclamation-triangle me-1"></i>${t('csv.import.dateTimeWarning')}
+	    </div>
+	    <table style="width:100%;border-spacing:0 6px">${mappingRows}</table>
+	    <hr style="border-color:var(--border);margin:1.25rem 0"/>
+	    <div class="depot-card-header mb-2">${t('modal.csv.typMapping')}</div>
+	    <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem">${t('modal.csv.typHint')}</p>
+	    <div id="typRemapContainer"></div>`;
 
-    document.getElementById('csvMappingBody').innerHTML = body;
-	setTimeout(() => { refreshTypRemap(); _loadFixedExchangeDropdown(); }, 0);
+	document.getElementById('csvMappingBody').innerHTML = body;
+	setTimeout(() => { refreshTypRemap(); _loadFixedExchangeDropdown(); validateDateTimeMapping(); }, 0);
 
     const el    = document.getElementById('csvMappingModal');
     const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
     modal.show();
 }
 
-const INTERNAL_TYPES = ['Trade', 'Einzahlung', 'Auszahlung'];
+const INTERNAL_TYPES = ['Trade', 'Einzahlung', 'Auszahlung', 'Selbst'];
+
+const TYP_VALUE_ALIASES = {
+    'RECV': 'Einzahlung',
+    'SENT': 'Auszahlung',
+    'SELF': 'Selbst'
+};
 
 function refreshTypRemap() {
     const typColEl  = document.getElementById('map_typ');
@@ -1031,7 +1048,8 @@ function refreshTypRemap() {
     }
 
     const rows = distinctVals.map(val => {
-        const preselect = INTERNAL_TYPES.includes(val) ? val : '';
+        const preselect = TYP_VALUE_ALIASES[val.toUpperCase()] ||
+                           (INTERNAL_TYPES.includes(val) ? val : '');
         const opts = `<option value="">${t('modal.csv.field.ignore')}</option>` +
             INTERNAL_TYPES.map(tp =>
                 `<option value="${tp}" ${tp === preselect ? 'selected' : ''}>${tp}</option>`
@@ -1081,10 +1099,43 @@ function onFixedExchangeChange() {
     exchangeSel.disabled = sel.value !== '';
 }
 
+function validateDateTimeMapping() {
+    const dateSel = document.getElementById('map_date');
+    const timeSel = document.getElementById('map_time');
+    const warningEl = document.getElementById('dateTimeWarning');
+    const importBtn = document.getElementById('csvImportConfirmBtn');
+    if (!dateSel) return;
+
+    const dateCol = dateSel.value;
+    const timeCol = timeSel ? timeSel.value : '';
+
+    let needsTime = false;
+    if (dateCol) {
+        const sampleRow = csvImport.rawData.find(r => (r[dateCol] || '').trim());
+        const sample = sampleRow ? (sampleRow[dateCol] || '').trim() : '';
+        if (sample && !sample.includes(':')) {
+            needsTime = true;
+        }
+    }
+
+    const blocked = needsTime && !timeCol;
+
+    if (warningEl) warningEl.classList.toggle('d-none', !blocked);
+    if (importBtn) importBtn.disabled = blocked;
+}
+
+/** Extrahiert nur den Zeit-Anteil (HH:MM oder HH:MM:SS), ignoriert Zeitzonen-Suffixe wie "GMT+1" */
+function _extractTimeValue(timeVal) {
+    if (!timeVal) return '';
+    const match = timeVal.match(/\d{1,2}:\d{2}(:\d{2})?/);
+    return match ? match[0] : '';
+}
+
 function confirmCsvImport() {
     const mapping = {
         typ:          document.getElementById('map_typ')?.value,
         date:         document.getElementById('map_date')?.value,
+		time:         document.getElementById('map_time')?.value,
         exchange:     document.getElementById('map_exchange')?.value,
         buyQty:       document.getElementById('map_buyQty')?.value,
         buyCur:       document.getElementById('map_buyCur')?.value,
@@ -1128,9 +1179,16 @@ function confirmCsvImport() {
         const mappedTyp = typRemap[rawTyp] || null;
         if (!mappedTyp) return null;
 
+		let dateValue = mapping.date ? (r[mapping.date] || '').trim() : null;
+        if (mapping.time && dateValue) {
+            const rawTime   = (r[mapping.time] || '').trim();
+            const cleanTime = _extractTimeValue(rawTime);
+            if (cleanTime) dateValue = dateValue + ' ' + cleanTime;
+        }
+				
         return {
             typ:          mappedTyp,
-            date:         mapping.date         ? (r[mapping.date]         || '').trim() : null,
+			date:         dateValue,
             exchange:     fixedActive ? fixedExchange : (mapping.exchange ? (r[mapping.exchange] || '').trim() : null),
             buyQuantity:  mapping.buyQty       ? (r[mapping.buyQty]       || '').trim() : null,
             buyCurrency:  mapping.buyCur       ? (r[mapping.buyCur]       || '').trim() : null,
@@ -1163,7 +1221,6 @@ function confirmCsvImport() {
         if (data.error) {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
-			debugger;
 			sessionStorage.setItem('depot-lastimport-ids', JSON.stringify(data.lastImportIds || []));
 			let toastText = '';
 			let toastType = 'success';
