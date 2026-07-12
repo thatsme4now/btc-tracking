@@ -162,7 +162,7 @@ public class DepotService {
                 .filter(tx -> tx.getType() == TransactionType.SELL)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-                    if (cp.getCurrency().equals(tx.getCurrency())) {
+                    if (cp != null && cp.getCurrency().equals(tx.getCurrency())) {
                     	return tx.getQuantityFiat();
                     } else {                    	
                     	return tx.getQuantityFiat().multiply(tx.getPricePerBtc()).multiply(rate);
@@ -218,6 +218,7 @@ public class DepotService {
         dto.setExchangeRate(tx.getExchangeRate());
         dto.setTransferId(tx.getTransferId());
         dto.setTransactionId(tx.getTransactionId());
+        dto.setDuplicate(tx.isDuplicate());
 
         if (tx.getQuantityFiat() != null) {
             //BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;

@@ -96,6 +96,9 @@ public class Transaction {
      */
     @Column(name = "transfer_id", length = 36)
     private String transferId;
+    
+    @Column(name = "is_duplicate", nullable = false)
+    private boolean duplicate = false;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -100,9 +100,10 @@ function _fpConfig(inputEl) {
     return {
         enableTime:  true,
         time_24hr:   true,
-        dateFormat:  'Y-m-d H:i',     // internes Format — bleibt immer ISO für JS-Logik
+		enableSeconds:	true,
+        dateFormat:  'Y-m-d H:i:S',     // internes Format — bleibt immer ISO für JS-Logik
         altInput:    true,
-        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
         locale:      _fpLocale(),
         allowInput:  true,
         minuteIncrement: 1,
@@ -114,10 +115,11 @@ function initFlatpickr() {
     const isEn   = locale === 'default';
     const cfg = {
         enableTime:     true,
+		enableSeconds:	true,
         time_24hr:      !isEn,
-        dateFormat:     'Y-m-d H:i',
+        dateFormat:     'Y-m-d H:i:S',
         altInput:       true,
-        altFormat:      isEn ? 'm/d/Y h:i K' : 'd.m.Y H:i',
+        altFormat:      isEn ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
         locale:         locale,
         allowInput:     true,
         minuteIncrement: 1,
@@ -507,6 +509,8 @@ async function loadTransactions() {
         .then(data => {
             txLoaded = true;
             renderTxTable(data);
+			const countEl = document.getElementById('transactionCountValue');
+			if (countEl) countEl.textContent = data.length;
         })
         .catch(err => {select
 			// Legende aktualisieren
@@ -520,11 +524,23 @@ async function loadTransactions() {
 			        <span class="tx-legend-item">
 			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
 			            <span>${t('legend.warn.duplicate')}</span>
-			        </span>`;
+			        </span>
+					<span class="tx-legend-item">
+			            <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
+			            <span>${t('legend.solo.transfer')}</span>
+			        </span>
+					<span class="tx-legend-item">
+		                <span class="tx-legend-dot" style="background:var(--last-import)"></span>
+		                <span>${t('legend.last.import')}</span>
+		            </span>`;
 			}
             document.getElementById('txTableBody').innerHTML =
                 `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
+}
+
+function truncateTwoDecimals(num) {
+  return Math.trunc(num * 100 + 1e-8) / 100;
 }
 
 function renderTxTable(data) {
@@ -534,20 +550,41 @@ function renderTxTable(data) {
         TRANSFER_IN:  'text-pos',
         TRANSFER_OUT: 'text-neg'
     };
+	
+	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
+    const transferIdCounts = {};
+    data.forEach(tx => {
+        if (tx.transferId) {
+            transferIdCounts[tx.transferId] = (transferIdCounts[tx.transferId] || 0) + 1;
+        }
+    });
 
     const rows = data.map(tx => {
         const color   = TYPE_COLORS[tx.type] || '';
-        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 16) : '–';
+        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
         const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
 		
+		// NEU
+        const isSolo = tx.transferId
+            && transferIdCounts[tx.transferId] === 1
+            && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
+					
 		let earning;
+		let paid;
 		let posNeg = "";
 		if (tx.type == "BUY") {		
 			if(tx.currency !== CURRENCY.current()) {
-				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity);
+				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+				paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+				changes = (paid + earning) * tx.quantity;
 			} else {
-				earning = formatEur((CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity);
+				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+				paid = (tx.quantityFiat + tx.fees);
+				changes = (paid + earning) * tx.quantity;
 			}
+			
+			let percentage = (100/paid * (paid + earning)) - 100;
+			earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
 
 			if (earning.startsWith("-")) {
 				posNeg = "text-neg";
@@ -557,8 +594,7 @@ function renderTxTable(data) {
 		} else {
 			earning="–";
 		}
-		
-        return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;_updateBulkToolbar()">
+		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 			<td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
@@ -658,7 +694,7 @@ async function openAddTx(tx) {
 
     if (tx !== undefined) {
        document.getElementById('addTxId').value           = '';
-	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
        document.getElementById('addTxType').value         = tx.type;
        document.getElementById('addTxQty').value          = tx.quantity;
        document.getElementById('addTxQuantityFiat').value = tx.quantityFiat || '';
@@ -698,7 +734,7 @@ async function openEditTx(tx) {
     document.getElementById('editTxExchange').classList.add('d-none');
     document.getElementById('editTxExchange').value = '';
     document.getElementById('editTxId').value           = tx.id;
-	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 16) : '', false);
+	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
 
     document.getElementById('editTxType').value         = tx.type;
     document.getElementById('editTxQty').value          = tx.quantity;
@@ -726,7 +762,7 @@ function saveOrAddTx(isAdd) {
     const isTrade = txType === 'BUY' || txType === 'SELL';
 
     const payload = {
-        date:         dateVal ? dateVal + ':00' : null,
+        date:         dateVal ? dateVal : null,
         type:         txType,
         quantity:     parseFloat(document.getElementById(pref + 'TxQty').value) || 0,
         quantityFiat: parseFloat(document.getElementById(pref + 'TxQuantityFiat').value) || 0,
@@ -748,7 +784,7 @@ function saveOrAddTx(isAdd) {
             payload.transferTarget    = target;
             const tDate = document.getElementById('transferInDate').value;
             const tQty  = document.getElementById('transferInQty').value;
-            payload.transferInDate     = tDate ? tDate + ':00' : null;
+            payload.transferInDate     = tDate ? tDate : null;
             payload.transferInQuantity = parseFloat(tQty) || null;
         }
     }
@@ -877,6 +913,7 @@ function openMappingModal() {
     const FIELDS = [
         { id: 'map_typ',          label: I18N.t('table.col.type'),                			required: true  },
         { id: 'map_date',         label: I18N.t('table.col.date'),               			required: true  },
+		{ id: 'map_time',         label: I18N.t('csv.import.mapping.time'),      			required: false },
         { id: 'map_exchange',     label: I18N.t('table.wallets'),           				required: true  },
         { id: 'map_buyQty',       label: I18N.t('csv.import.mapping.buy.quantity'),        	required: true },
         { id: 'map_buyCur',       label: I18N.t('csv.import.mapping.buy.currency'),        	required: true },
@@ -887,21 +924,26 @@ function openMappingModal() {
         { id: 'map_exchangeRate', label: I18N.t('csv.import.mapping.fee.exchange.rate'), 		required: false },
         { id: 'map_comment',      label: I18N.t('modal.field.comment'),            			required: false },
 		{ id: 'map_transactionId',label: I18N.t('modal.field.transaction.id'),            	required: false },
+		{ id: 'map_transferId',   label: I18N.t('modal.field.transfer.id'),               	required: false },
+
 		 ]
 
 	 const FIELD_ALIASES = {
 	     map_typ:          ['Typ', 'typ', 'type', 'Type'],
 	     map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime'],
+		 map_time:         ['Time', 'time', 'Zeit', 'Uhrzeit'],
 	     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
-	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty'],
-	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur'],
-	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty'],
-	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur'],
-	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
-	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feeCur'],
+	     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty', 'Amount'],
+	     map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur', 'Amount unit'],
+	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty', 'Amount'],
+	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur', 'Amount unit'],
+	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees', 'Fee'],
+	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur', 'Fee unit'],
 	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
 	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
 	     map_transactionId:['transactionId'],
+		 map_transferId:   ['transferId'],
+
 	 };
 
 	 const autoMatch = (fieldId) => {
@@ -910,45 +952,79 @@ function openMappingModal() {
 	 };
 	 
     const mappingRows = FIELDS.map(f => {
-        const matched = autoMatch(f.id); 
+		const matched = autoMatch(f.id);
+	    const opts    = NONE + headers.map(h =>
+	        `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
+	    ).join('');
 
-        const opts    = NONE + headers.map(h =>
-            `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
-        ).join('');
-        return `
-        <tr>
-            <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
-                ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
-            </td>
-            <td>
-                <select id="${f.id}" class="form-select depot-input form-select-sm"
-                        onchange="${f.id === 'map_typ' ? 'refreshTypRemap()' : ''}">
-                    ${opts}
-                </select>
-            </td>
-        </tr>`;
-    }).join('');
+		const extraOnchange =
+	        f.id === 'map_typ' ? 'refreshTypRemap();' :
+	        (f.id === 'map_date' || f.id === 'map_time') ? 'validateDateTimeMapping();' : '';
 
-    const body = `
-        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
-            <strong style="color:var(--text)">${csvImport.rawData.length}</strong>
-            ${t('modal.csv.rowsDetected')}
-        </p>
-        <table style="width:100%;border-spacing:0 6px">${mappingRows}</table>
-        <hr style="border-color:var(--border);margin:1.25rem 0"/>
-        <div class="depot-card-header mb-2">${t('modal.csv.typMapping')}</div>
-        <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem">${t('modal.csv.typHint')}</p>
-        <div id="typRemapContainer"></div>`;
+	    let row = `
+			<tr>
+		        <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
+		            ${f.label}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
+		        </td>
+		        <td>
+		            <select id="${f.id}" class="form-select depot-input form-select-sm"
+		                    onchange="${extraOnchange}">
+		                ${opts}
+		            </select>
+		        </td>
+		    </tr>`;
 
-    document.getElementById('csvMappingBody').innerHTML = body;
-    setTimeout(refreshTypRemap, 0);
+	    if (f.id === 'map_exchange') {
+	        row += `
+	        <tr>
+	            <td class="depot-label pt-2" style="width:160px;white-space:nowrap">
+	                ${t('csv.import.fixedExchange')}
+	            </td>
+	            <td>
+	                <select id="map_exchangeFixed" class="form-select depot-input form-select-sm mb-1"
+	                        onchange="onFixedExchangeChange()">
+	                    <option value="">${t('csv.import.fixedExchange.none')}</option>
+	                </select>
+	                <input type="text" id="map_exchangeFixedNew" class="form-control depot-input d-none"
+	                       placeholder="New position name" maxlength="100"/>
+	                <div class="form-text text-muted" style="font-size:.7rem">${t('csv.import.fixedExchange.hint')}</div>
+	            </td>
+	        </tr>`;
+	    }
+	    return row;
+	}).join('');
+
+	const body = `
+	    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
+	        <strong style="color:var(--text)">${csvImport.rawData.length}</strong>
+	        ${t('modal.csv.rowsDetected')}
+	    </p>
+	    <div id="dateTimeWarning" class="d-none"
+	         style="border-left:3px solid var(--neg);padding:.5rem .75rem;margin-bottom:1rem;
+	                font-size:.75rem;color:var(--neg);background:rgba(216,90,48,.08)">
+	        <i class="bi bi-exclamation-triangle me-1"></i>${t('csv.import.dateTimeWarning')}
+	    </div>
+	    <table style="width:100%;border-spacing:0 6px">${mappingRows}</table>
+	    <hr style="border-color:var(--border);margin:1.25rem 0"/>
+	    <div class="depot-card-header mb-2">${t('modal.csv.typMapping')}</div>
+	    <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem">${t('modal.csv.typHint')}</p>
+	    <div id="typRemapContainer"></div>`;
+
+	document.getElementById('csvMappingBody').innerHTML = body;
+	setTimeout(() => { refreshTypRemap(); _loadFixedExchangeDropdown(); validateDateTimeMapping(); }, 0);
 
     const el    = document.getElementById('csvMappingModal');
     const modal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
     modal.show();
 }
 
-const INTERNAL_TYPES = ['Trade', 'Einzahlung', 'Auszahlung'];
+const INTERNAL_TYPES = ['Trade', 'Einzahlung', 'Auszahlung', 'Selbst'];
+
+const TYP_VALUE_ALIASES = {
+    'RECV': 'Einzahlung',
+    'SENT': 'Auszahlung',
+    'SELF': 'Selbst'
+};
 
 function refreshTypRemap() {
     const typColEl  = document.getElementById('map_typ');
@@ -972,7 +1048,8 @@ function refreshTypRemap() {
     }
 
     const rows = distinctVals.map(val => {
-        const preselect = INTERNAL_TYPES.includes(val) ? val : '';
+        const preselect = TYP_VALUE_ALIASES[val.toUpperCase()] ||
+                           (INTERNAL_TYPES.includes(val) ? val : '');
         const opts = `<option value="">${t('modal.csv.field.ignore')}</option>` +
             INTERNAL_TYPES.map(tp =>
                 `<option value="${tp}" ${tp === preselect ? 'selected' : ''}>${tp}</option>`
@@ -996,10 +1073,69 @@ function refreshTypRemap() {
     container.innerHTML = `<table style="width:100%;border-spacing:0 2px">${rows}</table>`;
 }
 
+function _loadFixedExchangeDropdown() {
+    const sel = document.getElementById('map_exchangeFixed');
+    if (!sel) return;
+    fetch('/api/btc-tracking/positions')
+        .then(r => r.json())
+        .then(data => {
+            _positionsCache = data;
+            sel.innerHTML =
+                `<option value="">${t('csv.import.fixedExchange.none')}</option>` +
+                data.map(p => `<option value="${esc(p.label)}">${esc(p.label)}</option>`).join('') +
+                '<option value="__new__">＋ New position...</option>';
+        });
+}
+
+function onFixedExchangeChange() {
+    const sel         = document.getElementById('map_exchangeFixed');
+    const newInput    = document.getElementById('map_exchangeFixedNew');
+    const exchangeSel = document.getElementById('map_exchange');
+    const isNew       = sel.value === '__new__';
+
+    newInput.classList.toggle('d-none', !isNew);
+    if (isNew) newInput.focus();
+
+    exchangeSel.disabled = sel.value !== '';
+}
+
+function validateDateTimeMapping() {
+    const dateSel = document.getElementById('map_date');
+    const timeSel = document.getElementById('map_time');
+    const warningEl = document.getElementById('dateTimeWarning');
+    const importBtn = document.getElementById('csvImportConfirmBtn');
+    if (!dateSel) return;
+
+    const dateCol = dateSel.value;
+    const timeCol = timeSel ? timeSel.value : '';
+
+    let needsTime = false;
+    if (dateCol) {
+        const sampleRow = csvImport.rawData.find(r => (r[dateCol] || '').trim());
+        const sample = sampleRow ? (sampleRow[dateCol] || '').trim() : '';
+        if (sample && !sample.includes(':')) {
+            needsTime = true;
+        }
+    }
+
+    const blocked = needsTime && !timeCol;
+
+    if (warningEl) warningEl.classList.toggle('d-none', !blocked);
+    if (importBtn) importBtn.disabled = blocked;
+}
+
+/** Extrahiert nur den Zeit-Anteil (HH:MM oder HH:MM:SS), ignoriert Zeitzonen-Suffixe wie "GMT+1" */
+function _extractTimeValue(timeVal) {
+    if (!timeVal) return '';
+    const match = timeVal.match(/\d{1,2}:\d{2}(:\d{2})?/);
+    return match ? match[0] : '';
+}
+
 function confirmCsvImport() {
     const mapping = {
         typ:          document.getElementById('map_typ')?.value,
         date:         document.getElementById('map_date')?.value,
+		time:         document.getElementById('map_time')?.value,
         exchange:     document.getElementById('map_exchange')?.value,
         buyQty:       document.getElementById('map_buyQty')?.value,
         buyCur:       document.getElementById('map_buyCur')?.value,
@@ -1010,12 +1146,22 @@ function confirmCsvImport() {
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
 		transactionId:      document.getElementById('map_transactionId')?.value,
+		transferId:         document.getElementById('map_transferId')?.value,
+
     };
 
+    const fixedSel    = document.getElementById('map_exchangeFixed');
+    const fixedActive = fixedSel && fixedSel.value !== '';
+    const fixedExchange = fixedActive
+        ? (fixedSel.value === '__new__'
+            ? (document.getElementById('map_exchangeFixedNew').value || '').trim()
+            : fixedSel.value)
+        : '';
+
     const missing = [];
-    if (!mapping.typ)      missing.push('typ');
-    if (!mapping.date)     missing.push('date');
-    if (!mapping.exchange) missing.push('exchange');
+    if (!mapping.typ)  missing.push('typ');
+    if (!mapping.date) missing.push('date');
+    if (fixedActive ? !fixedExchange : !mapping.exchange) missing.push('exchange');
     if (missing.length) {
         showToast('✗ ' + t('toast.csvValidation') + ': ' + missing.join(', '), 'error');
         return;
@@ -1033,19 +1179,27 @@ function confirmCsvImport() {
         const mappedTyp = typRemap[rawTyp] || null;
         if (!mappedTyp) return null;
 
+		let dateValue = mapping.date ? (r[mapping.date] || '').trim() : null;
+        if (mapping.time && dateValue) {
+            const rawTime   = (r[mapping.time] || '').trim();
+            const cleanTime = _extractTimeValue(rawTime);
+            if (cleanTime) dateValue = dateValue + ' ' + cleanTime;
+        }
+				
         return {
             typ:          mappedTyp,
-            date:         mapping.date         ? (r[mapping.date]         || '').trim() : null,
-            exchange:     mapping.exchange     ? (r[mapping.exchange]     || '').trim() : null,
+			date:         dateValue,
+            exchange:     fixedActive ? fixedExchange : (mapping.exchange ? (r[mapping.exchange] || '').trim() : null),
             buyQuantity:  mapping.buyQty       ? (r[mapping.buyQty]       || '').trim() : null,
             buyCurrency:  mapping.buyCur       ? (r[mapping.buyCur]       || '').trim() : null,
             sellQuantity: mapping.sellQty      ? (r[mapping.sellQty]      || '').trim() : null,
             sellCurrency: mapping.sellCur      ? (r[mapping.sellCur]      || '').trim() : null,
             fee:          mapping.fee          ? (r[mapping.fee]          || '').trim() : null,
-			feeCur:       mapping.feeCur  ? (r[mapping.feeCur]  || '').trim() : null,
+            feeCurrency:  mapping.feeCur       ? (r[mapping.feeCur]       || '').trim() : null,
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
-			transactionId :mapping.transactionId      ? (r[mapping.transactionId]      || '').trim() : null,
+            transactionId:mapping.transactionId? (r[mapping.transactionId]|| '').trim() : null,
+            transferId:   mapping.transferId   ? (r[mapping.transferId]   || '').trim() : null,
         };
     }).filter(Boolean);
 
@@ -1067,7 +1221,7 @@ function confirmCsvImport() {
         if (data.error) {
             showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
         } else {
-			sessionStorage.setItem('depot-duplicate-ids', JSON.stringify(data.duplicateIds || []));
+			sessionStorage.setItem('depot-lastimport-ids', JSON.stringify(data.lastImportIds || []));
 			let toastText = '';
 			let toastType = 'success';
 			if (data.inserted > 0) {
@@ -1098,6 +1252,81 @@ function esc(str) {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+}
+
+function openDbExportModal() {
+    document.getElementById('dbExportPassword').value = '';
+    document.getElementById('dbExportPasswordConfirm').value = '';
+    (bootstrap.Modal.getInstance(document.getElementById('dbExportModal'))
+        || new bootstrap.Modal(document.getElementById('dbExportModal'))).show();
+}
+
+function doDbExport() {
+    const pw  = document.getElementById('dbExportPassword').value;
+    const pw2 = document.getElementById('dbExportPasswordConfirm').value;
+    if (pw && pw !== pw2) {
+        showToast('✗ ' + t('toast.error') + ': passwords do not match', 'error');
+        return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('dbExportModal'))?.hide();
+
+    fetch('/api/btc-tracking/export-full', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || null })
+    })
+    .then(async response => {
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: 'Export failed' }));
+            throw new Error(err.error || 'Export failed');
+        }
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const filename = disposition.includes('filename=')
+            ? disposition.split('filename=')[1].replace(/"/g, '')
+            : (pw ? 'btc-tracking_full_export.json.enc' : 'btc-tracking_full_export.json');
+        const blob = await response.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+function onDbImportFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    window._pendingDbImportFile = file;
+    input.value = '';
+    document.getElementById('dbImportPassword').value = '';
+    (bootstrap.Modal.getInstance(document.getElementById('dbImportModal'))
+        || new bootstrap.Modal(document.getElementById('dbImportModal'))).show();
+}
+
+function confirmDbImport() {
+    const file = window._pendingDbImportFile;
+    if (!file) return;
+    const password = document.getElementById('dbImportPassword').value;
+
+    bootstrap.Modal.getInstance(document.getElementById('dbImportModal'))?.hide();
+    showToast('⏳ ' + t('toast.importProgress'), '');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (password) formData.append('password', password);
+
+    fetch('/api/btc-tracking/import-full', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
+            } else {
+                showToast('✓ ' + t('toast.dbImportSuccess', { POS: data.positions, TX: data.transactions }), 'success');
+                setTimeout(() => window.location.reload(), 1800);
+            }
+        })
+        .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 // ── Position Modal ────────────────────────────────────────
@@ -1252,6 +1481,7 @@ function savePriceEdit() {
         document.getElementById('btcPriceDisplay').textContent = fmt;
         closePriceEdit();
         showToast('✓ BTC price updated', 'success');
+		setTimeout(() => window.location.reload(), 1000);
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
@@ -1299,30 +1529,57 @@ function confirmEncImport() {
         })
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
- 
-function openExportModal() {
+
+let _exportSelectedOnly = false;
+
+function openExportModal(selectedOnly) {
+    _exportSelectedOnly = !!selectedOnly;
     document.getElementById('exportPassword').value = '';
     document.getElementById('exportPasswordConfirm').value = '';
+    document.getElementById('exportCoinTracking').checked = false;
+    onExportCoinTrackingToggle();
+
+    const info = document.getElementById('exportSelectionInfo');
+    if (_exportSelectedOnly) {
+        const ids = _getSelectedIds();
+        if (!ids.length) {
+            showToast('✗ ' + t('toast.error') + ': no rows selected', 'error');
+            return;
+        }
+        info.textContent = ids.length + ' transaction(s) selected for export';
+        info.classList.remove('d-none');
+    } else {
+        info.classList.add('d-none');
+    }
+
     const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'))
         || new bootstrap.Modal(document.getElementById('exportModal'));
     modal.show();
 }
- 
+
+function onExportCoinTrackingToggle() {
+    const isCt = document.getElementById('exportCoinTracking').checked;
+    document.getElementById('exportPasswordFields').classList.toggle('d-none', isCt);
+}
+
 function doExport() {
-    const pw  = document.getElementById('exportPassword').value;
-    const pw2 = document.getElementById('exportPasswordConfirm').value;
- 
+    const isCt = document.getElementById('exportCoinTracking').checked;
+    const pw  = isCt ? '' : document.getElementById('exportPassword').value;
+    const pw2 = isCt ? '' : document.getElementById('exportPasswordConfirm').value;
+
     if (pw && pw !== pw2) {
         showToast('✗ ' + t('toast.error') + ': passwords do not match', 'error');
         return;
     }
- 
+
+    const ids = _exportSelectedOnly ? _getSelectedIds() : null;
+
     bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
- 
+
     fetch('/api/btc-tracking/export', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ password: pw || null })
+        body:    JSON.stringify({ password: pw || null, coinTracking: isCt, ids })
     })
     .then(async response => {
         if (!response.ok) {
@@ -1332,8 +1589,8 @@ function doExport() {
         const disposition = response.headers.get('Content-Disposition') || '';
         const filename = disposition.includes('filename=')
             ? disposition.split('filename=')[1].replace(/"/g, '')
-            : (pw ? 'transactions_export.enc' : 'transactions_export.csv');
- 
+            : (pw ? 'transactions_export.enc' : (isCt ? 'cointracking_export.csv' : 'transactions_export.csv'));
+
         const blob = await response.blob();
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
@@ -1401,14 +1658,20 @@ function toggleCard(bodyId, btn) {
 }
 
 function toggleSelectAll(cb) {
-    document.querySelectorAll('.tx-row-check')
-        .forEach(el => { el.checked = cb.checked; });
+	document.querySelectorAll('.tx-row-check')
+    .forEach(el => {
+        el.checked = cb.checked;
+        el.closest('tr').classList.toggle('selected', cb.checked);
+    });
     _updateBulkToolbar();
 }
 
 // Row-Checkbox click (stopPropagation damit Row-Click nicht feuert)
 document.addEventListener('change', e => {
-    if (e.target.classList.contains('tx-row-check')) _updateBulkToolbar();
+	if (e.target.classList.contains('tx-row-check')) {
+        e.target.closest('tr').classList.toggle('selected', e.target.checked);
+        _updateBulkToolbar();
+    }
 });
 
 // Rechtsklick auf txTableBody → Kontextmenü
@@ -1420,24 +1683,40 @@ document.addEventListener('contextmenu', e => {
     // Wenn die geklickte Row nicht selektiert ist → nur diese selektieren
     const cb = row.querySelector('.tx-row-check');
     if (cb && !cb.checked) {
-        document.querySelectorAll('.tx-row-check').forEach(c => c.checked = false);
+		document.querySelectorAll('.tx-row-check').forEach(c => {
+            c.checked = false;
+            c.closest('tr').classList.remove('selected');
+        });
         cb.checked = true;
+        row.classList.add('selected');
         _updateBulkToolbar();
     }
 
     const ids = _getSelectedIds();
     if (!ids.length) return;
 
-    _ctxMenu.innerHTML = `
-        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
-            ${ids.length} selected
-        </div>
-        ${_ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()')}
-        ${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
-        ${_ctxItem('bi-percent',           t("table.action.exchange.rate"), 'openBulkExRate()')}
-		${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
-        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
-        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
+	// Typen der Selektion ermitteln
+    const selectedTypes = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(tr => tr.closest('tr').dataset.type);
+    const isAllTransfer = selectedTypes.every(t => t === 'TRANSFER_IN' || t === 'TRANSFER_OUT');
+    const isAllTrade    = selectedTypes.every(t => t === 'BUY' || t === 'SELL');
+	
+	_ctxMenu.innerHTML = `
+	        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
+	            ${ids.length} selected
+	        </div>
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+	        ${_ctxItem('bi bi-download me-1',        t("table.action.exportSelected"),    'openExportModal(true)')}
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+	        ${isAllTransfer ? _ctxItem('bi-arrow-down-up', t('table.action.mark.solo'), 'bulkMarkSoloTransfer()') : ''}
+	        ${isAllTransfer ? _ctxItem('bi-x-circle', t('table.action.remove.transfer'), 'bulkRemoveTransfer()') : ''}
+	        ${isAllTrade ? _ctxItem('bi-percent', t("table.action.exchange.rate"), 'openBulkExRate()') : ''}
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+			${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
+			${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
+	        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+	        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
+
 
     _ctxMenu.style.display = 'block';
     // Position: keep inside viewport
@@ -1615,6 +1894,62 @@ function confirmBulkExRate() {
     .catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
+// ── Bulk: Mark Solo Transfer ──────────────────────────────
+async function bulkMarkSoloTransfer() {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+
+    const selectedRows = [...document.querySelectorAll('.tx-row-check:checked')]
+        .map(cb => cb.closest('tr'));
+    const invalid = selectedRows.some(tr =>
+        tr.dataset.type !== 'TRANSFER_IN' && tr.dataset.type !== 'TRANSFER_OUT');
+
+    if (invalid) {
+        showToast('✗ ' + t('toast.soloTransfer.error.type.wrong'), 'error');
+        return;
+    }
+
+    if (!await showConfirm(t('table.action.mark.solo'),
+            t('confirm.markSoloTransfer', { COUNT: ids.length }))) return;
+
+    fetch('/api/btc-tracking/transactions/bulk-solo-transfer', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.soloTransfer.success', { COUNT: d.marked }), 'success');
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+// ── Bulk: Remove TransferId ───────────────────────────────
+async function bulkRemoveTransfer() {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+
+    if (!await showConfirm(t('table.action.remove.transfer'),
+            t('confirm.removeTransfer', { COUNT: ids.length }))) return;
+
+    fetch('/api/btc-tracking/transactions/bulk-remove-transfer', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.removeTransfer.success', { COUNT: d.removed }), 'success');
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
 // ── Generic Confirm Dialog ────────────────────────────────
 let _confirmModal     = null;
 let _confirmResolve   = null;
@@ -1630,7 +1965,8 @@ function showConfirm(title, body) {
     return new Promise(resolve => {
         _confirmResolve = resolve;
 
-        const okBtn = document.getElementById('confirmModalOk');
+        const modalEl = document.getElementById('confirmModal');
+        const okBtn   = document.getElementById('confirmModalOk');
         // Alten Listener entfernen um Doppel-Trigger zu vermeiden
         const newOk = okBtn.cloneNode(true);
         okBtn.parentNode.replaceChild(newOk, okBtn);
@@ -1639,39 +1975,59 @@ function showConfirm(title, body) {
             resolve(true);
         });
 
-        document.getElementById('confirmModal')
-            .addEventListener('hidden.bs.modal', () => resolve(false), { once: true });
+        // Enter bestätigt, wenn der OK-Button fokussiert (markiert) ist
+        const onKeydown = (e) => {
+            if (e.key === 'Enter' && document.activeElement === newOk) {
+                e.preventDefault();
+                newOk.click();
+            }
+        };
+        modalEl.addEventListener('keydown', onKeydown);
+
+        modalEl.addEventListener('shown.bs.modal', () => {
+            newOk.focus();
+        }, { once: true });
+
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            modalEl.removeEventListener('keydown', onKeydown);
+            resolve(false);
+        }, { once: true });
 
         _confirmModal.show();
     });
 }
 
 function _markDuplicates() {
-	const ids       = JSON.parse(sessionStorage.getItem('depot-duplicate-ids') || '[]');
-    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
+	const ids = JSON.parse(sessionStorage.getItem('depot-lastimport-ids') || '[]');
     if (!ids.length) return;
     document.querySelectorAll('.tx-row-check').forEach(cb => {
         const id = parseInt(cb.dataset.id);
-        if (ids.includes(id) && !confirmed.includes(id)) {
-            cb.closest('tr').classList.add('warning-duplicate');
+        if (ids.includes(id)) {
+            cb.closest('tr').classList.add('last-import');
         }
     });
 }
 
 function clearDuplicateMark() {
-    const ids       = _getSelectedIds();
+    const ids = _getSelectedIds();
     if (!ids.length) return;
-    const confirmed = JSON.parse(sessionStorage.getItem('depot-confirmed-ids') || '[]');
-    ids.forEach(id => { if (!confirmed.includes(id)) confirmed.push(id); });
-    sessionStorage.setItem('depot-confirmed-ids', JSON.stringify(confirmed));
-    // Klasse von betroffenen Rows entfernen
-    ids.forEach(id => {
-        const cb = document.querySelector(`.tx-row-check[data-id="${id}"]`);
-        if (cb) cb.closest('tr').classList.remove('warning-duplicate');
-    });
-    // Checkboxen zurücksetzen
-    document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
-    _updateBulkToolbar();
+
+    fetch('/api/btc-tracking/transactions/bulk-clear-duplicate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+
+      
+        document.querySelectorAll('.tx-row-check').forEach(cb => cb.checked = false);
+        _updateBulkToolbar();
+        txLoaded = false;
+        loadTransactions();
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 document.addEventListener("DOMContentLoaded", function() {

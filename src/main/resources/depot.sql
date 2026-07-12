@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS transaction (
 
     comment		  VARCHAR(255)             COMMENT '',
     transfer_id   VARCHAR(36)              COMMENT 'UUID linking TRANSFER_IN / TRANSFER_OUT pair',
+    is_duplicate  TINYINT(1)    NOT NULL DEFAULT 0 COMMENT 'Flagged as possible duplicate at import',
     created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tx_position FOREIGN KEY (position_id) REFERENCES `position`(id) ON DELETE CASCADE,
     INDEX idx_tx_position (position_id),

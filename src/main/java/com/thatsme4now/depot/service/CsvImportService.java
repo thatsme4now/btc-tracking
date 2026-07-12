@@ -53,12 +53,17 @@ public class CsvImportService {
     public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
     public static final DateTimeFormatter ISO_CUSTOM_FORMAT = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
+    
+    private static final DateTimeFormatter DATE_FMT_FLEX = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm:ss");
+    private static final DateTimeFormatter DATE_FMT_FLEX_WITHOUT_SEC = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm");
 
 
     private static final Set<DateTimeFormatter> TIME_FORMATS = new HashSet<>(Arrays.asList(
             DATE_FMT,
+            DATE_FMT_FLEX,
             DATE_FMT_EN,
             DATE_FMT_WITHOUT_SEC,
+            DATE_FMT_FLEX_WITHOUT_SEC,
             DATE_FMT_EN_WITHOUT_SEC,
             ISO_LOCAL_FMT,
             RFC_1123_FMT, 
@@ -80,16 +85,20 @@ public class CsvImportService {
         List<CsvRow> csvRows = new ArrayList<>();
         for (MappedRow r : rows) {
             try {
-                CsvRow row = mapMappedRow(r);
-                if (row != null && row.type != null) {                	
-                	csvRows.add(row);
+            	if ("Selbst".equals(r.getTyp())) {
+                    csvRows.addAll(mapSelfRows(r));
+                } else {
+                    CsvRow row = mapMappedRow(r);
+                    if (row != null && row.type != null) {
+                        csvRows.add(row);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Skipping mapped row: {}", e.getMessage());
             }
         }
         
-        CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElseGet(null);
+        CsvRow lastPrice = csvRows.stream().filter(row -> row.pricePerBtc != null).findFirst().orElse(null);
         List<CsvRow> reversed = csvRows.reversed();
         try {        	
         	assignTransferIds(reversed);
@@ -114,6 +123,65 @@ public class CsvImportService {
         }
         return persistRows(reversed);
     }
+    
+    /**
+     * SELF-Zeilen (Wallet-Export) stellen einen Self-Transfer dar: Abgang mit Netzwerk-Fee
+     * und gleichzeitiger Zugang auf DERSELBEN Position, abzüglich der Fee.
+     * Erzeugt zwei gepaarte Transaktionen (TRANSFER_OUT + TRANSFER_IN, gleiche transferId).
+     */
+    private List<CsvRow> mapSelfRows(MappedRow r) {
+        if (r.getDate() == null || r.getExchange() == null) return Collections.emptyList();
+
+        LocalDateTime dateTime = getLocalDateTimeByString(r.getDate().trim());
+        if (dateTime == null) {
+            log.warn("Cannot parse date for Selbst row: {}", r.getDate());
+            return Collections.emptyList();
+        }
+
+        // Amount kann je nach Mapping in buyQty ODER sellQty stehen (Wallet-Export hat nur eine "Amount"-Spalte)
+        BigDecimal amount = decimal(r.getBuyQuantity());
+        if (amount == null) amount = decimal(r.getSellQuantity());
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return Collections.emptyList();
+
+        BigDecimal fee = decimal(r.getFee());
+        if (fee == null) fee = BigDecimal.ZERO;
+
+        BigDecimal inQuantity = amount.subtract(fee);
+        if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount; // Fallback falls Fee >= Amount
+
+        String feeCurrency = r.getFeeCurrency() != null && !r.getFeeCurrency().isBlank()
+                ? r.getFeeCurrency().trim() : "BTC";
+        String comment  = r.getComment() != null ? r.getComment().trim() : null;
+        String exchange = r.getExchange().trim();
+        String transferId = UUID.randomUUID().toString();
+
+        String baseTxId = r.getTransactionId() != null && !r.getTransactionId().isBlank()
+                ? r.getTransactionId().trim() : null;
+
+        CsvRow out = new CsvRow();
+        out.exchange      = exchange;
+        out.dateTime       = dateTime;
+        out.type           = TransactionType.TRANSFER_OUT;
+        out.quantity       = amount;
+        out.fees           = fee;
+        out.feesCurrency   = feeCurrency;
+        out.comment        = comment;
+        out.transferId     = transferId;
+        out.exchangeRate   = BigDecimal.ONE;
+        out.transactionId  = baseTxId != null ? baseTxId + "-out" : null;
+
+        CsvRow in = new CsvRow();
+        in.exchange       = exchange;
+        in.dateTime        = dateTime;
+        in.type            = TransactionType.TRANSFER_IN;
+        in.quantity        = inQuantity;
+        in.comment         = comment;
+        in.transferId      = transferId;
+        in.exchangeRate    = BigDecimal.ONE;
+        in.transactionId   = baseTxId != null ? baseTxId + "-in" : null;
+
+        return new ArrayList<>(List.of(in, out));
+    }
 
     private CsvRow mapMappedRow(MappedRow r) {
         if (r.getTyp() == null || r.getDate() == null || r.getExchange() == null) return null;
@@ -135,6 +203,7 @@ public class CsvImportService {
         String sellCur = r.getSellCurrency() != null ? r.getSellCurrency().trim() : null;
         String comment  = r.getComment()  != null ? r.getComment().trim()  : null;
         String transactionId  = r.getTransactionId()  != null ? r.getTransactionId().trim()  : null;
+        String transferId     = r.getTransferId()     != null && !r.getTransferId().trim().isBlank() ? r.getTransferId().trim() : null;
 
         TransactionType txType;
         BigDecimal quantity;
@@ -191,6 +260,7 @@ public class CsvImportService {
         row.feesCurrency = feeCurrency;
         row.comment		 = comment;
         row.transactionId = transactionId;
+        row.transferId   = transferId;
         row.exchangeRate = (exRate != null && exRate.compareTo(BigDecimal.ZERO) > 0)
             ? exRate : BigDecimal.ONE;
         return row;
@@ -202,7 +272,6 @@ public class CsvImportService {
 		for (DateTimeFormatter format : TIME_FORMATS) {
 			try {
 				dateTime = LocalDateTime.parse(date, format);
-				dateTime = dateTime.withSecond(0);
 				break;
 			} catch (Exception e) {
 				// nothing
@@ -218,7 +287,7 @@ public class CsvImportService {
 	        Position position = resolvePosition(row.exchange);
 
 	        boolean isDuplicate = row.transactionId == null && transactionRepo
-	            .existsByPositionIdAndDateAndTypeAndQuantity(position.getId(), row.dateTime, row.type, row.quantity);
+	            .existsByDateAndTypeAndQuantity(row.dateTime, row.type, row.quantity);
 
 	        // row with transactionId already exists
 	        if(row.transactionId != null && transactionRepo.existsByTransactionId(row.transactionId)) {
@@ -240,11 +309,14 @@ public class CsvImportService {
 	        tx.setTransferId(row.transferId);
 	        tx.setComment(row.comment);
 	        tx.setTransactionId(row.transactionId);
+	        tx.setDuplicate(isDuplicate);
+
 	        if (tx.getTransactionId() == null) {
 	            tx.setTransactionId(UUID.randomUUID().toString());
 	        }
 	        transactionRepo.save(tx);
 	        result.inserted++;
+	        result.lastImportIds.add(tx.getId());
 	        if (isDuplicate) {
 	            result.duplicateIds.add(tx.getId());
 	        }
@@ -447,5 +519,7 @@ public class CsvImportService {
         public int inserted;
         public int ignoredByTransactionId;
         public List<Long> duplicateIds = new ArrayList<>();
+        public List<Long> lastImportIds = new ArrayList<>();
+
     }
 }

@@ -76,7 +76,15 @@
             <!-- CSV Export -->
             <button class="btn depot-btn-outline" onclick="openExportModal()">
 	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	        </button>  
+	        </button> 
+	        <button class="btn depot-btn-outline" onclick="openDbExportModal()">
+			    <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+			</button>
+			<label class="btn depot-btn-outline mb-0" style="cursor:pointer">
+			    <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+			    <input type="file" id="dbImportFileInput" accept=".json,.enc"
+			           style="display:none" onchange="onDbImportFileSelected(this)"/>
+			</label> 
         </div>
         <div class="ms-auto d-flex align-items-right gap-3">
   
@@ -188,7 +196,7 @@
                     <span data-i18n="metric.transactions">Transactions</span>
                     <i class="bi bi-chevron-down" id="txChevron" style="font-size:.6rem"></i>
                 </div>
-                <div class="metric-value" th:text="${transactionCount}">–</div>
+                <div id="transactionCountValue" class="metric-value" th:text="${transactionCount}">–</div>
             </div>
         </div>
     </div>
@@ -324,6 +332,9 @@
 			<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
 			     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
 			    <span id="bulkCount" style="font-size:.75rem;color:var(--text-muted);min-width:80px">0 selected</span>
+			    <button class="btn btn-xs depot-btn-outline" onclick="openExportModal(true)">
+				    <i class="bi bi-download me-1"></i><span data-i18n="table.action.exportSelected"></span>
+				</button>
 			    <button class="btn btn-xs depot-btn-outline" onclick="bulkPair()">
 			        <i class="bi bi-link-45deg me-1"></i><span data-i18n="table.action.pair.transfer"></span>
 			    </button>
@@ -335,6 +346,9 @@
 			    </button>
 			    <button class="btn btn-xs depot-btn-outline" onclick="clearDuplicateMark()">
 				    <i class="bi bi-check-circle me-1"></i><span data-i18n="table.action.clear.duplicate"></span>
+				</button>
+				<button class="btn btn-xs depot-btn-outline" onclick="bulkMarkSoloTransfer()">
+				    <i class="bi bi-arrow-down-up me-1"></i><span data-i18n="table.action.mark.solo"></span>
 				</button>
 			    <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			        <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
@@ -348,6 +362,14 @@
 			    <span class="tx-legend-item">
 			        <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
 			        <span data-i18n="legend.warn.duplicate"></span>
+			    </span>
+			    <span class="tx-legend-item">
+			        <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
+			        <span data-i18n="legend.solo.transfer"></span>
+			    </span>
+			    <span class="tx-legend-item">
+			        <span class="tx-legend-dot" style="background:var(--last-import)"></span>
+			        <span data-i18n="legend.last.import"></span>
 			    </span>
 			</div>
             <table class="table depot-table mb-0" id="txTable">
@@ -375,6 +397,60 @@
         </div>
     </div>
 
+	<div class="modal fade" id="dbExportModal" tabindex="-1">
+	  <div class="modal-dialog modal-sm">
+	    <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	      <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	        <span class="depot-card-header mb-0"><i class="bi bi-database-down me-2"></i><span data-i18n="modal.dbExport.title"></span></span>
+	        <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	      </div>
+	      <div class="modal-body">
+	        <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="modal.dbExport.hint"></p>
+	        <div class="mb-3">
+	          <label class="depot-label" data-i18n="modal.dbExport.password"></label>
+	          <input type="text" id="dbExportPassword" class="form-control depot-input depot-password-field"
+	                 autocomplete="off" spellcheck="false"/>
+	        </div>
+	        <div class="mb-1">
+	          <label class="depot-label" data-i18n="modal.dbExport.passwordConfirm"></label>
+	          <input type="text" id="dbExportPasswordConfirm" class="form-control depot-input depot-password-field"
+	                 autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') doDbExport()"/>
+	        </div>
+	      </div>
+	      <div class="modal-footer" style="border-top:1px solid var(--border)">
+	        <button class="btn depot-btn-primary" onclick="doDbExport()">
+	          <i class="bi bi-download me-1"></i><span data-i18n="modal.dbExport.btn"></span>
+	        </button>
+	        <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+	
+	<div class="modal fade" id="dbImportModal" tabindex="-1">
+	  <div class="modal-dialog modal-sm">
+	    <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	      <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	        <span class="depot-card-header mb-0"><i class="bi bi-exclamation-triangle me-2" style="color:var(--neg)"></i><span data-i18n="modal.dbImport.title"></span></span>
+	        <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	      </div>
+	      <div class="modal-body">
+	        <p style="font-size:.78rem;color:var(--neg);margin-bottom:1rem" data-i18n="modal.dbImport.warning"></p>
+	        <div class="mb-1">
+	          <label class="depot-label" data-i18n="modal.dbImport.password"></label>
+	          <input type="text" id="dbImportPassword" class="form-control depot-input depot-password-field"
+	                 autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') confirmDbImport()"/>
+	        </div>
+	      </div>
+	      <div class="modal-footer" style="border-top:1px solid var(--border)">
+	        <button class="btn depot-btn-primary" onclick="confirmDbImport()">
+	          <i class="bi bi-upload me-1"></i><span data-i18n="modal.dbImport.btn"></span>
+	        </button>
+	        <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
 	<!-- Export Modal -->
 	<div class="modal fade" id="exportModal" tabindex="-1">
 	    <div class="modal-dialog modal-sm">
@@ -386,26 +462,37 @@
 	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
 	            </div>
 	            <div class="modal-body">
-	                <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
-	                    Leave password empty to export a plain <code>.csv</code>.<br>
-	                    Enter a password to export an encrypted <code>.enc</code> file.
-	                </p>
-	                <div class="mb-3">
-	                    <label class="depot-label">Password (optional)</label>
-	                    <input type="text" id="exportPassword"
-					       class="form-control depot-input depot-password-field"
-					       placeholder="leave empty for plain CSV"
-					       autocomplete="off"
-					       spellcheck="false"/>
+	                <p id="exportSelectionInfo" class="d-none" style="font-size:.75rem;color:var(--accent);margin-bottom:.75rem"></p>
+	
+	                <div class="form-check mb-3">
+	                    <input type="checkbox" class="form-check-input" id="exportCoinTracking"
+	                           onchange="onExportCoinTrackingToggle()"/>
+	                    <label class="form-check-label" for="exportCoinTracking" style="font-size:.8rem"
+	                           data-i18n="modal.export.coinTracking">CoinTracking Format</label>
 	                </div>
-	                <div class="mb-1">
-	                    <label class="depot-label">Confirm Password</label>
-	                    <input type="text" id="exportPasswordConfirm"
-					       class="form-control depot-input depot-password-field"
-					       placeholder="repeat password"
-					       autocomplete="off"
-					       spellcheck="false"
-					       onkeydown="if(event.key==='Enter') doExport()"/>
+	
+	                <div id="exportPasswordFields">
+	                    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem">
+	                        Leave password empty to export a plain <code>.csv</code>.<br>
+	                        Enter a password to export an encrypted <code>.enc</code> file.
+	                    </p>
+	                    <div class="mb-3">
+	                        <label class="depot-label">Password (optional)</label>
+	                        <input type="text" id="exportPassword"
+	                           class="form-control depot-input depot-password-field"
+	                           placeholder="leave empty for plain CSV"
+	                           autocomplete="off"
+	                           spellcheck="false"/>
+	                    </div>
+	                    <div class="mb-1">
+	                        <label class="depot-label">Confirm Password</label>
+	                        <input type="text" id="exportPasswordConfirm"
+	                           class="form-control depot-input depot-password-field"
+	                           placeholder="repeat password"
+	                           autocomplete="off"
+	                           spellcheck="false"
+	                           onkeydown="if(event.key==='Enter') doExport()"/>
+	                    </div>
 	                </div>
 	            </div>
 	            <div class="modal-footer" style="border-top:1px solid var(--border)">
@@ -675,7 +762,7 @@
                 </div>
                 <div class="modal-body" id="csvMappingBody" style="min-height:300px"></div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
-                    <button class="btn depot-btn-primary" onclick="confirmCsvImport()">
+                    <button class="btn depot-btn-primary" id="csvImportConfirmBtn" onclick="confirmCsvImport()">
                         <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.csv.btn">Import</span>
                     </button>
                     <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
