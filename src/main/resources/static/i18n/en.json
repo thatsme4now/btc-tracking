@@ -162,5 +162,19 @@
   "legend.last.import": "Recently imported (this session)",
   "csv.import.fixedExchange": "Fixed Wallet / Exchange",
   "csv.import.fixedExchange.none": "— use column mapping —",
-  "csv.import.fixedExchange.hint": "Overrides column mapping — same wallet for all rows"
+  "csv.import.fixedExchange.hint": "Overrides column mapping — same wallet for all rows",
+  "nav.btn.dbExport": "DB Export",
+  "nav.btn.dbImport": "DB Import",
+  "modal.dbExport.title": "Full Database Export",
+  "modal.dbExport.hint": "Exports all positions and transactions as JSON. Leave password empty for plain file.",
+  "modal.dbExport.password": "Password (optional)",
+  "modal.dbExport.passwordConfirm": "Confirm Password",
+  "modal.dbExport.btn": "Export",
+  "modal.dbImport.title": "Full Database Import",
+  "modal.dbImport.warning": "WARNING: This deletes ALL current positions and transactions and replaces them with the imported file. This cannot be undone.",
+  "modal.dbImport.password": "Password (if file is encrypted)",
+  "modal.dbImport.btn": "Import & Overwrite",
+  "toast.dbImportSuccess": "{POS} positions, {TX} transactions imported",
+  "modal.export.coinTracking": "CoinTracking Format",
+  "table.action.exportSelected": "Export Selected"
 }

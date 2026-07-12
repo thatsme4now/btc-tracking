@@ -27,6 +27,7 @@ import com.thatsme4now.depot.entity.TransactionType;
 import com.thatsme4now.depot.service.CsvEncryptionService;
 import com.thatsme4now.depot.service.CsvImportService;
 import com.thatsme4now.depot.service.CsvImportService.ImportResult;
+import com.thatsme4now.depot.service.DataExportService;
 import com.thatsme4now.depot.service.DepotService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,7 +42,9 @@ public class DepotRestController {
     private final DepotService     depotService;
     private final CsvImportService csvImportService;
     private final CsvEncryptionService csvEncryptionService;
+    private final DataExportService dataExportService;
 
+    
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refresh(
             @RequestParam(name = "currency", defaultValue = "EUR") String currency) {
@@ -280,108 +283,189 @@ public class DepotRestController {
      * - password null/blank → plain CSV (transactions_export.csv)
      * - password present    → AES-256-GCM encrypted (transactions_export.enc)
      */
-    @PostMapping("/export")
-    public void exportCsv(
-            @RequestBody(required = false) ExportRequest req,
-            HttpServletResponse response) throws java.io.IOException {
- 
-        String password = (req != null && req.getPassword() != null
-                           && !req.getPassword().isBlank())
-                          ? req.getPassword() : null;
- 
-        // ── Build CSV in memory ───────────────────────────────────────────────
-        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
- 
-        // UTF-8 BOM
-        baos.write(0xEF); baos.write(0xBB); baos.write(0xBF);
- 
-        try (org.apache.commons.csv.CSVPrinter printer = new org.apache.commons.csv.CSVPrinter(
-                new java.io.OutputStreamWriter(baos, java.nio.charset.StandardCharsets.UTF_8),
-                org.apache.commons.csv.CSVFormat.DEFAULT.builder()
-                    .setHeader("typ", "date", "exchange",
-                               "buyQty", "buyCur",
-                               "sellQty", "sellCur",
-                               "fee", "feeCur", "exchangeRate", "comment",
-                               "transactionId", "transferId")
-                    .setDelimiter(",")
-                    .setQuote('"')
-                    .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
-                    .build())) {
- 
-            for (TransactionDTO tx : depotService.getAllTransactions()) {
-                String typ, kauf = "", kaufCur = "", verkauf = "", verkCur = "";
- 
-                switch (tx.getType()) {
-                    case BUY -> {
-                        typ     = "Trade";
-                        kauf    = tx.getQuantity().toPlainString();
-                        kaufCur = "BTC";
-                        java.math.BigDecimal rate = tx.getExchangeRate() != null
-                            ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
-                        java.math.BigDecimal fiatAmt = tx.getQuantityFiat() != null
-                            ? tx.getQuantityFiat().divide(rate, 2, java.math.RoundingMode.HALF_UP)
-                            : java.math.BigDecimal.ZERO;
-                        verkauf = fiatAmt.toPlainString();
-                        verkCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
-                    }
-                    case SELL -> {
-                        typ      = "Trade";
-                        java.math.BigDecimal rate2 = tx.getExchangeRate() != null
-                            ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
-                        java.math.BigDecimal fiatAmt2 = tx.getQuantityFiat() != null
-                            ? tx.getQuantityFiat().divide(rate2, 2, java.math.RoundingMode.HALF_UP)
-                            : java.math.BigDecimal.ZERO;
-                        kauf    = fiatAmt2.toPlainString();
-                        kaufCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
-                        verkauf = tx.getQuantity().toPlainString();
-                        verkCur = "BTC";
-                    }
-                    case TRANSFER_IN -> {
-                        typ     = "Einzahlung";
-                        kauf    = tx.getQuantity().toPlainString();
-                        kaufCur = "BTC";
-                    }
-                    case TRANSFER_OUT -> {
-                        typ     = "Auszahlung";
-                        verkauf = tx.getQuantity().toPlainString();
-                        verkCur = "BTC";
-                    }
-                    default -> typ = "";
-                }
- 
-                String datum = tx.getDate() != null
-                    ? tx.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
-                    : "";
-//                String datum = "";
-                String fee          = tx.getFees()         != null ? tx.getFees().toPlainString()         : "";
-                String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
-                String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
-                String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
-                String transferId     = tx.getTransferId()    != null ? tx.getTransferId()                : "";
+	@PostMapping("/export")
+	public void exportCsv(
+	        @RequestBody(required = false) ExportRequest req,
+	        HttpServletResponse response) throws java.io.IOException {
 
+	    boolean coinTracking = req != null && req.isCoinTracking();
+	    String password = (!coinTracking && req != null && req.getPassword() != null
+	                       && !req.getPassword().isBlank())
+	                      ? req.getPassword() : null;
 
-                printer.printRecord(typ, datum, tx.getPositionLabel(),
-                                    kauf, kaufCur, verkauf, verkCur,
-                                    fee, feeCurrency, exchangeRate, tx.getComment(), transactionId, transferId);
-            }
-        }
- 
-        byte[] csvBytes = baos.toByteArray();
- 
-        // ── Encrypt or serve plain ────────────────────────────────────────────
-        if (password != null) {
-            byte[] encBytes = csvEncryptionService.encrypt(csvBytes, password);
-            response.setContentType("application/octet-stream");
-            response.setHeader("Content-Disposition",
-                               "attachment; filename=transactions_export.enc");
-            response.getOutputStream().write(encBytes);
-        } else {
-            response.setContentType("text/csv; charset=UTF-8");
-            response.setHeader("Content-Disposition",
-                               "attachment; filename=transactions_export.csv");
-            response.getOutputStream().write(csvBytes);
-        }
-    }
+	    List<TransactionDTO> transactions = depotService.getAllTransactions();
+	    if (req != null && req.getIds() != null && !req.getIds().isEmpty()) {
+	        java.util.Set<Long> idSet = new java.util.HashSet<>(req.getIds());
+	        transactions = transactions.stream()
+	                .filter(t -> idSet.contains(t.getId()))
+	                .collect(Collectors.toList());
+	    }
+
+	    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+	    baos.write(0xEF); baos.write(0xBB); baos.write(0xBF);
+
+	    if (coinTracking) {
+	        writeCoinTrackingCsv(transactions, baos);
+	    } else {
+	        writeInternalCsv(transactions, baos);
+	    }
+
+	    byte[] csvBytes = baos.toByteArray();
+
+	    if (password != null) {
+	        byte[] encBytes = csvEncryptionService.encrypt(csvBytes, password);
+	        response.setContentType("application/octet-stream");
+	        response.setHeader("Content-Disposition", "attachment; filename=transactions_export.enc");
+	        response.getOutputStream().write(encBytes);
+	    } else {
+	        response.setContentType("text/csv; charset=UTF-8");
+	        String filename = coinTracking ? "cointracking_export.csv" : "transactions_export.csv";
+	        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+	        response.getOutputStream().write(csvBytes);
+	    }
+	}
+
+	/** Internal re-importable format (bisheriges Verhalten, jetzt in eigene Methode ausgelagert) */
+	private void writeInternalCsv(List<TransactionDTO> transactions, java.io.ByteArrayOutputStream baos) throws java.io.IOException {
+	    try (org.apache.commons.csv.CSVPrinter printer = new org.apache.commons.csv.CSVPrinter(
+	            new java.io.OutputStreamWriter(baos, java.nio.charset.StandardCharsets.UTF_8),
+	            org.apache.commons.csv.CSVFormat.DEFAULT.builder()
+	                .setHeader("typ", "date", "exchange",
+	                           "buyQty", "buyCur",
+	                           "sellQty", "sellCur",
+	                           "fee", "feeCur", "exchangeRate", "comment",
+	                           "transactionId", "transferId")
+	                .setDelimiter(",")
+	                .setQuote('"')
+	                .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
+	                .build())) {
+
+	        for (TransactionDTO tx : transactions) {
+	            String typ, kauf = "", kaufCur = "", verkauf = "", verkCur = "";
+
+	            switch (tx.getType()) {
+	                case BUY -> {
+	                    typ     = "Trade";
+	                    kauf    = tx.getQuantity().toPlainString();
+	                    kaufCur = "BTC";
+	                    java.math.BigDecimal rate = tx.getExchangeRate() != null
+	                        ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
+	                    java.math.BigDecimal fiatAmt = tx.getQuantityFiat() != null
+	                        ? tx.getQuantityFiat().divide(rate, 2, java.math.RoundingMode.HALF_UP)
+	                        : java.math.BigDecimal.ZERO;
+	                    verkauf = fiatAmt.toPlainString();
+	                    verkCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
+	                }
+	                case SELL -> {
+	                    typ      = "Trade";
+	                    java.math.BigDecimal rate2 = tx.getExchangeRate() != null
+	                        ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
+	                    java.math.BigDecimal fiatAmt2 = tx.getQuantityFiat() != null
+	                        ? tx.getQuantityFiat().divide(rate2, 2, java.math.RoundingMode.HALF_UP)
+	                        : java.math.BigDecimal.ZERO;
+	                    kauf    = fiatAmt2.toPlainString();
+	                    kaufCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
+	                    verkauf = tx.getQuantity().toPlainString();
+	                    verkCur = "BTC";
+	                }
+	                case TRANSFER_IN -> {
+	                    typ     = "Einzahlung";
+	                    kauf    = tx.getQuantity().toPlainString();
+	                    kaufCur = "BTC";
+	                }
+	                case TRANSFER_OUT -> {
+	                    typ     = "Auszahlung";
+	                    verkauf = tx.getQuantity().toPlainString();
+	                    verkCur = "BTC";
+	                }
+	                default -> typ = "";
+	            }
+
+	            String datum = tx.getDate() != null
+	                ? tx.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
+	                : "";
+	            String fee          = tx.getFees()         != null ? tx.getFees().toPlainString()         : "";
+	            String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
+	            String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
+	            String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
+	            String transferId     = tx.getTransferId()    != null ? tx.getTransferId()                : "";
+
+	            printer.printRecord(typ, datum, tx.getPositionLabel(),
+	                                kauf, kaufCur, verkauf, verkCur,
+	                                fee, feeCurrency, exchangeRate, tx.getComment(), transactionId, transferId);
+	        }
+	    }
+	}
+
+	/**
+	 * CoinTracking-kompatibles CSV (Standard CoinTracking Import-Template, deutsche Spalten).
+	 * Duplizierte "Cur." Header sind bei CoinTracking so vorgesehen.
+	 * Type-Werte: Trade, Einzahlung, Auszahlung (CoinTracking-kompatibel).
+	 */
+	private void writeCoinTrackingCsv(List<TransactionDTO> transactions, java.io.ByteArrayOutputStream baos) throws java.io.IOException {
+	    try (org.apache.commons.csv.CSVPrinter printer = new org.apache.commons.csv.CSVPrinter(
+	            new java.io.OutputStreamWriter(baos, java.nio.charset.StandardCharsets.UTF_8),
+	            org.apache.commons.csv.CSVFormat.DEFAULT.builder()
+	                .setHeader("Typ", "Kauf", "Cur.", "Verkauf", "Cur.", "Gebühr", "Cur.",
+	                           "Börse", "Gruppe", "Kommentar", "Datum","From Address","To Address","Tx Hash","Sell From Address","Sell To Address")
+	                .setDelimiter(",")
+	                .setQuote('"')
+	                .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
+	                .build())) {
+
+	        for (TransactionDTO tx : transactions) {
+	            String typ, kauf = "", kaufCur = "", verkauf = "", verkCur = "";
+
+	            switch (tx.getType()) {
+	                case BUY -> {
+	                    typ     = "Trade";
+	                    kauf    = tx.getQuantity().toPlainString();
+	                    kaufCur = "BTC";
+	                    java.math.BigDecimal rate = tx.getExchangeRate() != null
+	                        ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
+	                    java.math.BigDecimal fiatAmt = tx.getQuantityFiat() != null
+	                        ? tx.getQuantityFiat().divide(rate, 8, java.math.RoundingMode.HALF_UP)
+	                        : java.math.BigDecimal.ZERO;
+	                    verkauf = fiatAmt.toPlainString();
+	                    verkCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
+	                }
+	                case SELL -> {
+	                    typ      = "Trade";
+	                    java.math.BigDecimal rate2 = tx.getExchangeRate() != null
+	                        ? tx.getExchangeRate() : java.math.BigDecimal.ONE;
+	                    java.math.BigDecimal fiatAmt2 = tx.getQuantityFiat() != null
+	                        ? tx.getQuantityFiat().divide(rate2, 8, java.math.RoundingMode.HALF_UP)
+	                        : java.math.BigDecimal.ZERO;
+	                    kauf    = fiatAmt2.toPlainString();
+	                    kaufCur = tx.getCurrency() != null ? tx.getCurrency() : "EUR";
+	                    verkauf = tx.getQuantity().toPlainString();
+	                    verkCur = "BTC";
+	                }
+	                case TRANSFER_IN -> {
+	                    typ     = "Einzahlung";
+	                    kauf    = tx.getQuantity().toPlainString();
+	                    kaufCur = "BTC";
+	                }
+	                case TRANSFER_OUT -> {
+	                    typ     = "Auszahlung";
+	                    verkauf = tx.getQuantity().toPlainString();
+	                    verkCur = "BTC";
+	                }
+	                default -> typ = "";
+	            }
+
+	            String datum = tx.getDate() != null
+	                ? tx.getDate().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"))
+	                : "";
+	            String fee         = tx.getFees()         != null ? tx.getFees().toPlainString() : "";
+	            String feeCurrency = tx.getFeesCurrency() != null ? tx.getFeesCurrency()          : "";
+
+	            printer.printRecord(typ, kauf, kaufCur, verkauf, verkCur,
+	                                fee, feeCurrency, tx.getPositionLabel(),
+	                                "", tx.getComment(), datum, "", "", "", "", "");
+	        }
+	    }
+	}
     
     @PutMapping("/current-price")
     public ResponseEntity<Map<String, Object>> setCurrentPrice(
@@ -542,6 +626,36 @@ public class DepotRestController {
         }
         return ResponseEntity.ok(Map.of("removed", removed));
     }
+    
+    @PostMapping("/export-full")
+    public void exportFull(@RequestBody(required = false) ExportRequest req,
+                            HttpServletResponse response) throws java.io.IOException {
+        String password = (req != null && req.getPassword() != null && !req.getPassword().isBlank())
+                ? req.getPassword() : null;
+        byte[] data = dataExportService.exportFull(password);
+
+        String filename = password != null ? "btc-tracking_full_export.json.enc" : "btc-tracking_full_export.json";
+        response.setContentType(password != null ? "application/octet-stream" : "application/json; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+        response.getOutputStream().write(data);
+    }
+
+    @PostMapping(value = "/import-full", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> importFull(
+            @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @org.springframework.web.bind.annotation.RequestParam(value = "password", required = false) String password) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded."));
+            }
+            DataExportService.ImportSummary summary = dataExportService.importFull(file.getBytes(), password);
+            return ResponseEntity.ok(Map.of("positions", summary.positions, "transactions", summary.transactions));
+        } catch (CsvEncryptionService.EncryptionException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     // ── Inner DTOs ────────────────────────────────────────────────────────────
     @lombok.Data
@@ -595,6 +709,8 @@ public class DepotRestController {
     @lombok.Data
     public static class ExportRequest {
         private String password;
+        private boolean coinTracking;
+        private List<Long> ids;
     }
     
     @lombok.Data

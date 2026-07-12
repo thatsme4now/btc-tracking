@@ -162,5 +162,19 @@
   "legend.last.import": "Importato di recente (in questa sessione)",
   "csv.import.fixedExchange": "Portafoglio / Exchange fisso",
   "csv.import.fixedExchange.none": "— usa mappatura colonna —",
-  "csv.import.fixedExchange.hint": "Sovrascrive la mappatura colonna — stesso portafoglio per tutte le righe"
+  "csv.import.fixedExchange.hint": "Sovrascrive la mappatura colonna — stesso portafoglio per tutte le righe",
+  "nav.btn.dbExport": "Esporta DB",
+  "nav.btn.dbImport": "Importa DB",
+  "modal.dbExport.title": "Esportazione completa del database",
+  "modal.dbExport.hint": "Esporta tutte le posizioni e transazioni come JSON. Lascia la password vuota per un file non cifrato.",
+  "modal.dbExport.password": "Password (opzionale)",
+  "modal.dbExport.passwordConfirm": "Conferma password",
+  "modal.dbExport.btn": "Esporta",
+  "modal.dbImport.title": "Importazione completa del database",
+  "modal.dbImport.warning": "ATTENZIONE: questa operazione elimina TUTTE le posizioni e transazioni attuali e le sostituisce con il file importato. Non può essere annullata.",
+  "modal.dbImport.password": "Password (se il file è cifrato)",
+  "modal.dbImport.btn": "Importa e sovrascrivi",
+  "toast.dbImportSuccess": "{POS} posizioni, {TX} transazioni importate",
+  "modal.export.coinTracking": "Formato CoinTracking",
+  "table.action.exportSelected": "Esporta selezionati"
 }

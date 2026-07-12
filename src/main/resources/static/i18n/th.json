@@ -162,5 +162,19 @@
   "legend.last.import": "นำเข้าล่าสุด (เซสชันนี้)",
   "csv.import.fixedExchange": "กระเป๋า/ตลาดคงที่",
   "csv.import.fixedExchange.none": "— ใช้การแมปคอลัมน์ —",
-  "csv.import.fixedExchange.hint": "แทนที่การแมปคอลัมน์ — ใช้กระเป๋าเดียวกันสำหรับทุกแถว"
+  "csv.import.fixedExchange.hint": "แทนที่การแมปคอลัมน์ — ใช้กระเป๋าเดียวกันสำหรับทุกแถว",
+  "nav.btn.dbExport": "ส่งออกฐานข้อมูล",
+  "nav.btn.dbImport": "นำเข้าฐานข้อมูล",
+  "modal.dbExport.title": "ส่งออกฐานข้อมูลทั้งหมด",
+  "modal.dbExport.hint": "ส่งออกตำแหน่งและธุรกรรมทั้งหมดเป็น JSON เว้นรหัสผ่านว่างไว้สำหรับไฟล์ที่ไม่เข้ารหัส",
+  "modal.dbExport.password": "รหัสผ่าน (ไม่บังคับ)",
+  "modal.dbExport.passwordConfirm": "ยืนยันรหัสผ่าน",
+  "modal.dbExport.btn": "ส่งออก",
+  "modal.dbImport.title": "นำเข้าฐานข้อมูลทั้งหมด",
+  "modal.dbImport.warning": "คำเตือน: การดำเนินการนี้จะลบตำแหน่งและธุรกรรมทั้งหมดในปัจจุบัน และแทนที่ด้วยไฟล์ที่นำเข้า ไม่สามารถย้อนกลับได้",
+  "modal.dbImport.password": "รหัสผ่าน (หากไฟล์เข้ารหัส)",
+  "modal.dbImport.btn": "นำเข้าและเขียนทับ",
+  "toast.dbImportSuccess": "นำเข้า {POS} ตำแหน่ง, {TX} ธุรกรรม",
+  "modal.export.coinTracking": "รูปแบบ CoinTracking",
+  "table.action.exportSelected": "ส่งออกที่เลือก"
 }

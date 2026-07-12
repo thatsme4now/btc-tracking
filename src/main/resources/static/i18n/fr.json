@@ -162,5 +162,19 @@
   "legend.last.import": "Importé récemment (cette session)",
   "csv.import.fixedExchange": "Portefeuille / Exchange fixe",
   "csv.import.fixedExchange.none": "— utiliser le mappage de colonne —",
-  "csv.import.fixedExchange.hint": "Remplace le mappage de colonne — même portefeuille pour toutes les lignes"
+  "csv.import.fixedExchange.hint": "Remplace le mappage de colonne — même portefeuille pour toutes les lignes",
+  "nav.btn.dbExport": "Exporter BD",
+  "nav.btn.dbImport": "Importer BD",
+  "modal.dbExport.title": "Export complet de la base de données",
+  "modal.dbExport.hint": "Exporte toutes les positions et transactions au format JSON. Laissez le mot de passe vide pour un fichier non chiffré.",
+  "modal.dbExport.password": "Mot de passe (optionnel)",
+  "modal.dbExport.passwordConfirm": "Confirmer le mot de passe",
+  "modal.dbExport.btn": "Exporter",
+  "modal.dbImport.title": "Import complet de la base de données",
+  "modal.dbImport.warning": "ATTENTION : ceci supprime TOUTES les positions et transactions actuelles et les remplace par le fichier importé. Action irréversible.",
+  "modal.dbImport.password": "Mot de passe (si le fichier est chiffré)",
+  "modal.dbImport.btn": "Importer et écraser",
+  "toast.dbImportSuccess": "{POS} positions, {TX} transactions importées",
+  "modal.export.coinTracking": "Format CoinTracking",
+  "table.action.exportSelected": "Exporter la sélection"
 }

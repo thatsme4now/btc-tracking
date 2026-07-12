@@ -162,5 +162,19 @@
   "legend.last.import": "Kürzlich importiert (diese Sitzung)",
   "csv.import.fixedExchange": "Feste Wallet / Börse",
   "csv.import.fixedExchange.none": "— Spaltenzuordnung verwenden —",
-  "csv.import.fixedExchange.hint": "Überschreibt die Spaltenzuordnung — gleiche Wallet für alle Zeilen"
+  "csv.import.fixedExchange.hint": "Überschreibt die Spaltenzuordnung — gleiche Wallet für alle Zeilen",
+  "nav.btn.dbExport": "DB Export",
+  "nav.btn.dbImport": "DB Import",
+  "modal.dbExport.title": "Vollständiger Datenbank-Export",
+  "modal.dbExport.hint": "Exportiert alle Positionen und Transaktionen als JSON. Passwort leer lassen für unverschlüsselte Datei.",
+  "modal.dbExport.password": "Passwort (optional)",
+  "modal.dbExport.passwordConfirm": "Passwort bestätigen",
+  "modal.dbExport.btn": "Exportieren",
+  "modal.dbImport.title": "Vollständiger Datenbank-Import",
+  "modal.dbImport.warning": "ACHTUNG: Dies löscht ALLE aktuellen Positionen und Transaktionen und ersetzt sie durch die importierte Datei. Kann nicht rückgängig gemacht werden.",
+  "modal.dbImport.password": "Passwort (falls Datei verschlüsselt)",
+  "modal.dbImport.btn": "Importieren & Überschreiben",
+  "toast.dbImportSuccess": "{POS} Positionen, {TX} Transaktionen importiert",
+  "modal.export.coinTracking": "CoinTracking-Format",
+  "table.action.exportSelected": "Auswahl exportieren"
 }

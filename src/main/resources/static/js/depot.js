@@ -936,7 +936,7 @@ function openMappingModal() {
 	     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty'],
 	     map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur'],
 	     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
-	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feeCur'],
+	     map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur'],
 	     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
 	     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
 	     map_transactionId:['transactionId'],
@@ -1137,7 +1137,7 @@ function confirmCsvImport() {
             sellQuantity: mapping.sellQty      ? (r[mapping.sellQty]      || '').trim() : null,
             sellCurrency: mapping.sellCur      ? (r[mapping.sellCur]      || '').trim() : null,
             fee:          mapping.fee          ? (r[mapping.fee]          || '').trim() : null,
-            feeCur:       mapping.feeCur       ? (r[mapping.feeCur]       || '').trim() : null,
+            feeCurrency:  mapping.feeCur       ? (r[mapping.feeCur]       || '').trim() : null,
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
             transactionId:mapping.transactionId? (r[mapping.transactionId]|| '').trim() : null,
@@ -1195,6 +1195,81 @@ function esc(str) {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+}
+
+function openDbExportModal() {
+    document.getElementById('dbExportPassword').value = '';
+    document.getElementById('dbExportPasswordConfirm').value = '';
+    (bootstrap.Modal.getInstance(document.getElementById('dbExportModal'))
+        || new bootstrap.Modal(document.getElementById('dbExportModal'))).show();
+}
+
+function doDbExport() {
+    const pw  = document.getElementById('dbExportPassword').value;
+    const pw2 = document.getElementById('dbExportPasswordConfirm').value;
+    if (pw && pw !== pw2) {
+        showToast('✗ ' + t('toast.error') + ': passwords do not match', 'error');
+        return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('dbExportModal'))?.hide();
+
+    fetch('/api/btc-tracking/export-full', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw || null })
+    })
+    .then(async response => {
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: 'Export failed' }));
+            throw new Error(err.error || 'Export failed');
+        }
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const filename = disposition.includes('filename=')
+            ? disposition.split('filename=')[1].replace(/"/g, '')
+            : (pw ? 'btc-tracking_full_export.json.enc' : 'btc-tracking_full_export.json');
+        const blob = await response.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+function onDbImportFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    window._pendingDbImportFile = file;
+    input.value = '';
+    document.getElementById('dbImportPassword').value = '';
+    (bootstrap.Modal.getInstance(document.getElementById('dbImportModal'))
+        || new bootstrap.Modal(document.getElementById('dbImportModal'))).show();
+}
+
+function confirmDbImport() {
+    const file = window._pendingDbImportFile;
+    if (!file) return;
+    const password = document.getElementById('dbImportPassword').value;
+
+    bootstrap.Modal.getInstance(document.getElementById('dbImportModal'))?.hide();
+    showToast('⏳ ' + t('toast.importProgress'), '');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (password) formData.append('password', password);
+
+    fetch('/api/btc-tracking/import-full', { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                showToast('✗ ' + t('toast.importError') + ': ' + data.error, 'error');
+            } else {
+                showToast('✓ ' + t('toast.dbImportSuccess', { POS: data.positions, TX: data.transactions }), 'success');
+                setTimeout(() => window.location.reload(), 1800);
+            }
+        })
+        .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 // ── Position Modal ────────────────────────────────────────
@@ -1397,30 +1472,57 @@ function confirmEncImport() {
         })
         .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
- 
-function openExportModal() {
+
+let _exportSelectedOnly = false;
+
+function openExportModal(selectedOnly) {
+    _exportSelectedOnly = !!selectedOnly;
     document.getElementById('exportPassword').value = '';
     document.getElementById('exportPasswordConfirm').value = '';
+    document.getElementById('exportCoinTracking').checked = false;
+    onExportCoinTrackingToggle();
+
+    const info = document.getElementById('exportSelectionInfo');
+    if (_exportSelectedOnly) {
+        const ids = _getSelectedIds();
+        if (!ids.length) {
+            showToast('✗ ' + t('toast.error') + ': no rows selected', 'error');
+            return;
+        }
+        info.textContent = ids.length + ' transaction(s) selected for export';
+        info.classList.remove('d-none');
+    } else {
+        info.classList.add('d-none');
+    }
+
     const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'))
         || new bootstrap.Modal(document.getElementById('exportModal'));
     modal.show();
 }
- 
+
+function onExportCoinTrackingToggle() {
+    const isCt = document.getElementById('exportCoinTracking').checked;
+    document.getElementById('exportPasswordFields').classList.toggle('d-none', isCt);
+}
+
 function doExport() {
-    const pw  = document.getElementById('exportPassword').value;
-    const pw2 = document.getElementById('exportPasswordConfirm').value;
- 
+    const isCt = document.getElementById('exportCoinTracking').checked;
+    const pw  = isCt ? '' : document.getElementById('exportPassword').value;
+    const pw2 = isCt ? '' : document.getElementById('exportPasswordConfirm').value;
+
     if (pw && pw !== pw2) {
         showToast('✗ ' + t('toast.error') + ': passwords do not match', 'error');
         return;
     }
- 
+
+    const ids = _exportSelectedOnly ? _getSelectedIds() : null;
+
     bootstrap.Modal.getInstance(document.getElementById('exportModal'))?.hide();
- 
+
     fetch('/api/btc-tracking/export', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ password: pw || null })
+        body:    JSON.stringify({ password: pw || null, coinTracking: isCt, ids })
     })
     .then(async response => {
         if (!response.ok) {
@@ -1430,8 +1532,8 @@ function doExport() {
         const disposition = response.headers.get('Content-Disposition') || '';
         const filename = disposition.includes('filename=')
             ? disposition.split('filename=')[1].replace(/"/g, '')
-            : (pw ? 'transactions_export.enc' : 'transactions_export.csv');
- 
+            : (pw ? 'transactions_export.enc' : (isCt ? 'cointracking_export.csv' : 'transactions_export.csv'));
+
         const blob = await response.blob();
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
@@ -1546,7 +1648,9 @@ document.addEventListener('contextmenu', e => {
 	        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
 	            ${ids.length} selected
 	        </div>
-	        ${isAllTransfer ? _ctxItem('bi-link-45deg',        t("table.action.pair.transfer"),    'bulkPair()') : ''}
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
+	        ${_ctxItem('bi bi-download me-1',        t("table.action.exportSelected"),    'openExportModal(true)')}
+			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 	        ${isAllTransfer ? _ctxItem('bi-arrow-down-up', t('table.action.mark.solo'), 'bulkMarkSoloTransfer()') : ''}
 	        ${isAllTransfer ? _ctxItem('bi-x-circle', t('table.action.remove.transfer'), 'bulkRemoveTransfer()') : ''}
 	        ${isAllTrade ? _ctxItem('bi-percent', t("table.action.exchange.rate"), 'openBulkExRate()') : ''}
