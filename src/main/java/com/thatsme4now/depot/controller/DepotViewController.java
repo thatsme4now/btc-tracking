@@ -21,7 +21,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequestMapping("/btc-tracking")
 @RequiredArgsConstructor
 public class DepotViewController {
 
@@ -32,7 +31,7 @@ public class DepotViewController {
     	return "redirect:/btc-tracking";
     }
 
-    @GetMapping
+    @GetMapping("/btc-tracking")
     public String overview(Model model, HttpServletRequest request) {
         // Read currency from cookie (set by JS when user changes setting)
         String currency = depotService.readCookie(request, "depot-currency", "EUR");
@@ -102,13 +101,13 @@ public class DepotViewController {
         return "depot/overview";
     }
 
-    @GetMapping("/new")
+    @GetMapping("/btc-tracking/new")
     public String newForm(Model model) {
         model.addAttribute("position", new Position());
         return "depot/position-form";
     }
 
-    @GetMapping("/edit/{id}")
+    @GetMapping("/btc-tracking/edit/{id}")
     public String editForm(@PathVariable(name = "id") Long id, Model model) {
         Position p = depotService.getPosition(id)
             .orElseThrow(() -> new IllegalArgumentException("Position not found: " + id));
@@ -116,13 +115,13 @@ public class DepotViewController {
         return "depot/position-form";
     }
 
-    @PostMapping("/save")
+    @PostMapping("/btc-tracking/save")
     public String save(@ModelAttribute Position position) {
         depotService.save(position);
         return "redirect:/depot";
     }
 
-    @GetMapping("/delete/{id}")
+    @GetMapping("/btc-tracking/delete/{id}")
     public String delete(@PathVariable(name = "id") Long id) {
         depotService.delete(id);
         return "redirect:/depot";
