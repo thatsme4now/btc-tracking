@@ -214,7 +214,7 @@ I18N.ready.then(() => {
 
     initDonut();
 	initFlatpickr();
-	
+	loadTransactions();
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().destroy();
