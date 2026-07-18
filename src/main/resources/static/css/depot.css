@@ -673,4 +673,136 @@ input#dt-search-1 {
     background: var(--text-muted);
 }
 
-    
+ 
+ 
+ 
+ 
+ /* ═══════════════════════════════════════════════════════
+   RESPONSIVE: TABLET (≤768px) / HANDY (≤412px)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Navbar ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .depot-navbar {
+        position: static;
+    }
+    .depot-navbar .container-fluid:nth-of-type(2) {
+        flex-wrap: wrap;
+        row-gap: .5rem;
+    }
+    .navbar-actions-desktop { display: none !important; }
+    .navbar-hamburger-btn   { display: inline-flex !important; }
+}
+@media (min-width: 769px) {
+    .navbar-hamburger-btn { display: none !important; }
+}
+
+.depot-offcanvas {
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    color: var(--text);
+    width: 280px;
+}
+.depot-offcanvas .offcanvas-body .btn { justify-content: flex-start; }
+
+/* ── Metric Cards ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    .metrics-row > [class*="col-"] { flex: 0 0 33.3333%; max-width: 33.3333%; }
+    .depot-card-metric { padding: .9rem 1rem; }
+}
+@media (max-width: 412px) {
+    .metrics-row > [class*="col-"] { flex: 0 0 100%; max-width: 100%; }
+}
+
+/* ── Tabellen → Card-Layout ────────────────────────────── */
+/* alte Spalten-Hide-Regeln nur noch oberhalb 768px aktiv */
+@media (max-width: 1100px) and (min-width: 769px) {
+    #txTable th:nth-child(8), #txTable td:nth-child(8) { display: none; }
+}
+@media (max-width: 900px) and (min-width: 769px) {
+    #txTable th:nth-child(6), #txTable td:nth-child(6),
+    #txTable th:nth-child(7), #txTable td:nth-child(7) { display: none; }
+}
+
+@media (max-width: 768px) {
+    #posTable, #txTable { border: none; }
+    #posTable thead, #txTable thead { display: none; }
+    #posTable tbody, #txTable tbody { display: block; }
+
+    #posTable tbody tr, #txTable tbody tr {
+        display: block;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: .75rem;
+        padding: .25rem .9rem;
+    }
+
+    #posTable tbody td, #txTable tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .75rem;
+        border-bottom: 1px solid var(--border);
+        padding: .55rem 0;
+        text-align: right;
+        white-space: normal !important;
+    }
+    #posTable tbody td:last-child, #txTable tbody td:last-child {
+        border-bottom: none;
+    }
+    #posTable tbody td[data-label]::before,
+    #txTable tbody td[data-label]::before {
+        content: attr(data-label);
+        font-size: .65rem;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        text-align: left;
+        flex-shrink: 0;
+    }
+
+    /* Checkbox-Spalte: kein Label, linksbündig */
+    #txTable tbody td:first-child { justify-content: flex-start; }
+
+    /* Actions-Spalte: immer sichtbar (kein hover auf Touch!), zentriert */
+    #posTable tbody td.depot-actions,
+    #txTable tbody td.depot-actions {
+        justify-content: center;
+        opacity: 1 !important;
+        gap: .5rem;
+        padding-top: .75rem;
+    }
+
+    #posTable_wrapper, #txTable_wrapper { max-height: none; }
+}
+
+/* ── Bulk Toolbar ──────────────────────────────────────── */
+.bulk-actions-dropdown { display: none; }
+@media (max-width: 768px) {
+    .bulk-actions-inline   { display: none !important; }
+    .bulk-actions-dropdown { display: inline-block !important; }
+}
+.depot-dropdown-menu {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-width: 220px;
+}
+.depot-dropdown-menu .dropdown-item {
+    color: var(--text);
+    font-size: .78rem;
+    font-family: var(--font);
+    padding: .5rem .9rem;
+}
+.depot-dropdown-menu .dropdown-item:hover,
+.depot-dropdown-menu .dropdown-item:focus {
+    background: var(--bg-row);
+    color: var(--text);
+}
+.depot-dropdown-menu .dropdown-divider { border-color: var(--border); }
+
+/* ── Modals: fullscreen auf Handy ──────────────────────── */
+@media (max-width: 412px) {
+    .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
+}   
