@@ -66,21 +66,24 @@ const I18N = (() => {
      * Walk DOM and replace text of all [data-i18n] elements.
      * Also handles [data-i18n-placeholder] and [data-i18n-title].
      */
-    function applyI18n() {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            el.textContent = t(key);
-        });
-        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-            el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
-        });
-        document.querySelectorAll('[data-i18n-title]').forEach(el => {
-            el.title = t(el.getAttribute('data-i18n-title'));
-        });
-        document.querySelectorAll('[data-i18n-html]').forEach(el => {
-            el.innerHTML = t(el.getAttribute('data-i18n-html'));
-        });
-    }
+	function applyI18n() {
+	    document.querySelectorAll('[data-i18n]').forEach(el => {
+	        const key = el.getAttribute('data-i18n');
+	        el.textContent = t(key);
+	    });
+	    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+	        el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+	    });
+	    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+	        el.title = t(el.getAttribute('data-i18n-title'));
+	    });
+	    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+	        el.innerHTML = t(el.getAttribute('data-i18n-html'));
+	    });
+	    document.querySelectorAll('[data-i18n-label]').forEach(el => {
+	        el.setAttribute('data-cell-label', t(el.getAttribute('data-i18n-label')));
+	    });
+	}
 
     // ── Private ───────────────────────────────────────────
 

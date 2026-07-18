@@ -225,6 +225,7 @@ I18N.ready.then(() => {
         pageLength: 100,
 		paging:     false,
 		searching:  true, 
+		autoWidth:  false, 
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -599,14 +600,14 @@ function renderTxTable(data) {
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
 		    </td>
-		    <td style="white-space:nowrap" data-label="${esc(t('table.col.date'))}">${date}</td>
-		    <td data-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
-		    <td data-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
-		    <td class="text-end" data-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
-		    <td class="text-end" data-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
-		    <td class="text-end" data-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-		    <td class="text-end" data-label="${esc(t('table.col.profit'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-label="${esc(t('table.col.transferId'))}">${shortId}</td>
+		    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
+		    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
+		    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.profit'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
 		    <td class="text-end depot-actions" style="white-space:nowrap">
 		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
 		            <i class="bi bi-pencil"></i>
@@ -634,6 +635,7 @@ function renderTxTable(data) {
         order:      [[1, 'desc']],
         pageLength: 500,
 		lengthMenu: [25, 50, 100, 250, 500],
+		autoWidth:  false, 
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -1639,17 +1641,14 @@ function _updateBulkToolbar() {
 }
 
 function toggleCard(bodyId, btn) {
-    const ids = ['posCardBody', 'donutCardBody'];
-    const body = document.getElementById(ids[0]);
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+
     const collapsed = !body.classList.contains('d-none');
-    
-    ids.forEach(id => {
-        document.getElementById(id).classList.toggle('d-none', collapsed);
-    });
-    
-    document.querySelectorAll('.card-toggle-btn i').forEach(icon => {
-        icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-    });
+    body.classList.toggle('d-none', collapsed);
+
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
 }
 
 function toggleSelectAll(cb) {
