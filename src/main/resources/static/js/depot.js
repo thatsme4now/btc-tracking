@@ -595,35 +595,30 @@ function renderTxTable(data) {
 			earning="–";
 		}
 		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
-			<td onclick="event.stopPropagation()">
+		    <td onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
 		    </td>
-            <td style="white-space:nowrap">${date}</td>
-            <td>${tx.positionLabel || '–'}</td>
-            <td><span class="${color}">${tx.type}</span></td>
-            <td class="text-end">${fmt8(tx.quantity)}</td>
-            <td class="text-end">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
-            
-            <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-			
-			
-			<td class="text-end"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-	
-			
-			 <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
-            <td class="text-end depot-actions" style="white-space:nowrap">
-                <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
-                    <i class="bi bi-copy"></i>
-                </button>
-                <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        </tr>`;
+		    <td style="white-space:nowrap" data-label="${esc(t('table.col.date'))}">${date}</td>
+		    <td data-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
+		    <td data-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+		    <td class="text-end" data-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
+		    <td class="text-end" data-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
+		    <td class="text-end" data-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+		    <td class="text-end" data-label="${esc(t('table.col.profit'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-label="${esc(t('table.col.transferId'))}">${shortId}</td>
+		    <td class="text-end depot-actions" style="white-space:nowrap">
+		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
+		            <i class="bi bi-pencil"></i>
+		        </button>
+		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
+		            <i class="bi bi-copy"></i>
+		        </button>
+		        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
+		            <i class="bi bi-trash"></i>
+		        </button>
+		    </td>
+		</tr>`;
     });
 
     if ($.fn.DataTable.isDataTable('#txTable')) {

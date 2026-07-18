@@ -27,94 +27,124 @@
 	</div>
     <div class="container-fluid px-4">
 	    <div class="d-flex align-items-left gap-3">
-	    	<!-- Live BTC price badge -->
-            <span class="btc-price-badge" th:if="${btcPrice != null}"
-                  onclick="openPriceEdit()"
-                  style="cursor:pointer"
-                  id="btcPriceBadge">
-                BTC
-                <span class="text-pos" id="btcPriceDisplay"
-                      th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency}">
-                </span>
-                <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
-            </span>
-            <!-- inline price editor -->
-            <span id="btcPriceEditor" class="d-none align-items-center gap-1">
-                <input type="number" id="btcPriceInput"
-                       class="form-control depot-input"
-                       style="width:140px;font-size:.75rem;padding:.25rem .5rem"
-                       step="1" min="1"
-                       onkeydown="if(event.key==='Enter') savePriceEdit()"/>
-                <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
-                    <i class="bi bi-check-lg"></i>
-                </button>
-                <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </span>
-            <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
-                <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="nav.btn.refresh">Refresh</span>
-            </button>
+	        <!-- Live BTC price badge -->
+	        <span class="btc-price-badge" th:if="${btcPrice != null}"
+	              onclick="openPriceEdit()"
+	              style="cursor:pointer"
+	              id="btcPriceBadge">
+	            BTC
+	            <span class="text-pos" id="btcPriceDisplay"
+	                  th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency}">
+	            </span>
+	            <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
+	        </span>
+	        <span id="btcPriceEditor" class="d-none align-items-center gap-1">
+	            <input type="number" id="btcPriceInput"
+	                   class="form-control depot-input"
+	                   style="width:140px;font-size:.75rem;padding:.25rem .5rem"
+	                   step="1" min="1"
+	                   onkeydown="if(event.key==='Enter') savePriceEdit()"/>
+	            <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
+	                <i class="bi bi-check-lg"></i>
+	            </button>
+	            <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
+	                <i class="bi bi-x-lg"></i>
+	            </button>
+	        </span>
+	        <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
+	            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="nav.btn.refresh">Refresh</span>
+	        </button>
 	    </div>
-        <div class="ms-auto align-items-center gap-3">
-            <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-                <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-                <input style="display:none" onclick="openAddTx()"/>
-            </label>
-
-            <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-                <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-                <input style="display:none" onclick="removeAll()"/>
-            </label>
-
-            <!-- CSV Upload -->
-            <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-                <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-                <input type="file" id="csvFileInput" accept=".csv,.enc"
-                       style="display:none" onchange="importCsv(this)"/>
-            </label>
-            <!-- CSV Export -->
-            <button class="btn depot-btn-outline" onclick="openExportModal()">
+	
+	    <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
+	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
+	            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+	            <input style="display:none" onclick="openAddTx()"/>
+	        </label>
+	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
+	            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+	            <input style="display:none" onclick="removeAll()"/>
+	        </label>
+	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
+	            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+	            <input type="file" id="csvFileInput" accept=".csv,.enc"
+	                   style="display:none" onchange="importCsv(this)"/>
+	        </label>
+	        <button class="btn depot-btn-outline" onclick="openExportModal()">
 	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	        </button> 
+	        </button>
 	        <button class="btn depot-btn-outline" onclick="openDbExportModal()">
-			    <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-			</button>
-			<label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-			    <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-			    <input type="file" id="dbImportFileInput" accept=".json,.enc"
-			           style="display:none" onchange="onDbImportFileSelected(this)"/>
-			</label> 
-        </div>
-        <div class="ms-auto d-flex align-items-right gap-3">
-  
-           
-            <!-- Offline Toggle -->
-            <button class="btn depot-btn-icon px-2" id="btnLightning"
-                    onclick="sendSomeSats()" data-i18-title="" title="Send some sats!">
-                <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
-            </button>
-            
-            <button class="btn depot-btn-offline px-2" id="btnOffline"
-                    onclick="OFFLINE.toggle()" title="Online mode">
-                <i class="bi bi-wifi" id="offlineIcon"></i>
-            </button>
-			<button class="btn depot-btn-icon px-2" onclick="toggleTheme()" id="btnTheme"
-			        data-i18n-title="nav.btn.settings" title="Toggle light/dark mode">
-			    <i class="bi bi-moon-fill" id="themeIcon"></i>
-			</button>
-			<button class="btn depot-btn-icon px-2" onclick="cycleDensity()" id="btnDensity"
-			        data-i18n-title="nav.btn.density" title="Text size">
-			    <i class="bi bi-type" id="densityIcon"></i>
-			</button>
-            <!-- Settings -->
-            <button class="btn depot-btn-icon px-2" onclick="openSettings()"
-                    data-i18n-title="nav.btn.settings" title="Settings">
-                <i class="bi bi-gear-fill"></i>
-            </button>
-    	</div>
-    </div>
+	            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+	        </button>
+	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
+	            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+	            <input type="file" id="dbImportFileInput" accept=".json,.enc"
+	                   style="display:none" onchange="onDbImportFileSelected(this)"/>
+	        </label>
+	    </div>
+	
+	    <!-- Hamburger: nur Tablet/Handy -->
+	    <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
+	            type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
+	            aria-controls="navbarActionsOffcanvas" title="Menu">
+	        <i class="bi bi-list"></i>
+	    </button>
+	
+	    <div class="ms-2 d-flex align-items-right gap-3">
+	        <button class="btn depot-btn-icon px-2" id="btnLightning"
+	                onclick="sendSomeSats()" title="Send some sats!">
+	            <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
+	        </button>
+	        <button class="btn depot-btn-offline px-2" id="btnOffline"
+	                onclick="OFFLINE.toggle()" title="Online mode">
+	            <i class="bi bi-wifi" id="offlineIcon"></i>
+	        </button>
+	        <button class="btn depot-btn-icon px-2" onclick="toggleTheme()" id="btnTheme"
+	                data-i18n-title="nav.btn.settings" title="Toggle light/dark mode">
+	            <i class="bi bi-moon-fill" id="themeIcon"></i>
+	        </button>
+	        <button class="btn depot-btn-icon px-2" onclick="cycleDensity()" id="btnDensity"
+	                data-i18n-title="nav.btn.density" title="Text size">
+	            <i class="bi bi-type" id="densityIcon"></i>
+	        </button>
+	        <button class="btn depot-btn-icon px-2" onclick="openSettings()"
+	                data-i18n-title="nav.btn.settings" title="Settings">
+	            <i class="bi bi-gear-fill"></i>
+	        </button>
+	    </div>
+	</div>
 </nav>
+
+<div class="offcanvas offcanvas-end depot-offcanvas" tabindex="-1" id="navbarActionsOffcanvas">
+    <div class="offcanvas-header" style="border-bottom:1px solid var(--border)">
+        <span class="depot-card-header mb-0" data-i18n="nav.btn.settings">Menu</span>
+        <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column gap-2">
+        <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
+            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+        </button>
+        <button class="btn depot-btn-outline w-100" onclick="removeAll()">
+            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+        </button>
+        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+            <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
+                   style="display:none" onchange="importCsv(this)"/>
+        </label>
+        <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
+            <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+        </button>
+        <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
+            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+        </button>
+        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+            <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
+                   style="display:none" onchange="onDbImportFileSelected(this)"/>
+        </label>
+    </div>
+</div>
 
 <main class="container-fluid px-4 py-4">
 
@@ -128,15 +158,15 @@
     </div>
 
     <!-- Metric Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-3">
+	<div class="row g-3 mb-4 metrics-row">
+        <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalBtc">Total BTC</div>
                 <div class="metric-value"
                      th:text="${#numbers.formatDecimal(totalBtc, 1, 'POINT', 8, 'COMMA')}">–</div>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
                 <div class="metric-value">
@@ -145,7 +175,7 @@
                 </div>
             </div>
         </div>
-         <div class="col-3">
+         <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
                 <div class="metric-value"
@@ -156,7 +186,7 @@
                  </div>
             </div>
         </div>
-         <div class="col-3">
+         <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.performance">Performance</div>
                 <div class="metric-value"
@@ -165,14 +195,14 @@
                                 #numbers.formatDecimal(performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}">–</div>
             </div>
         </div>
-         <div class="col-3">
+         <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalSats">Total Sats</div>
                 <div class="metric-value sats-value"
                      th:text="${#numbers.formatInteger(totalSats, 1, 'POINT')}">–</div>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.invested">Invested</div>
                 <div class="metric-value">
@@ -181,7 +211,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-4">
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.realized">Realized</div>
                 <div class="metric-value">
@@ -190,7 +220,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-3">
+        <div class="col-4">
             <div class="depot-card depot-card-metric" style="cursor:pointer" onclick="toggleTransactions()">
                 <div class="metric-label">
                     <span data-i18n="metric.transactions">Transactions</span>
@@ -238,55 +268,48 @@
 	                       </tr>
 	                       </thead>
 	                       <tbody id="posTableBody">
-	                       <tr th:each="p : ${positions}"
-	                           class="depot-row"
-	                           th:data-label="${p.label}"
-	                           onclick="filterExchangeTransaction(this.dataset.label)">
-	
-	                           <td th:text="${p.label}" class="fw-medium"></td>
-	                           <td th:if="${p.type.name == 'EXCHANGE'}" data-i18n="form.position.type.exchange" class="fw-medium"></td>
-	                           <td th:if="${p.type.name == 'WALLET'}" data-i18n="form.position.type.wallet" class="fw-medium"></td>
-	                           
-	                           <td class="text-end"
-	                               th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
-	                           <td class="text-end text-muted"
-	                               th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
-	                           <td class="text-end fw-medium"
-	                               th:if="${p.totalValue != null}"
-	                               >
-	                               <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
-	                               <span class="currency-symbol"></span>
-	                           </td>
-	                           <td class="text-end text-muted" th:if="${p.totalValue == null}">–</td>
-	                           <td class="text-end"
-	                               th:if="${p.gainLoss != null}"
-	                               th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
-	                           	<span th:text="${(p.gainLoss >= 0 ? '+' : '') +
-	                                          #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
-	                               <span class="currency-symbol"></span>               
-	                           </td>
-	                           <td class="text-end text-muted" th:if="${p.gainLoss == null}">–</td>
-	                           <td class="text-end"
-	                               th:if="${p.performancePct != null}"
-	                               th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
-	                               th:text="${(p.performancePct >= 0 ? '+' : '') +
-	                                          #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
-	                           <td class="text-end text-muted" th:if="${p.performancePct == null}">–</td>
-	                           <td class="text-end depot-actions" onclick="event.stopPropagation()">
-	                              <button class="btn btn-xs depot-btn-icon"
-	                             		th:data-id="${p.id}"
-							        onclick="event.stopPropagation(); openPositionModal(this.dataset.id)"
-							        title="Edit">
-								    <i class="bi bi-pencil"></i>
-								</button>
-	                               <a th:href="@{/depot/delete/{id}(id=${p.id})}"
-								   th:data-id="${p.id}"
-								   class="btn btn-xs depot-btn-icon text-neg"
-								   title="Delete"
-								   onclick="event.preventDefault(); confirmDeletePosition(this.dataset.id)">
-								    <i class="bi bi-trash"></i>
-								</a>
-	                           </td>
+		                       <tr th:each="p : ${positions}"
+		                           class="depot-row"
+		                           th:data-label="${p.label}"
+		                           onclick="filterExchangeTransaction(this.dataset.label)">
+		
+	                          	<td th:text="${p.label}" class="fw-medium" data-i18n-label="table.col.label"></td>
+								<td th:if="${p.type.name == 'EXCHANGE'}" data-i18n="form.position.type.exchange" data-i18n-label="table.col.type" class="fw-medium"></td>
+								<td th:if="${p.type.name == 'WALLET'}" data-i18n="form.position.type.wallet" data-i18n-label="table.col.type" class="fw-medium"></td>
+								
+								<td class="text-end" data-i18n-label="table.col.btc"
+								    th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
+								<td class="text-end text-muted" data-i18n-label="table.col.sats"
+								    th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
+								<td class="text-end fw-medium" data-i18n-label="table.col.value" th:if="${p.totalValue != null}">
+								    <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
+								    <span class="currency-symbol"></span>
+								</td>
+								<td class="text-end text-muted" data-i18n-label="table.col.value" th:if="${p.totalValue == null}">–</td>
+								<td class="text-end" data-i18n-label="table.col.gl" th:if="${p.gainLoss != null}"
+								    th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
+								    <span th:text="${(p.gainLoss >= 0 ? '+' : '') + #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
+								    <span class="currency-symbol"></span>
+								</td>
+								<td class="text-end text-muted" data-i18n-label="table.col.gl" th:if="${p.gainLoss == null}">–</td>
+								<td class="text-end" data-i18n-label="table.col.glPct" th:if="${p.performancePct != null}"
+								    th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
+								    th:text="${(p.performancePct >= 0 ? '+' : '') + #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
+								<td class="text-end text-muted" data-i18n-label="table.col.glPct" th:if="${p.performancePct == null}">–</td>
+	                          
+								<td class="text-end depot-actions" onclick="event.stopPropagation()">
+									<button class="btn btn-xs depot-btn-icon" th:data-id="${p.id}"
+										onclick="event.stopPropagation(); openPositionModal(this.dataset.id)" title="Edit">
+								    	<i class="bi bi-pencil"></i>
+									</button>
+									<a th:href="@{/depot/delete/{id}(id=${p.id})}"
+								   		th:data-id="${p.id}"
+								   		class="btn btn-xs depot-btn-icon text-neg"
+								   		title="Delete"
+								   		onclick="event.preventDefault(); confirmDeletePosition(this.dataset.id)">
+								    	<i class="bi bi-trash"></i>
+									</a>
+								</td>
 	                       </tr>
 	                       <tr th:if="${#lists.isEmpty(positions)}">
 	                           <td></td><td></td><td></td><td class="text-center text-muted py-4">
@@ -330,30 +353,56 @@
         <div class="table-responsive">
         	<!-- Bulk Action Toolbar -->
 			<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
-			     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
-			    <span id="bulkCount" style="font-size:.75rem;color:var(--text-muted);min-width:80px">0 selected</span>
-			    <button class="btn btn-xs depot-btn-outline" onclick="openExportModal(true)">
-				    <i class="bi bi-download me-1"></i><span data-i18n="table.action.exportSelected"></span>
-				</button>
-			    <button class="btn btn-xs depot-btn-outline" onclick="bulkPair()">
-			        <i class="bi bi-link-45deg me-1"></i><span data-i18n="table.action.pair.transfer"></span>
-			    </button>
-			    <button class="btn btn-xs depot-btn-outline" onclick="openBulkMove()">
-			        <i class="bi bi-arrow-right-square me-1" ></i><span data-i18n="table.action.move.position"></span>
-			    </button>
-			    <button class="btn btn-xs depot-btn-outline" onclick="openBulkExRate()">
-			        <i class="bi bi-percent me-1"></i><span data-i18n="table.action.exchange.rate"></span>
-			    </button>
-			    <button class="btn btn-xs depot-btn-outline" onclick="clearDuplicateMark()">
-				    <i class="bi bi-check-circle me-1"></i><span data-i18n="table.action.clear.duplicate"></span>
-				</button>
-				<button class="btn btn-xs depot-btn-outline" onclick="bulkMarkSoloTransfer()">
-				    <i class="bi bi-arrow-down-up me-1"></i><span data-i18n="table.action.mark.solo"></span>
-				</button>
-			    <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
-			        <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
-			    </button>
-			</div>
+		     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
+		    <span id="bulkCount" style="font-size:.75rem;color:var(--text-muted);min-width:80px">0 selected</span>
+		
+		    <div class="bulk-actions-inline d-flex align-items-center gap-2 flex-wrap">
+		        <button class="btn btn-xs depot-btn-outline" onclick="openExportModal(true)">
+		            <i class="bi bi-download me-1"></i><span data-i18n="table.action.exportSelected"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline" onclick="bulkPair()">
+		            <i class="bi bi-link-45deg me-1"></i><span data-i18n="table.action.pair.transfer"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline" onclick="openBulkMove()">
+		            <i class="bi bi-arrow-right-square me-1"></i><span data-i18n="table.action.move.position"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline" onclick="openBulkExRate()">
+		            <i class="bi bi-percent me-1"></i><span data-i18n="table.action.exchange.rate"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline" onclick="clearDuplicateMark()">
+		            <i class="bi bi-check-circle me-1"></i><span data-i18n="table.action.clear.duplicate"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline" onclick="bulkMarkSoloTransfer()">
+		            <i class="bi bi-arrow-down-up me-1"></i><span data-i18n="table.action.mark.solo"></span>
+		        </button>
+		        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
+		            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
+		        </button>
+		    </div>
+		
+		    <div class="dropdown bulk-actions-dropdown">
+		        <button class="btn btn-xs depot-btn-outline dropdown-toggle" type="button"
+		                data-bs-toggle="dropdown" aria-expanded="false">
+		            <i class="bi bi-three-dots"></i>
+		        </button>
+		        <ul class="dropdown-menu depot-dropdown-menu">
+		            <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li>
+		            <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li>
+		            <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li>
+		            <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li>
+		            <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li>
+		            <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li>
+		            <li><hr class="dropdown-divider"></li>
+		            <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li>
+		        </ul>
+		    </div>
+		</div>
+			
+			
+			
+			
+			
+			
 			<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
 			    <span class="tx-legend-item">
 			        <span class="tx-legend-dot" style="background:var(--warn)"></span>
