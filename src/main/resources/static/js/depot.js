@@ -82,7 +82,7 @@ function applyDensity(density) {
 
 // ── Card Collapse State (persisted like Theme) ────────────
 const CARD_STORAGE_KEY = 'depot-card-collapsed';
-const CARD_IDS = ['posCardBody', 'donutCardBody', 'txCardBody'];
+const CARD_IDS = ['posCardBody', 'donutCardBody', 'txCardBody', 'metricsCardBody'];
 
 function _getCardState() {
     try {

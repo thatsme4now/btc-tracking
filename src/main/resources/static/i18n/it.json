@@ -16,6 +16,7 @@
   "metric.gainLoss": "Guadagno / Perdita",
   "metric.performance": "Performance",
   "metric.realized": "Realizzato",
+  "metrics.title": "Metriche",
   "table.wallets": "Portafogli & Exchange",
   "table.wallets.hint": "— clicca su una riga per vedere le transazioni",
   "table.col.label": "Nome",

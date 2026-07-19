@@ -16,6 +16,7 @@
   "metric.gainLoss": "กำไร / ขาดทุน",
   "metric.performance": "ผลการดำเนินงาน",
   "metric.realized": "กำไรที่รับรู้แล้ว",
+  "metrics.title": "ตัวชี้วัด",
   "table.wallets": "กระเป๋าและตลาด",
   "table.wallets.hint": "— คลิกที่แถวเพื่อดูธุรกรรมที่เกี่ยวข้อง",
   "table.col.label": "ชื่อ",
