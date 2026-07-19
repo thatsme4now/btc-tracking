@@ -98,10 +98,24 @@ function _setCardState(id, collapsed) {
     localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
 }
 
+// Diese Sub-Cards existieren nur als eigenständig klappbare Bereiche im Mobile-Viewport.
+// Im Desktop-Viewport werden sie immer angezeigt, unabhängig vom gespeicherten Zustand.
+const MOBILE_ONLY_CARD_IDS = ['walletsSubBody', 'donutSubBody'];
+const MOBILE_BREAKPOINT = 991;
+
+function _isMobileViewport() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
 function _applyCardState(id) {
-    const collapsed = !!_getCardState()[id];
     const body = document.getElementById(id);
     if (!body) return;
+
+    const isMobileOnlyCard = MOBILE_ONLY_CARD_IDS.includes(id);
+    const collapsed = (isMobileOnlyCard && !_isMobileViewport())
+        ? false
+        : !!_getCardState()[id];
+
     body.classList.toggle('d-none', collapsed);
 
     const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
@@ -111,6 +125,14 @@ function _applyCardState(id) {
 
 (function initCardStates() {
     CARD_IDS.forEach(_applyCardState);
+
+    let _resizeTimeout = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimeout);
+        _resizeTimeout = setTimeout(() => {
+            MOBILE_ONLY_CARD_IDS.forEach(_applyCardState);
+        }, 150);
+    });
 })();
 
 // ── Flatpickr Date Pickers ────────────────────────────────
