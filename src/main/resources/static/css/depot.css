@@ -778,8 +778,17 @@ input#dt-search-1 {
         white-space: nowrap;
         text-align: right;
     }
-    /* Textknoten ohne <span> (z.B. Label-Spalte Positionstabelle) rechtsbündig */
-    #posTable tbody td[data-cell-label] { justify-content: space-between; text-align: right; }
+
+	#posTable tbody td[data-cell-label],
+	#txTable tbody td[data-cell-label] {
+	    justify-content: flex-end;
+	    text-align: right;
+	}
+	
+	#posTable tbody td[data-cell-label]::before,
+	#txTable tbody td[data-cell-label]::before {
+	    margin-right: auto;
+	}
 
     /* Checkbox-Zeile: kein Label, linksbündig, kompakt */
     #txTable tbody td:first-child {
