@@ -617,7 +617,7 @@ function renderTxTable(data) {
 		    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
 		    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
 		    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.profit'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
 		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
 		    <td class="text-end depot-actions" style="white-space:nowrap">
 		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
