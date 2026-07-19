@@ -178,5 +178,7 @@
   "modal.export.coinTracking": "CoinTracking-Format",
   "table.action.exportSelected": "Auswahl exportieren",
   "csv.import.mapping.time": "Uhrzeit-Spalte (optional)",
-  "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert."
+  "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert.",
+  
+  "nav.btn.actions": "Aktionen"
 }

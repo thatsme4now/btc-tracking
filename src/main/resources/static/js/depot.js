@@ -405,6 +405,15 @@ function filterExchangeTransaction(exchange) {
     } else {
         doSearch();
     }
+	
+	const body = document.getElementById('txCardBody');
+    const collapsed = body.classList.contains('d-none');
+	if (collapsed) {		
+	   body.classList.toggle('d-none', !collapsed);
+	   const icon =  document.getElementById('txToggleIcon');
+	   if (icon) icon.className = !collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+	}
+
 }
 
 function showHistory() {
@@ -552,6 +561,8 @@ function renderTxTable(data) {
         TRANSFER_OUT: 'text-neg'
     };
 	
+	const isCompact = getDeviceType() !== 'DESKTOP';
+
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
     data.forEach(tx => {
@@ -596,7 +607,7 @@ function renderTxTable(data) {
 			earning="–";
 		}
 		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
-		    <td onclick="event.stopPropagation()">
+		    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
 		    </td>
@@ -2035,3 +2046,11 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
+
+// ── Device Detection ──────────────────────────────────────
+function getDeviceType() {
+    const w = window.innerWidth;
+    if (w <= 412) return 'PHONE';
+    if (w <= 768) return 'TABLET';
+    return 'DESKTOP';
+}

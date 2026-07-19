@@ -27,6 +27,12 @@
 	</div>
     <div class="container-fluid px-4">
 	    <div class="d-flex align-items-left gap-3">
+	    <!-- Hamburger: nur Tablet/Handy -->
+	    <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
+	            type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
+	            aria-controls="navbarActionsOffcanvas" title="Menu">
+	        <i class="bi bi-list"></i>
+	    </button>
 	        <!-- Live BTC price badge -->
 	        <span class="btc-price-badge" th:if="${btcPrice != null}"
 	              onclick="openPriceEdit()"
@@ -52,7 +58,7 @@
 	            </button>
 	        </span>
 	        <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
-	            <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="nav.btn.refresh">Refresh</span>
+	            <i class="bi bi-arrow-clockwise me-1"></i><span class="refresh-text" data-i18n="nav.btn.refresh">Refresh</span>
 	        </button>
 	    </div>
 	
@@ -82,14 +88,7 @@
 	                   style="display:none" onchange="onDbImportFileSelected(this)"/>
 	        </label>
 	    </div>
-	
-	    <!-- Hamburger: nur Tablet/Handy -->
-	    <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
-	            type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
-	            aria-controls="navbarActionsOffcanvas" title="Menu">
-	        <i class="bi bi-list"></i>
-	    </button>
-	
+
 	    <div class="ms-2 d-flex align-items-right gap-3">
 	        <button class="btn depot-btn-icon px-2" id="btnLightning"
 	                onclick="sendSomeSats()" title="Send some sats!">
@@ -117,7 +116,7 @@
 
 <div class="offcanvas offcanvas-end depot-offcanvas" tabindex="-1" id="navbarActionsOffcanvas">
     <div class="offcanvas-header" style="border-bottom:1px solid var(--border)">
-        <span class="depot-card-header mb-0" data-i18n="nav.btn.settings">Menu</span>
+        <span class="depot-card-header mb-0" data-i18n="nav.btn.actions">Aktionen</span>
         <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column gap-2">
@@ -170,7 +169,7 @@
             <div class="depot-card depot-card-metric">
                 <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
                 <div class="metric-value">
-                     <span th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA')}">–</span>
+                     <span th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA')}" class="currency-symbol">–</span>
                      <span class="currency-symbol"></span>         
                 </div>
             </div>
@@ -348,7 +347,7 @@
 	        <span data-i18n="table.allTransactions">All Transactions</span>
 	        <div class="d-flex align-items-center gap-2">
 	            <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
-	                <i class="bi bi-dash-lg"></i>
+	                <i id="txToggleIcon" class="bi bi-dash-lg"></i>
 	            </button>
 	        </div>
 	    </div>
@@ -383,22 +382,22 @@
 			        </button>
 			    </div>
 			
-			    <div class="dropdown bulk-actions-dropdown">
-			        <button class="btn btn-xs depot-btn-outline dropdown-toggle" type="button"
-			                data-bs-toggle="dropdown" aria-expanded="false">
-			            <i class="bi bi-three-dots"></i>
-			        </button>
-			        <ul class="dropdown-menu depot-dropdown-menu">
-			            <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li>
-			            <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li>
-			            <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li>
-			            <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li>
-			            <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li>
-			            <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li>
-			            <li><hr class="dropdown-divider"></li>
-			            <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li>
-			        </ul>
-			    </div>
+<!-- 			    <div class="dropdown bulk-actions-dropdown"> -->
+<!-- 			        <button class="btn btn-xs depot-btn-outline dropdown-toggle" type="button" -->
+<!-- 			                data-bs-toggle="dropdown" aria-expanded="false"> -->
+<!-- 			            <i class="bi bi-three-dots"></i> -->
+<!-- 			        </button> -->
+<!-- 			        <ul class="dropdown-menu depot-dropdown-menu"> -->
+<!-- 			            <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li> -->
+<!-- 			            <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li> -->
+<!-- 			            <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li> -->
+<!-- 			            <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li> -->
+<!-- 			            <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li> -->
+<!-- 			            <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li> -->
+<!-- 			            <li><hr class="dropdown-divider"></li> -->
+<!-- 			            <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li> -->
+<!-- 			        </ul> -->
+<!-- 			    </div> -->
 			</div>
 
 				<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">

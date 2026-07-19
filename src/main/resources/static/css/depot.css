@@ -684,7 +684,7 @@ input#dt-search-1 {
 /* ── Navbar ────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .depot-navbar {
-        position: static;
+        position: sticky;
     }
     .depot-navbar .container-fluid:nth-of-type(2) {
         flex-wrap: wrap;
@@ -836,4 +836,75 @@ input#dt-search-1 {
 /* ── Modals: fullscreen auf Handy ──────────────────────── */
 @media (max-width: 412px) {
     .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
-}   
+    .refresh-text{display: none;}
+    
+    .depot-navbar .container-fluid:nth-of-type(2) {
+        justify-content: center;
+    }
+
+    .depot-navbar .container-fluid:nth-of-type(2) > * {
+        flex: 0 0 auto;
+        width: 100%;
+        justify-content: center;
+        display: flex;
+    }
+
+    /* ms-auto/ms-2 sollen auf PHONE nicht mehr nach rechts drücken,
+       sondern wie eigene Reihen zentriert werden */
+    .depot-navbar .navbar-hamburger-btn,
+    .depot-navbar .ms-2 {
+        margin-left: 0 !important;
+    }
+}  
+
+@media (max-width: 768px) {
+    /* Status-Farben auf Card-Ebene (tr) statt pro Zelle */
+/*     #posTable tbody tr.selected, */
+/*     #txTable tbody tr.selected { */
+/*         background: var(--accent-dim) !important; */
+/*     } */
+    #posTable tbody tr.last-import,
+    #txTable tbody tr.last-import {
+        background: var(--last-import) !important;
+    }
+    #posTable tbody tr.warning,
+    #txTable tbody tr.warning {
+        background: var(--warn) !important;
+    }
+    #posTable tbody tr.warning-duplicate,
+    #txTable tbody tr.warning-duplicate {
+        background: var(--warn-duplicate) !important;
+    }
+    #posTable tbody tr.solo-transfer,
+    #txTable tbody tr.solo-transfer {
+        background: var(--solo-transfer) !important;
+    }
+    
+    #posTable tbody tr.selected,
+    #txTable tbody tr.selected {
+        background: var(--accent-dim) !important;
+    }
+
+    /* td-Hintergründe neutralisieren – Farbe kommt nur noch von der Card (tr) */
+    #posTable tbody td, #txTable tbody td {
+        background: transparent !important;
+    }
+
+    /* Sticky-Hover auf Touch komplett deaktivieren */
+    #posTable tbody tr:hover td,
+    #txTable tbody tr:hover td,
+/*     #posTable tbody tr.selected:hover td, */
+/*     #txTable tbody tr.selected:hover td, */
+    #posTable tbody tr.warning:hover td,
+    #txTable tbody tr.warning:hover td,
+    #posTable tbody tr.warning-duplicate:hover td,
+    #txTable tbody tr.warning-duplicate:hover td,
+    #posTable tbody tr.solo-transfer:hover td,
+    #txTable tbody tr.solo-transfer:hover td,
+    #posTable tbody tr.last-import:hover td,
+    #txTable tbody tr.last-import:hover td,
+    #posTable tbody tr.selected:hover td,
+    #txTable tbody tr.selected:hover td {
+        background: transparent !important;
+    }
+} 
