@@ -64,7 +64,7 @@
     --accent-dim:       #3a2200;
     --warn:				#6b3d04;
     --warn-duplicate: #403483;
-    --last-import:      #1c8c8c;
+    --last-import:      #2c0905;
     --solo-transfer:    #1b4f72;
     --radius:           6px;
     --font:             'IBM Plex Mono', 'Courier New', monospace;
@@ -532,26 +532,48 @@ body.density-spacious {
 .btc-price-badge          { font-size: var(--density-btn); }
 .dataTables_wrapper       { font-size: var(--density-btn) !important; }
 
+.sortable-section.dragging {
+    opacity: .4;
+}
+.drag-handle {
+    cursor: grab;
+    font-size: .85rem;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Mobile: Up/Down-Buttons statt Drag-Handle */
+.sortable-mobile-controls { display: none; }
+
+.positions-col-split {
+    border-right: 1px solid var(--border);
+}
+@media (max-width: 991px) {
+    .positions-col-split {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+}
+
+.mobile-only-toggle { display: none; }
+
+@media (max-width: 991px) {
+    .mobile-only-toggle { display: inline-flex !important; }
+}
+
+@media (max-width: 768px) {
+    .sortable-mobile-controls { display: flex !important; }
+    .sortable-section .drag-handle { display: none; }
+}
+
 /* ── Responsive Transaktionstabelle ──────────────────────── */
-/* Spalten die bei schmalem Fenster ausgeblendet werden */
-@media (max-width: 1100px) {
-    #txTable th:nth-child(8),   /* Transfer-ID */
-    #txTable td:nth-child(8)    { display: none; }
+@media (max-width: 1100px) and (min-width: 769px) {
+    #txTable th:nth-child(8), #txTable td:nth-child(8) { display: none; }
 }
-
-@media (max-width: 900px) {
-    #txTable th:nth-child(6),   /* Price/BTC */
-    #txTable td:nth-child(6),
-    #txTable th:nth-child(7),   /* Total EUR */
-    #txTable td:nth-child(7)    { display: none; }
-}
-
-@media (max-width: 640px) {
-    #txTable th:nth-child(3),   /* Position */
-    #txTable td:nth-child(3)    { display: none; }
-
-    /* Datum kürzer */
-    #txTable td:nth-child(2)    { font-size: 0.72rem; white-space: nowrap; }
+@media (max-width: 900px) and (min-width: 769px) {
+    #txTable th:nth-child(6), #txTable td:nth-child(6),
+    #txTable th:nth-child(7), #txTable td:nth-child(7) { display: none; }
 }
 
 /* ── Flatpickr Theme Override ────────────────────────────── */
@@ -673,4 +695,247 @@ input#dt-search-1 {
     background: var(--text-muted);
 }
 
+ 
+ 
+ 
+ 
+ /* ═══════════════════════════════════════════════════════
+   RESPONSIVE: TABLET (≤768px) / HANDY (≤412px)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Navbar ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .depot-navbar {
+        position: sticky;
+    }
+    .depot-navbar .container-fluid:nth-of-type(2) {
+        flex-wrap: wrap;
+        row-gap: .5rem;
+    }
+    .navbar-actions-desktop { display: none !important; }
+    .navbar-hamburger-btn   { display: inline-flex !important; }
+}
+@media (min-width: 769px) {
+    .navbar-hamburger-btn { display: none !important; }
+}
+
+.depot-offcanvas {
+    background: var(--bg-card);
+    border-left: 1px solid var(--border);
+    color: var(--text);
+    width: 280px;
+}
+.depot-offcanvas .offcanvas-body .btn { justify-content: flex-start; }
+
+/* ── Metric Cards ──────────────────────────────────────── */
+@media (max-width: 768px) {
+    .metrics-row > [class*="col-"] { flex: 0 0 33.3333%; max-width: 33.3333%; }
+    .depot-card-metric { padding: .9rem 1rem; }
+}
+@media (max-width: 412px) {
+    .metrics-row > [class*="col-"] { flex: 0 0 100%; max-width: 100%; }
+}
+
+/* ── Tabellen → Card-Layout ────────────────────────────── */
+/* alte Spalten-Hide-Regeln nur noch oberhalb 768px aktiv */
+/* ── Außen-Padding reduzieren (Container + Card) ─────────── */
+@media (max-width: 768px) {
+    main.container-fluid { padding-left: .5rem; padding-right: .5rem; }
+    .depot-card { padding: .85rem .9rem; }
+}
+@media (max-width: 412px) {
+    main.container-fluid { padding-left: .4rem; padding-right: .4rem; }
+    .depot-card { padding: .65rem .7rem; }
+}
+
+/* ── Tabellen → kompaktes Card-Layout ─────────────────────── */
+@media (max-width: 768px) {
+    #posTable, #txTable { border: none; }
+    #posTable thead, #txTable thead { display: none; }
+    #posTable tbody, #txTable tbody { display: block; }
+
+    #posTable tbody tr, #txTable tbody tr {
+        display: block;
+        width: 100%;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: .5rem;
+        padding: 0 .75rem;
+    }
+
+    /* Label + Wert auf EINER Zeile, Label fix breit links, Wert rechtsbündig */
+    #posTable tbody td, #txTable tbody td {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        border-bottom: 1px solid var(--border);
+        padding: .4rem 0;
+        min-height: 1.9rem;
+        white-space: nowrap;
+    }
+    #posTable tbody td:last-child, #txTable tbody td:last-child { border-bottom: none; }
+
+    #posTable tbody td[data-cell-label]::before,
+    #txTable tbody td[data-cell-label]::before {
+        content: attr(data-cell-label);
+        font-size: .62rem;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        flex: 0 0 auto;
+        min-width: 70px;
+    }
+
+    /* Wert füllt Rest der Zeile, rechtsbündig, ggf. gekürzt statt umgebrochen */
+    #posTable tbody td[data-cell-label] > *:not(:first-child),
+    #posTable tbody td[data-cell-label],
+    #txTable tbody td[data-cell-label] {
+        justify-content: space-between;
+    }
+    #posTable tbody td[data-cell-label] span,
+    #txTable tbody td[data-cell-label] span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: right;
+    }
+
+	#posTable tbody td[data-cell-label],
+	#txTable tbody td[data-cell-label] {
+	    justify-content: flex-end;
+	    text-align: right;
+	}
+	
+	#posTable tbody td[data-cell-label]::before,
+	#txTable tbody td[data-cell-label]::before {
+	    margin-right: auto;
+	}
+
+    /* Checkbox-Zeile: kein Label, linksbündig, kompakt */
+    #txTable tbody td:first-child {
+        justify-content: flex-start;
+        min-height: 2.1rem;
+    }
+    #txTable tbody td:first-child::before { content: none; }
+
+    /* Actions-Zeile: immer sichtbar, zentriert, wenig Padding */
+    #posTable tbody td.depot-actions,
+    #txTable tbody td.depot-actions {
+        justify-content: center;
+        opacity: 1 !important;
+        gap: .5rem;
+        padding: .5rem 0;
+    }
+    #posTable tbody td.depot-actions::before,
+    #txTable tbody td.depot-actions::before { content: none; }
+
+    #posTable_wrapper, #txTable_wrapper { max-height: none; }
+}
+
+@media (max-width: 412px) {
+    #posTable tbody td, #txTable tbody td { font-size: .78rem; padding: .35rem 0; }
+    #posTable tbody td[data-cell-label]::before,
+    #txTable tbody td[data-cell-label]::before { min-width: 60px; font-size: .58rem; }
+}
+
+/* ── Bulk Toolbar ──────────────────────────────────────── */
+.bulk-actions-dropdown { display: none; }
+@media (max-width: 768px) {
+    .bulk-actions-inline   { display: none !important; }
+    .bulk-actions-dropdown { display: inline-block !important; }
+}
+.depot-dropdown-menu {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-width: 220px;
+}
+.depot-dropdown-menu .dropdown-item {
+    color: var(--text);
+    font-size: .78rem;
+    font-family: var(--font);
+    padding: .5rem .9rem;
+}
+.depot-dropdown-menu .dropdown-item:hover,
+.depot-dropdown-menu .dropdown-item:focus {
+    background: var(--bg-row);
+    color: var(--text);
+}
+.depot-dropdown-menu .dropdown-divider { border-color: var(--border); }
+
+/* ── Modals: fullscreen auf Handy ──────────────────────── */
+@media (max-width: 412px) {
+    .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
+    .refresh-text{display: none;}
     
+    .depot-navbar .container-fluid:nth-of-type(2) {
+        justify-content: center;
+    }
+
+    .depot-navbar .container-fluid:nth-of-type(2) > * {
+        flex: 0 0 auto;
+        width: 100%;
+        justify-content: center;
+        display: flex;
+    }
+
+    /* ms-auto/ms-2 sollen auf PHONE nicht mehr nach rechts drücken,
+       sondern wie eigene Reihen zentriert werden */
+    .depot-navbar .navbar-hamburger-btn,
+    .depot-navbar .ms-2 {
+        margin-left: 0 !important;
+    }
+}  
+
+@media (max-width: 768px) {
+    /* Status-Farben auf Card-Ebene (tr) statt pro Zelle */
+/*     #posTable tbody tr.selected, */
+/*     #txTable tbody tr.selected { */
+/*         background: var(--accent-dim) !important; */
+/*     } */
+    #posTable tbody tr.last-import,
+    #txTable tbody tr.last-import {
+        background: var(--last-import) !important;
+    }
+    #posTable tbody tr.warning,
+    #txTable tbody tr.warning {
+        background: var(--warn) !important;
+    }
+    #posTable tbody tr.warning-duplicate,
+    #txTable tbody tr.warning-duplicate {
+        background: var(--warn-duplicate) !important;
+    }
+    #posTable tbody tr.solo-transfer,
+    #txTable tbody tr.solo-transfer {
+        background: var(--solo-transfer) !important;
+    }
+    
+    #posTable tbody tr.selected,
+    #txTable tbody tr.selected {
+        background: var(--accent-dim) !important;
+    }
+
+    /* td-Hintergründe neutralisieren – Farbe kommt nur noch von der Card (tr) */
+    #posTable tbody td, #txTable tbody td {
+        background: transparent !important;
+    }
+
+    /* Sticky-Hover auf Touch komplett deaktivieren */
+    #posTable tbody tr:hover td,
+    #txTable tbody tr:hover td,
+/*     #posTable tbody tr.selected:hover td, */
+/*     #txTable tbody tr.selected:hover td, */
+    #posTable tbody tr.warning:hover td,
+    #txTable tbody tr.warning:hover td,
+    #posTable tbody tr.warning-duplicate:hover td,
+    #txTable tbody tr.warning-duplicate:hover td,
+    #posTable tbody tr.solo-transfer:hover td,
+    #txTable tbody tr.solo-transfer:hover td,
+    #posTable tbody tr.last-import:hover td,
+    #txTable tbody tr.last-import:hover td,
+    #posTable tbody tr.selected:hover td,
+    #txTable tbody tr.selected:hover td {
+        background: transparent !important;
+    }
+} 

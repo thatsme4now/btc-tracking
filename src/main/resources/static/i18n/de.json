@@ -16,6 +16,7 @@
   "metric.gainLoss": "Gewinn / Verlust",
   "metric.performance": "Performance",
   "metric.realized": "Realisiert",
+  "metrics.title": "Kennzahlen",
   "table.wallets": "Wallets & Börsen",
   "table.wallets.hint": "— Zeile anklicken für Transaktionsliste",
   "table.col.label": "Bezeichnung",
@@ -178,5 +179,7 @@
   "modal.export.coinTracking": "CoinTracking-Format",
   "table.action.exportSelected": "Auswahl exportieren",
   "csv.import.mapping.time": "Uhrzeit-Spalte (optional)",
-  "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert."
+  "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert.",
+  "section.positions.title": "Positionen & Allokation",
+  "nav.btn.actions": "Aktionen"
 }

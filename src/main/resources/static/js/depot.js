@@ -36,10 +36,6 @@ const APEX_DEFAULTS = {
     grid: { borderColor: '#252830' }
 };
 // ── Density Toggle ────────────────────────────────────────
-//const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
-//const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
-//const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
-
 const DENSITY_CYCLE = ['default', 'comfortable'];
 const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
 const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
@@ -83,6 +79,61 @@ function applyDensity(density) {
     const btn = document.getElementById('btnDensity');
     if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
 }
+
+// ── Card Collapse State (persisted like Theme) ────────────
+const CARD_STORAGE_KEY = 'depot-card-collapsed';
+const CARD_IDS = ['positionsCardBody', 'txCardBody', 'metricsCardBody', 'walletsSubBody', 'donutSubBody'];
+
+function _getCardState() {
+    try {
+        return JSON.parse(localStorage.getItem(CARD_STORAGE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function _setCardState(id, collapsed) {
+    const state = _getCardState();
+    state[id] = collapsed;
+    localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
+}
+
+// Diese Sub-Cards existieren nur als eigenständig klappbare Bereiche im Mobile-Viewport.
+// Im Desktop-Viewport werden sie immer angezeigt, unabhängig vom gespeicherten Zustand.
+const MOBILE_ONLY_CARD_IDS = ['walletsSubBody', 'donutSubBody'];
+const MOBILE_BREAKPOINT = 991;
+
+function _isMobileViewport() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
+function _applyCardState(id) {
+    const body = document.getElementById(id);
+    if (!body) return;
+
+    const isMobileOnlyCard = MOBILE_ONLY_CARD_IDS.includes(id);
+    const collapsed = (isMobileOnlyCard && !_isMobileViewport())
+        ? false
+        : !!_getCardState()[id];
+
+    body.classList.toggle('d-none', collapsed);
+
+    const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
+    const icon = btn ? btn.querySelector('i') : document.getElementById('txToggleIcon');
+    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+}
+
+(function initCardStates() {
+    CARD_IDS.forEach(_applyCardState);
+
+    let _resizeTimeout = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimeout);
+        _resizeTimeout = setTimeout(() => {
+            MOBILE_ONLY_CARD_IDS.forEach(_applyCardState);
+        }, 150);
+    });
+})();
 
 // ── Flatpickr Date Pickers ────────────────────────────────
 const FLATPICKR_LOCALES = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
@@ -133,6 +184,102 @@ function initFlatpickr() {
     _fpEdit       = flatpickr('#editTxDate',      cfg);
     _fpTransferIn = flatpickr('#transferInDate',  cfg);
 }
+
+// ── Section Reordering (Native Drag&Drop Desktop, Up/Down Buttons Mobile) ─
+const SECTION_ORDER_KEY = 'depot-section-order';
+const DEFAULT_SECTION_ORDER = ['metrics', 'positions', 'transactions'];
+
+function _getSectionOrder() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SECTION_ORDER_KEY));
+        if (Array.isArray(saved) && saved.length === DEFAULT_SECTION_ORDER.length
+            && DEFAULT_SECTION_ORDER.every(id => saved.includes(id))) {
+            return saved;
+        }
+    } catch (e) {}
+    return DEFAULT_SECTION_ORDER;
+}
+
+function _setSectionOrder(order) {
+    localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(order));
+}
+
+function _persistCurrentOrder(container) {
+    const newOrder = [...container.querySelectorAll('.sortable-section')]
+        .map(el => el.dataset.sectionId);
+    _setSectionOrder(newOrder);
+}
+
+function initSectionOrder() {
+    const container = document.getElementById('sortableSectionsContainer');
+    if (!container) return;
+
+    _getSectionOrder().forEach(id => {
+        const el = container.querySelector(`.sortable-section[data-section-id="${id}"]`);
+        if (el) container.appendChild(el);
+    });
+
+    let dragEl = null;
+
+    container.querySelectorAll('.sortable-section').forEach(section => {
+        section.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', () => section.setAttribute('draggable', 'true'));
+        });
+
+        section.addEventListener('dragstart', (e) => {
+            dragEl = section;
+            section.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        section.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!dragEl || dragEl === section) return;
+            const rect  = section.getBoundingClientRect();
+            const after = (e.clientY - rect.top) > rect.height / 2;
+            container.insertBefore(dragEl, after ? section.nextSibling : section);
+        });
+
+        section.addEventListener('drop', (e) => e.preventDefault());
+
+        section.addEventListener('dragend', () => {
+            section.removeAttribute('draggable');
+            section.classList.remove('dragging');
+            dragEl = null;
+            _persistCurrentOrder(container);
+        });
+    });
+
+    document.addEventListener('mouseup', () => {
+        container.querySelectorAll('.sortable-section[draggable="true"]').forEach(s => {
+            if (!s.classList.contains('dragging')) s.removeAttribute('draggable');
+        });
+    });
+}
+
+// Mobile: Up/Down Buttons
+function moveSectionUp(btn) {
+    const section = btn.closest('.sortable-section');
+    const container = document.getElementById('sortableSectionsContainer');
+    const prev = section.previousElementSibling;
+    if (prev && prev.classList.contains('sortable-section')) {
+        container.insertBefore(section, prev);
+        _persistCurrentOrder(container);
+    }
+}
+
+function moveSectionDown(btn) {
+    const section = btn.closest('.sortable-section');
+    const container = document.getElementById('sortableSectionsContainer');
+    const next = section.nextElementSibling;
+    if (next && next.classList.contains('sortable-section')) {
+        container.insertBefore(next, section);
+        _persistCurrentOrder(container);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initSectionOrder);
+
 
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
@@ -214,7 +361,7 @@ I18N.ready.then(() => {
 
     initDonut();
 	initFlatpickr();
-	
+	loadTransactions();
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().destroy();
@@ -225,6 +372,7 @@ I18N.ready.then(() => {
         pageLength: 100,
 		paging:     false,
 		searching:  true, 
+		autoWidth:  false, 
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -404,6 +552,15 @@ function filterExchangeTransaction(exchange) {
     } else {
         doSearch();
     }
+	
+	const body = document.getElementById('txCardBody');
+    const collapsed = !body.classList.contains('d-none');
+	if (!collapsed) {		
+	   body.classList.toggle('d-none', collapsed);
+	   const icon =  document.getElementById('txToggleIcon');
+	   if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+	   _setCardState('txCardBody', false);
+	}
 }
 
 function showHistory() {
@@ -551,6 +708,8 @@ function renderTxTable(data) {
         TRANSFER_OUT: 'text-neg'
     };
 	
+	const isCompact = getDeviceType() !== 'DESKTOP';
+
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
     data.forEach(tx => {
@@ -595,35 +754,30 @@ function renderTxTable(data) {
 			earning="–";
 		}
 		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
-			<td onclick="event.stopPropagation()">
+		    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
 		    </td>
-            <td style="white-space:nowrap">${date}</td>
-            <td>${tx.positionLabel || '–'}</td>
-            <td><span class="${color}">${tx.type}</span></td>
-            <td class="text-end">${fmt8(tx.quantity)}</td>
-            <td class="text-end">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
-            
-            <td class="text-end">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-			
-			
-			<td class="text-end"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-	
-			
-			 <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}">${shortId}</td>
-            <td class="text-end depot-actions" style="white-space:nowrap">
-                <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
-                    <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
-                    <i class="bi bi-copy"></i>
-                </button>
-                <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        </tr>`;
+		    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
+		    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
+		    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+		    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
+		    <td class="text-end depot-actions" style="white-space:nowrap">
+		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
+		            <i class="bi bi-pencil"></i>
+		        </button>
+		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
+		            <i class="bi bi-copy"></i>
+		        </button>
+		        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
+		            <i class="bi bi-trash"></i>
+		        </button>
+		    </td>
+		</tr>`;
     });
 
     if ($.fn.DataTable.isDataTable('#txTable')) {
@@ -639,6 +793,7 @@ function renderTxTable(data) {
         order:      [[1, 'desc']],
         pageLength: 500,
 		lengthMenu: [25, 50, 100, 250, 500],
+		autoWidth:  false, 
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
@@ -1644,17 +1799,16 @@ function _updateBulkToolbar() {
 }
 
 function toggleCard(bodyId, btn) {
-    const ids = ['posCardBody', 'donutCardBody'];
-    const body = document.getElementById(ids[0]);
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+
     const collapsed = !body.classList.contains('d-none');
-    
-    ids.forEach(id => {
-        document.getElementById(id).classList.toggle('d-none', collapsed);
-    });
-    
-    document.querySelectorAll('.card-toggle-btn i').forEach(icon => {
-        icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-    });
+    body.classList.toggle('d-none', collapsed);
+
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+
+    _setCardState(bodyId, collapsed);
 }
 
 function toggleSelectAll(cb) {
@@ -2041,3 +2195,11 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 });
+
+// ── Device Detection ──────────────────────────────────────
+function getDeviceType() {
+    const w = window.innerWidth;
+    if (w <= 412) return 'PHONE';
+    if (w <= 768) return 'TABLET';
+    return 'DESKTOP';
+}
