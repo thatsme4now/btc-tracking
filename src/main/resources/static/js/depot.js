@@ -36,10 +36,6 @@ const APEX_DEFAULTS = {
     grid: { borderColor: '#252830' }
 };
 // ── Density Toggle ────────────────────────────────────────
-//const DENSITY_CYCLE = ['default', 'comfortable', 'spacious'];
-//const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold', spacious: 'bi-type-h1' };
-//const DENSITY_LABELS = { default: 'A', comfortable: 'A+', spacious: 'A++' };
-
 const DENSITY_CYCLE = ['default', 'comfortable'];
 const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
 const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
@@ -83,6 +79,39 @@ function applyDensity(density) {
     const btn = document.getElementById('btnDensity');
     if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
 }
+
+// ── Card Collapse State (persisted like Theme) ────────────
+const CARD_STORAGE_KEY = 'depot-card-collapsed';
+const CARD_IDS = ['posCardBody', 'donutCardBody', 'txCardBody'];
+
+function _getCardState() {
+    try {
+        return JSON.parse(localStorage.getItem(CARD_STORAGE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function _setCardState(id, collapsed) {
+    const state = _getCardState();
+    state[id] = collapsed;
+    localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
+}
+
+function _applyCardState(id) {
+    const collapsed = !!_getCardState()[id];
+    const body = document.getElementById(id);
+    if (!body) return;
+    body.classList.toggle('d-none', collapsed);
+
+    const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
+    const icon = btn ? btn.querySelector('i') : document.getElementById('txToggleIcon');
+    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+}
+
+(function initCardStates() {
+    CARD_IDS.forEach(_applyCardState);
+})();
 
 // ── Flatpickr Date Pickers ────────────────────────────────
 const FLATPICKR_LOCALES = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
@@ -407,13 +436,13 @@ function filterExchangeTransaction(exchange) {
     }
 	
 	const body = document.getElementById('txCardBody');
-    const collapsed = body.classList.contains('d-none');
-	if (collapsed) {		
-	   body.classList.toggle('d-none', !collapsed);
+    const collapsed = !body.classList.contains('d-none');
+	if (!collapsed) {		
+	   body.classList.toggle('d-none', collapsed);
 	   const icon =  document.getElementById('txToggleIcon');
-	   if (icon) icon.className = !collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+	   if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+	   _setCardState('txCardBody', false);
 	}
-
 }
 
 function showHistory() {
@@ -1660,6 +1689,8 @@ function toggleCard(bodyId, btn) {
 
     const icon = btn.querySelector('i');
     if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
+
+    _setCardState(bodyId, collapsed);
 }
 
 function toggleSelectAll(cb) {
