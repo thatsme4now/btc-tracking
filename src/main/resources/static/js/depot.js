@@ -163,6 +163,102 @@ function initFlatpickr() {
     _fpTransferIn = flatpickr('#transferInDate',  cfg);
 }
 
+// ── Section Reordering (Native Drag&Drop Desktop, Up/Down Buttons Mobile) ─
+const SECTION_ORDER_KEY = 'depot-section-order';
+const DEFAULT_SECTION_ORDER = ['metrics', 'positions', 'transactions'];
+
+function _getSectionOrder() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SECTION_ORDER_KEY));
+        if (Array.isArray(saved) && saved.length === DEFAULT_SECTION_ORDER.length
+            && DEFAULT_SECTION_ORDER.every(id => saved.includes(id))) {
+            return saved;
+        }
+    } catch (e) {}
+    return DEFAULT_SECTION_ORDER;
+}
+
+function _setSectionOrder(order) {
+    localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(order));
+}
+
+function _persistCurrentOrder(container) {
+    const newOrder = [...container.querySelectorAll('.sortable-section')]
+        .map(el => el.dataset.sectionId);
+    _setSectionOrder(newOrder);
+}
+
+function initSectionOrder() {
+    const container = document.getElementById('sortableSectionsContainer');
+    if (!container) return;
+
+    _getSectionOrder().forEach(id => {
+        const el = container.querySelector(`.sortable-section[data-section-id="${id}"]`);
+        if (el) container.appendChild(el);
+    });
+
+    let dragEl = null;
+
+    container.querySelectorAll('.sortable-section').forEach(section => {
+        section.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', () => section.setAttribute('draggable', 'true'));
+        });
+
+        section.addEventListener('dragstart', (e) => {
+            dragEl = section;
+            section.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        });
+
+        section.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if (!dragEl || dragEl === section) return;
+            const rect  = section.getBoundingClientRect();
+            const after = (e.clientY - rect.top) > rect.height / 2;
+            container.insertBefore(dragEl, after ? section.nextSibling : section);
+        });
+
+        section.addEventListener('drop', (e) => e.preventDefault());
+
+        section.addEventListener('dragend', () => {
+            section.removeAttribute('draggable');
+            section.classList.remove('dragging');
+            dragEl = null;
+            _persistCurrentOrder(container);
+        });
+    });
+
+    document.addEventListener('mouseup', () => {
+        container.querySelectorAll('.sortable-section[draggable="true"]').forEach(s => {
+            if (!s.classList.contains('dragging')) s.removeAttribute('draggable');
+        });
+    });
+}
+
+// Mobile: Up/Down Buttons
+function moveSectionUp(btn) {
+    const section = btn.closest('.sortable-section');
+    const container = document.getElementById('sortableSectionsContainer');
+    const prev = section.previousElementSibling;
+    if (prev && prev.classList.contains('sortable-section')) {
+        container.insertBefore(section, prev);
+        _persistCurrentOrder(container);
+    }
+}
+
+function moveSectionDown(btn) {
+    const section = btn.closest('.sortable-section');
+    const container = document.getElementById('sortableSectionsContainer');
+    const next = section.nextElementSibling;
+    if (next && next.classList.contains('sortable-section')) {
+        container.insertBefore(next, section);
+        _persistCurrentOrder(container);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initSectionOrder);
+
+
 // ── Exchange Dropdown ─────────────────────────────────────
 let _positionsCache = null;
 

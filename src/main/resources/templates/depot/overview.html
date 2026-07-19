@@ -150,6 +150,7 @@
     <div id="statusToast" class="depot-toast d-none"></div>
 
     <!-- No price available for selected currency -->
+    <div id="sortableSectionsContainer">
     <div id="noPriceBanner" class="depot-card mb-3 d-none"
          style="border-left:3px solid var(--neg);padding:.75rem 1.25rem">
         <i class="bi bi-exclamation-triangle me-2" style="color:var(--neg)"></i>
@@ -157,12 +158,25 @@
     </div>
 
     <!-- Metric Cards -->
-	<div class="depot-card mb-4">
+	<div class="depot-card mb-4 sortable-section" data-section-id="metrics">
         <div class="depot-card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <span data-i18n="metrics.title">Kennzahlen</span>
-            <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('metricsCardBody', this)">
-                <i class="bi bi-dash-lg"></i>
-            </button>
+            <span style="display:flex;align-items:center;gap:.5rem">
+                <i class="bi bi-grip-vertical drag-handle" style="cursor:grab;color:var(--text-muted)"></i>
+                <span data-i18n="metrics.title">Kennzahlen</span>
+            </span>
+            <span class="d-flex align-items-center gap-2">
+			    <span class="sortable-mobile-controls d-flex gap-1">
+			        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation();moveSectionUp(this)" title="Nach oben">
+			            <i class="bi bi-chevron-up"></i>
+			        </button>
+			        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation();moveSectionDown(this)" title="Nach unten">
+			            <i class="bi bi-chevron-down"></i>
+			        </button>
+			    </span>
+			    <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('metricsCardBody', this)">
+			        <i class="bi bi-dash-lg"></i>
+			    </button>
+			</span>
         </div>
         <div id="metricsCardBody">
 	        <div class="row g-3 metrics-row">
@@ -241,7 +255,21 @@
 	</div>
 
     <!-- Positions Table + Donut -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 sortable-section" data-section-id="positions">
+        <div class="col-12 d-flex align-items-center justify-content-between gap-2" style="font-size:.7rem;color:var(--text-muted)">
+		    <span class="d-flex align-items-center gap-2">
+		        <i class="bi bi-grip-vertical drag-handle" style="cursor:grab"></i>
+		        <span data-i18n="section.positions.title">Positionen &amp; Allokation</span>
+		    </span>
+		    <span class="sortable-mobile-controls d-flex gap-1">
+		        <button class="btn btn-xs depot-btn-icon" onclick="moveSectionUp(this)" title="Nach oben">
+		            <i class="bi bi-chevron-up"></i>
+		        </button>
+		        <button class="btn btn-xs depot-btn-icon" onclick="moveSectionDown(this)" title="Nach unten">
+		            <i class="bi bi-chevron-down"></i>
+		        </button>
+		    </span>
+		</div>
         <div class="col-lg-8">
             <div class="depot-card h-100">
             	<div class="depot-card-header" style="display:flex;justify-content:space-between;align-items:center">
@@ -347,19 +375,30 @@
                 </div>
             </div>
 		</div>
-            </div>
+   </div>
 
 
 
     <!-- Transactions Panel -->
-    <div id="transactionsPanel" class="depot-card mb-3">
+    <div id="transactionsPanel" class="depot-card mb-3 sortable-section" data-section-id="transactions">
         <div class="depot-card-header d-flex justify-content-between align-items-center">
-	        <span data-i18n="table.allTransactions">All Transactions</span>
+	        <span style="display:flex;align-items:center;gap:.5rem">
+	            <i class="bi bi-grip-vertical drag-handle" style="cursor:grab;color:var(--text-muted)"></i>
+	            <span data-i18n="table.allTransactions">All Transactions</span>
+	        </span>
 	        <div class="d-flex align-items-center gap-2">
-	            <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
-	                <i id="txToggleIcon" class="bi bi-dash-lg"></i>
-	            </button>
-	        </div>
+		        <span class="sortable-mobile-controls d-flex gap-1">
+		            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionUp(this)" title="Nach oben">
+		                <i class="bi bi-chevron-up"></i>
+		            </button>
+		            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionDown(this)" title="Nach unten">
+		                <i class="bi bi-chevron-down"></i>
+		            </button>
+		        </span>
+		        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
+		            <i id="txToggleIcon" class="bi bi-dash-lg"></i>
+		        </button>
+		    </div>
 	    </div>
 	    <div id="txCardBody">
 	        <div class="table-responsive">
@@ -452,6 +491,7 @@
 	            </table>
 	        </div>
 		</div>
+    </div>
     </div>
 
 	<div class="modal fade" id="dbExportModal" tabindex="-1">

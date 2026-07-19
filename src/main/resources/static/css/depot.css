@@ -532,6 +532,25 @@ body.density-spacious {
 .btc-price-badge          { font-size: var(--density-btn); }
 .dataTables_wrapper       { font-size: var(--density-btn) !important; }
 
+.sortable-section.dragging {
+    opacity: .4;
+}
+.drag-handle {
+    cursor: grab;
+    font-size: .85rem;
+}
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Mobile: Up/Down-Buttons statt Drag-Handle */
+.sortable-mobile-controls { display: none; }
+
+@media (max-width: 768px) {
+    .sortable-mobile-controls { display: flex !important; }
+    .sortable-section .drag-handle { display: none; }
+}
+
 /* ── Responsive Transaktionstabelle ──────────────────────── */
 @media (max-width: 1100px) and (min-width: 769px) {
     #txTable th:nth-child(8), #txTable td:nth-child(8) { display: none; }
