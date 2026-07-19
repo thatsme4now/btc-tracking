@@ -179,5 +179,7 @@
   "modal.export.coinTracking": "CoinTracking Format",
   "table.action.exportSelected": "Export Selected",
   "csv.import.mapping.time": "Time column (optional)",
-  "csv.import.dateTimeWarning": "The selected date column contains no time. Please map a separate time column, or the import will be blocked."
+  "csv.import.dateTimeWarning": "The selected date column contains no time. Please map a separate time column, or the import will be blocked.",
+  "section.positions.title": "Positions & Allocation",
+  "nav.btn.actions": "Actions"
 }

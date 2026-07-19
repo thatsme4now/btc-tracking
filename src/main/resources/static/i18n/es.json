@@ -179,5 +179,7 @@
   "modal.export.coinTracking": "Formato CoinTracking",
   "table.action.exportSelected": "Exportar seleccionados",
   "csv.import.mapping.time": "Columna de hora (opcional)",
-  "csv.import.dateTimeWarning": "La columna de fecha seleccionada no contiene hora. Asigna una columna de hora separada, o el import quedará bloqueado."
+  "csv.import.dateTimeWarning": "La columna de fecha seleccionada no contiene hora. Asigna una columna de hora separada, o el import quedará bloqueado.",
+  "nav.btn.actions": "Acciones",
+  "section.positions.title": "Posiciones y asignación"
 }

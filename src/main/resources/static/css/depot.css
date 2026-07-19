@@ -546,6 +546,22 @@ body.density-spacious {
 /* Mobile: Up/Down-Buttons statt Drag-Handle */
 .sortable-mobile-controls { display: none; }
 
+.positions-col-split {
+    border-right: 1px solid var(--border);
+}
+@media (max-width: 991px) {
+    .positions-col-split {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+}
+
+.mobile-only-toggle { display: none; }
+
+@media (max-width: 991px) {
+    .mobile-only-toggle { display: inline-flex !important; }
+}
+
 @media (max-width: 768px) {
     .sortable-mobile-controls { display: flex !important; }
     .sortable-section .drag-handle { display: none; }

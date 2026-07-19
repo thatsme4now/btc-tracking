@@ -179,5 +179,7 @@
   "modal.export.coinTracking": "รูปแบบ CoinTracking",
   "table.action.exportSelected": "ส่งออกที่เลือก",
   "csv.import.mapping.time": "คอลัมน์เวลา (ไม่บังคับ)",
-  "csv.import.dateTimeWarning": "คอลัมน์วันที่ที่เลือกไม่มีเวลา กรุณาแมปคอลัมน์เวลาแยกต่างหาก มิฉะนั้นจะไม่สามารถนำเข้าได้"
+  "csv.import.dateTimeWarning": "คอลัมน์วันที่ที่เลือกไม่มีเวลา กรุณาแมปคอลัมน์เวลาแยกต่างหาก มิฉะนั้นจะไม่สามารถนำเข้าได้",
+  "nav.btn.actions": "การดำเนินการ",
+  "section.positions.title": "ตำแหน่งและการจัดสรร"
 }
