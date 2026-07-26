@@ -142,7 +142,7 @@
   "csv.import.mapping.sell.quantity": "Verkauf-Wert",
   "csv.import.mapping.sell.currency": "Verkauf-Währung",
   "csv.import.mapping.fee.currency": "Gebühr-Währung",
-  "csv.import.mapping.fee.exchange.rate": "Wechselkurs zur Anzeige",
+  "csv.import.mapping.fee.exchange.rate": "Wechselkurs zur Anzeige (Optional)",
   "table.col.profit": "Gewinn/Verlust",
   "modal.field.transaction.id": "Transaktions-Id",
   "modal.ok": "Ok",
