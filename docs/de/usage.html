@@ -80,6 +80,37 @@
   }
   .back-link:hover{border-color:var(--accent); color:var(--accent);}
 
+  .lang-switch{
+    position:fixed;
+    top:20px;
+    right:24px;
+    z-index:500;
+    display:flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+  @media (max-width:600px){
+    .lang-switch{top:12px; right:12px;}
+  }
+
   nav.steps{
     max-width:1100px;
     margin:0 auto;
@@ -281,6 +312,11 @@
 </head>
 <body>
 
+<div class="lang-switch">
+  <a href="usage.html" class="active">DE</a>
+  <a href="../usage.html">EN</a>
+</div>
+
 <header class="hero">
   <div class="hero-tag"><span class="dot"></span>Nutzung &amp; Setup · Deutsch</div>
   <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Nutzung &amp; Setup</h1>
@@ -384,7 +420,7 @@
 </main>
 
 <footer>
-  BTC-Tracking App · Nutzung &amp; Setup · <a href="index.html">← Zur Anleitung</a>
+  BTC-Tracking App · Nutzung &amp; Setup · <a href="usage.html">← Zur Anleitung</a>
 </footer>
 
 </body>

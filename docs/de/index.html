@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC-Tracking App — Guide</title>
+<title>BTC-Tracking App — Anleitung</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -324,24 +324,24 @@
 <body>
 
 <div class="lang-switch">
-  <a href="de/index.html">DE</a>
-  <a href="index.html" class="active">EN</a>
+  <a href="index.html" class="active">DE</a>
+  <a href="../index.html">EN</a>
 </div>
 
 <header class="hero">
-  <div class="hero-tag"><span class="dot"></span>Guide · English</div>
-  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Guide</h1>
+  <div class="hero-tag"><span class="dot"></span>Anleitung · Deutsch</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Anleitung</h1>
   <p class="lead">
-    Quick guide to the core features of the BTC-Tracking app:
-    CSV import, recording transactions, reading the dashboard, and CSV export.
+    Kurzanleitung zu den zentralen Funktionen der BTC-Tracking App:
+    CSV-Import, Transaktionen erfassen, das Dashboard lesen und per CSV exportieren.
   </p>
-  <a class="back-link" href="usage.html">Usage / Setup — Download &amp; Installation →</a>
+  <a class="back-link" href="usage.html">Nutzung / Setup — Download &amp; Installation →</a>
 </header>
 
 <nav class="steps">
   <a href="#step-1"><span>01</span>CSV Import</a>
-  <a href="#step-2"><span>02</span>CSV Format</a>
-  <a href="#step-3"><span>03</span>Add Transaction</a>
+  <a href="#step-2"><span>02</span>CSV-Format</a>
+  <a href="#step-3"><span>03</span>Transaktion hinzufügen</a>
   <a href="#step-4"><span>04</span>Dashboard</a>
   <a href="#step-5"><span>05</span>CSV Export</a>
 </nav>
@@ -351,28 +351,28 @@
   <section class="step" id="step-1">
     <div class="step-text">
       <div class="step-num">01 / 05</div>
-      <h2>Import CSV</h2>
+      <h2>CSV importieren</h2>
       <p>
-        Use <b>“Import CSV”</b> to select a file. The app automatically
-        detects the columns and suggests a mapping — e.g. for CoinTracking
-        exports or your own files with different column names.
+        Über <b>„CSV importieren“</b> eine Datei auswählen. Die App erkennt die
+        Spalten automatisch und schlägt eine Zuordnung vor — z. B. für
+        CoinTracking-Exporte oder eigene Dateien mit abweichenden Spaltennamen.
       </p>
 
       <ul class="tight">
-        <li><b>Required fields</b> (marked *): Type, Date, Wallets &amp; Exchanges, Buy Value, Buy Currency, Sell Value, Sell Currency must each be mapped to a CSV column.</li>
-        <li><b>Fixed Wallet / Exchange:</b> overrides the column mapping and sets the same position for <i>all</i> rows — useful for files that only cover one exchange.</li>
-        <li><b>Type value mapping:</b> every raw value found in the file (e.g. <span class="inline-code">Auszahlung</span>, <span class="inline-code">Staking</span>) is explicitly mapped to an internal type — or set to <span class="inline-code">– ignore –</span> to skip these rows on import.</li>
+        <li><b>Pflichtfelder</b> (mit *): Typ, Datum, Wallets &amp; Börsen, Kauf-Wert, Kauf-Währung, Verkauf-Wert, Verkauf-Währung müssen einer CSV-Spalte zugeordnet sein.</li>
+        <li><b>Feste Wallet / Börse:</b> überschreibt die Spaltenzuordnung und setzt für <i>alle</i> Zeilen dieselbe Position — sinnvoll bei Dateien, die nur eine Börse abdecken.</li>
+        <li><b>Typ-Wertzuordnung:</b> jeder in der Datei vorkommende Rohwert (z. B. <span class="inline-code">Auszahlung</span>, <span class="inline-code">Staking</span>) wird gezielt einem internen Typ zugeordnet — oder auf <span class="inline-code">– ignorieren –</span> gesetzt, um diese Zeilen beim Import zu überspringen.</li>
       </ul>
 
       <div class="note">
         <span>ℹ</span>
-        <span><b>Tip:</b> Before finalizing the import, check the number of detected rows shown at the top of the dialog — if it doesn't match the source file, check whether the delimiter or header row was detected correctly.</span>
+        <span><b>Tipp:</b> Vor dem endgültigen Import lohnt ein Blick auf die Anzahl erkannter Zeilen oben im Dialog — stimmt sie nicht mit der Quelldatei überein, prüfen ob Trennzeichen oder Kopfzeile korrekt erkannt wurden.</span>
       </div>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/import_with_auto_mapping_for_cointracking.png" alt="Dialog for CSV column mapping with auto-mapping" onclick="openLightbox(this)">
-        <figcaption>313 detected rows with an automatic column-mapping suggestion <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/import_with_auto_mapping_for_cointracking.png" alt="Dialog zur CSV-Spaltenzuordnung mit Auto-Mapping" onclick="openLightbox(this)">
+        <figcaption>313 erkannte Zeilen mit automatischem Vorschlag zur Spaltenzuordnung <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -380,11 +380,11 @@
   <section class="step" id="step-2">
     <div class="step-text">
       <div class="step-num">02 / 05</div>
-      <h2>The app's own CSV format</h2>
+      <h2>Eigenes CSV-Format</h2>
       <p>
-        Without the CoinTracking option, the app exports in its own format.
-        This is also the format expected by a manual CSV import when not
-        using CoinTracking auto-mapping.
+        Ohne CoinTracking-Option exportiert die App im eigenen Format. Das ist
+        auch das Format, das ein manueller CSV-Import ohne CoinTracking-Auto-Mapping
+        erwartet.
       </p>
 
       <pre class="csv"><span class="c">"typ","date","exchange","buyQty","buyCur","sellQty","sellCur","fee","feeCur","comment"</span>
@@ -392,12 +392,12 @@
 <span class="v">"Auszahlung"</span>,"20.07.2026 16:53:26","21 Bitcoin","","","0.00500000","BTC","0.00010000","BTC","Example transfer to own wallet"
 <span class="v">"Trade"</span>,"19.07.2026 16:53:26","21 Bitcoin","0.01000000","BTC","500.00","EUR","0.00000000","EUR","Example transaction"</pre>
 
-      <p class="muted">Important: <span class="inline-code">typ</span> controls the transaction kind — the app uses the fixed literal values <span class="inline-code">Einzahlung</span> (deposit), <span class="inline-code">Auszahlung</span> (withdrawal) and <span class="inline-code">Trade</span>, regardless of UI language. <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> and <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> describe what was bought and sold, respectively.</p>
+      <p class="muted">Wichtig: <span class="inline-code">typ</span> steuert die Buchungsart (Einzahlung / Auszahlung / Trade), <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> und <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> beschreiben jeweils, was gekauft bzw. verkauft wurde.</p>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/example_csv.png" alt="Example of an exported CSV file" onclick="openLightbox(this)">
-        <figcaption>Example CSV rows: Einzahlung (deposit), Auszahlung (withdrawal), Trade <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/example_csv.png" alt="Beispiel einer exportierten CSV-Datei" onclick="openLightbox(this)">
+        <figcaption>Beispielhafte CSV-Zeilen: Einzahlung, Auszahlung, Trade <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -405,33 +405,33 @@
   <section class="step" id="step-3">
     <div class="step-text">
       <div class="step-num">03 / 05</div>
-      <h2>Add a transaction manually</h2>
+      <h2>Transaktion manuell hinzufügen</h2>
       <p>
-        Use <b>“Add Transaction”</b> in the dashboard header to open a form
-        for a single entry.
+        Über <b>„Transaktion hinzufügen“</b> im Dashboard-Header öffnet sich ein
+        Formular für eine einzelne Buchung.
       </p>
 
       <table class="fields">
-        <tr><th>Field</th><th>Meaning</th></tr>
-        <tr><td class="field">Amount (BTC)</td><td class="desc">BTC quantity traded, e.g. <span class="inline-code">0.1</span></td></tr>
-        <tr><td class="field">Date &amp; Time</td><td class="desc">Timestamp of the transaction</td></tr>
-        <tr><td class="field">Type</td><td class="desc"><span class="inline-code">BUY</span> or <span class="inline-code">SELL</span></td></tr>
-        <tr><td class="field">Fiat Amount</td><td class="desc">Equivalent value in the trading currency, e.g. <span class="inline-code">5000</span></td></tr>
-        <tr><td class="field">Currency</td><td class="desc">Trading currency, e.g. EUR or USDT</td></tr>
-        <tr><td class="field">Exchange Rate to Display Currency</td><td class="desc">Only relevant if trading and display currency differ</td></tr>
-        <tr><td class="field">Exchange</td><td class="desc">Select an existing position or create a new one via <span class="inline-code">+ New position…</span></td></tr>
-        <tr><td class="field">Fees / Currency (Fees)</td><td class="desc">Trading fee including its own currency</td></tr>
+        <tr><th>Feld</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Menge (BTC)</td><td class="desc">Gehandelte BTC-Menge, z. B. <span class="inline-code">0.1</span></td></tr>
+        <tr><td class="field">Datum &amp; Uhrzeit</td><td class="desc">Zeitpunkt der Transaktion</td></tr>
+        <tr><td class="field">Typ</td><td class="desc"><span class="inline-code">BUY</span> oder <span class="inline-code">SELL</span></td></tr>
+        <tr><td class="field">Fiat-Betrag</td><td class="desc">Gegenwert in der Handelswährung, z. B. <span class="inline-code">5000</span></td></tr>
+        <tr><td class="field">Währung</td><td class="desc">Handelswährung, z. B. EUR oder USDT</td></tr>
+        <tr><td class="field">Wechselkurs zur Anzeigewährung</td><td class="desc">Nur relevant, wenn Handels- und Anzeigewährung abweichen</td></tr>
+        <tr><td class="field">Börse</td><td class="desc">Bestehende Position wählen oder über <span class="inline-code">+ New position…</span> neu anlegen</td></tr>
+        <tr><td class="field">Gebühren / Währung (Gebühren)</td><td class="desc">Handelsgebühr inkl. eigener Währung</td></tr>
       </table>
 
       <div class="note">
         <span>ℹ</span>
-        <span><b>Tip:</b> Every exchange/wallet must be created once as a position before the first booking — either directly in the form or via “Add Wallet / Exchange” in the dashboard.</span>
+        <span><b>Tipp:</b> Jede Börse/Wallet muss vor der ersten Buchung einmal als Position angelegt werden — entweder direkt im Formular oder über „Wallet/Börse hinzufügen“ im Dashboard.</span>
       </div>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/add_manually_transaction.png" alt="Form: Add Transaction" onclick="openLightbox(this)">
-        <figcaption>Example: 0.1 BTC BUY for 5,000 EUR via the exchange “21 Bitcoin” <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/add_manually_transaction.png" alt="Formular: Transaktion hinzufügen" onclick="openLightbox(this)">
+        <figcaption>Beispiel: 0.1 BTC BUY für 5.000 EUR über die Börse „21 Bitcoin“ <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -439,46 +439,46 @@
   <section class="step" id="step-4">
     <div class="step-text">
       <div class="step-num">04 / 05</div>
-      <h2>Reading and using the dashboard</h2>
-      <p>The dashboard is divided into three areas:</p>
+      <h2>Dashboard lesen und bedienen</h2>
+      <p>Das Dashboard gliedert sich in drei Bereiche:</p>
 
       <ul class="tight">
-        <li><b>Metrics:</b> Performance, Total Sats, Invested, Realized, number of transactions.</li>
-        <li><b>Positions &amp; Allocation:</b> Table of all wallets/exchanges with balance, value and gain/loss — clicking a row filters the transaction list. The donut chart shows the allocation by wallet/exchange.</li>
-        <li><b>All Transactions:</b> Full list. Select one or more rows via checkbox to open the action menu.</li>
+        <li><b>Kennzahlen:</b> Performance, Sats gesamt, Investiert, Realisiert, Anzahl Transaktionen.</li>
+        <li><b>Positionen &amp; Allokation:</b> Tabelle aller Wallets/Börsen mit Bestand, Wert und Gewinn/Verlust — Zeile anklicken filtert die Transaktionsliste. Das Donut-Diagramm zeigt die Aufteilung nach Wallet/Börse.</li>
+        <li><b>Alle Transaktionen:</b> Vollständige Liste. Eine oder mehrere Zeilen per Checkbox auswählen, um das Aktionsmenü zu öffnen.</li>
       </ul>
 
-      <p>Row actions for selected transactions:</p>
+      <p>Zeilen-Aktionen bei ausgewählten Transaktionen:</p>
       <table class="fields">
-        <tr><th>Action</th><th>Meaning</th></tr>
-        <tr><td class="field">Export Selected</td><td class="desc">Export only the marked rows as CSV</td></tr>
-        <tr><td class="field">Pair Transfers</td><td class="desc">Link two rows (deposit/withdrawal) as a matching wallet transfer</td></tr>
-        <tr><td class="field">Change wallet or exchange</td><td class="desc">Change the position afterwards</td></tr>
-        <tr><td class="field">Set Exchange Rate</td><td class="desc">Correct the rate to the display currency</td></tr>
-        <tr><td class="field">Not a duplicate</td><td class="desc">Confirm a row flagged as a possible duplicate and remove the marking</td></tr>
-        <tr><td class="field">Mark as Solo Transfer</td><td class="desc">Deliberately mark a deposit/withdrawal that has no counterpart</td></tr>
-        <tr><td class="field">Delete</td><td class="desc">Remove the selected transactions</td></tr>
+        <tr><th>Aktion</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Auswahl exportieren</td><td class="desc">Nur die markierten Zeilen als CSV exportieren</td></tr>
+        <tr><td class="field">Transfer paaren</td><td class="desc">Zwei Zeilen (Ein-/Auszahlung) als zusammengehörigen Wallet-Transfer verknüpfen</td></tr>
+        <tr><td class="field">Wallet/Börse anpassen</td><td class="desc">Position nachträglich ändern</td></tr>
+        <tr><td class="field">Wechselkurs anpassen</td><td class="desc">Kurs zur Anzeigewährung korrigieren</td></tr>
+        <tr><td class="field">Kein Duplikat</td><td class="desc">Als Duplikat erkannte Zeile bestätigen und Markierung entfernen</td></tr>
+        <tr><td class="field">Als Solo-Transfer markieren</td><td class="desc">Ein-/Auszahlung ohne Gegenbuchung bewusst so kennzeichnen</td></tr>
+        <tr><td class="field">Löschen</td><td class="desc">Ausgewählte Transaktionen entfernen</td></tr>
       </table>
 
-      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Row color highlighting</h3>
-      <p class="muted">The background color of a row in the transaction list automatically indicates one of four states:</p>
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Farbige Zeilen-Markierung</h3>
+      <p class="muted">Die Hintergrundfarbe einer Zeile in der Transaktionsliste zeigt automatisch einen von vier Zuständen an:</p>
       <table class="fields">
-        <tr><th>Color</th><th>Meaning</th></tr>
-        <tr><td class="field">🟠 Orange</td><td class="desc">Foreign currency without exchange rate — transaction in a currency other than the display currency, exchange rate still at 1. Fix via “Set Exchange Rate”.</td></tr>
-        <tr><td class="field">🟣 Purple</td><td class="desc">Possible duplicate — date, type and amount match an existing transaction. Review, then confirm via “Not a duplicate” or delete the row.</td></tr>
-        <tr><td class="field">🔵 Blue</td><td class="desc">Solo transfer — deposit or withdrawal with no matching booking on another position, deliberately marked as a standalone entry.</td></tr>
-        <tr><td class="field">🔴 Dark red</td><td class="desc">Recently imported — row comes from the CSV import of the current session, for quick review right after import.</td></tr>
+        <tr><th>Farbe</th><th>Bedeutung</th></tr>
+        <tr><td class="field">🟠 Orange</td><td class="desc">Fremdwährung ohne Wechselkurs — Transaktion in einer anderen Währung als der Anzeigewährung, Wechselkurs steht noch auf 1. Über „Wechselkurs anpassen“ korrigieren.</td></tr>
+        <tr><td class="field">🟣 Violett</td><td class="desc">Mögliches Duplikat — Datum, Typ und Menge stimmen mit einer bereits vorhandenen Transaktion überein. Prüfen und ggf. über „Kein Duplikat“ bestätigen oder die Zeile löschen.</td></tr>
+        <tr><td class="field">🔵 Blau</td><td class="desc">Solo-Transfer — Ein- oder Auszahlung ohne Gegenbuchung auf einer anderen Position, bewusst als Einzelbuchung markiert.</td></tr>
+        <tr><td class="field">🔴 Dunkelrot</td><td class="desc">Kürzlich importiert — Zeile stammt aus dem CSV-Import der aktuellen Sitzung, zur schnellen Kontrolle nach dem Import.</td></tr>
       </table>
-      <p class="muted">The legend directly above the table in the dashboard shows the same four colors for quick reference.</p>
+      <p class="muted">Die Legende direkt über der Tabelle im Dashboard zeigt dieselben vier Farben zur schnellen Referenz.</p>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/dashboard_with_row_actions.png" alt="Dashboard with metrics, positions and row actions" onclick="openLightbox(this)">
-        <figcaption>Metrics (top), Positions &amp; Allocation (middle), transaction list with row actions (bottom) <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/dashboard_with_row_actions.png" alt="Dashboard mit Kennzahlen, Positionen und Zeilen-Aktionen" onclick="openLightbox(this)">
+        <figcaption>Kennzahlen (oben), Positionen &amp; Allokation (Mitte), Transaktionsliste mit Zeilen-Aktionen (unten) <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
       <figure>
-        <img src="images/transaction_highlighting.png" alt="Row color highlighting in the transaction list" onclick="openLightbox(this)">
-        <figcaption>Example of all four markings: recently imported, solo transfer, foreign currency without exchange rate, possible duplicate <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/transaction_highlighting.png" alt="Farbige Zeilen-Markierung in der Transaktionsliste" onclick="openLightbox(this)">
+        <figcaption>Beispiel aller vier Markierungen: kürzlich importiert, Solo-Transfer, Fremdwährung ohne Wechselkurs, mögliches Duplikat <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -486,23 +486,22 @@
   <section class="step" id="step-5">
     <div class="step-text">
       <div class="step-num">05 / 05</div>
-      <h2>Export CSV</h2>
+      <h2>CSV exportieren</h2>
       <p>
-        Use <b>“Export CSV”</b> in the header to export either all
-        transactions or — after selecting rows in the table — only
-        specific ones.
+        Über <b>„CSV exportieren“</b> im Header lassen sich alle oder — nach
+        Auswahl in der Tabelle — nur bestimmte Transaktionen exportieren.
       </p>
 
       <table class="fields">
-        <tr><th>Option</th><th>Meaning</th></tr>
-        <tr><td class="field">CoinTracking Format</td><td class="desc">Enable the checkbox to export in the CoinTracking-compatible format instead of the app's own format</td></tr>
-        <tr><td class="field">Password (optional)</td><td class="desc">Leave empty → export as plain <span class="inline-code">.csv</span>. Set a password → encrypted <span class="inline-code">.enc</span> file</td></tr>
+        <tr><th>Option</th><th>Bedeutung</th></tr>
+        <tr><td class="field">CoinTracking-Format</td><td class="desc">Checkbox aktivieren, um im CoinTracking-kompatiblen Format statt im eigenen Format zu exportieren</td></tr>
+        <tr><td class="field">Passwort (optional)</td><td class="desc">Leer lassen → Export als Klartext-<span class="inline-code">.csv</span>. Passwort setzen → verschlüsselte <span class="inline-code">.enc</span>-Datei</td></tr>
       </table>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/export_with_password_or_as_cointracking.png" alt="Export dialog with CoinTracking format and optional password" onclick="openLightbox(this)">
-        <figcaption>Export dialog: choose format and optionally encrypt with a password <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+        <img src="../images/export_with_password_or_as_cointracking.png" alt="Export-Dialog mit CoinTracking-Format und optionalem Passwort" onclick="openLightbox(this)">
+        <figcaption>Export-Dialog: Format wählen und optional per Passwort verschlüsseln <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -510,11 +509,11 @@
 </main>
 
 <footer>
-  BTC-Tracking App · Guide
+  BTC-Tracking App · Anleitung
 </footer>
 
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <div class="lb-close" onclick="closeLightbox()">✕ Close (Esc)</div>
+  <div class="lb-close" onclick="closeLightbox()">✕ Schließen (Esc)</div>
   <img id="lightbox-img" src="" alt="">
 </div>
 
