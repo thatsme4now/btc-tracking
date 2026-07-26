@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Usage &amp; Setup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    position:fixed;
+    top:20px;
+    right:24px;
+    z-index:500;
+    display:flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+  @media (max-width:600px){
+    .lang-switch{top:12px; right:12px;}
+  }
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+  }
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    margin:32px 0 12px;
+    color:var(--accent);
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  ol.steplist{
+    margin:16px 0;
+    padding-left:0;
+    list-style:none;
+    counter-reset:step;
+  }
+  ol.steplist li{
+    counter-increment:step;
+    position:relative;
+    padding:14px 16px 14px 52px;
+    margin-bottom:10px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    font-size:14.5px;
+  }
+  ol.steplist li::before{
+    content:counter(step);
+    position:absolute;
+    left:14px;
+    top:14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--bg);
+    background:var(--accent);
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  ol.steplist li b{color:var(--text);}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  pre.cmd{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    color:var(--green);
+    line-height:1.7;
+    margin:14px 0;
+  }
+  pre.cmd .c{color:var(--muted);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  .repo-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px 18px;
+    margin:20px 0 28px;
+  }
+  .repo-card .repo-name{
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    color:var(--text);
+  }
+  .repo-card .repo-name .muted{color:var(--muted); font-size:12px; display:block; margin-top:2px;}
+  .repo-card a.repo-btn{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    text-decoration:none;
+    border:1px solid var(--accent-dim);
+    padding:8px 14px;
+    border-radius:4px;
+    white-space:nowrap;
+  }
+  .repo-card a.repo-btn:hover{background:rgba(240,167,66,0.1);}
+
+  table.compare{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.compare th, table.compare td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.compare th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.compare td.field{font-family:'JetBrains Mono',monospace; color:var(--text); white-space:nowrap;}
+  table.compare td.desc{color:var(--muted);}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  footer a{color:var(--muted);}
+
+  @media (max-width:600px){
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch">
+  <a href="de/usage.html">DE</a>
+  <a href="usage.html" class="active">EN</a>
+</div>
+
+<header class="hero">
+  <div class="hero-tag"><span class="dot"></span>Usage &amp; Setup · English</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Usage &amp; Setup</h1>
+  <p class="lead">
+    Two ways to run the app: manual download (JAR or portable Windows ZIP)
+    or installation as an app on Umbrel via the Community App Store.
+  </p>
+  <a class="back-link" href="index.html">← Back to Guide</a>
+</header>
+
+<nav class="steps">
+  <a href="#option-a"><span>A</span>Download (JAR / ZIP)</a>
+  <a href="#option-b"><span>B</span>Umbrel App Store</a>
+</nav>
+
+<main>
+
+  <section class="step" id="option-a">
+    <div class="step-num">OPTION A</div>
+    <h2>Download &amp; local installation</h2>
+    <p>All downloads are available in the app's main repository.</p>
+
+    <div class="repo-card">
+      <div class="repo-name">
+        github.com/thatsme4now/btc-tracking
+        <span class="muted">Source code, releases, README with all setup variants</span>
+      </div>
+      <a class="repo-btn" href="https://github.com/thatsme4now/btc-tracking" target="_blank" rel="noopener">Open repository ↗</a>
+    </div>
+
+    <h3>Variant 1 — JAR (Java required)</h3>
+    <p>Requirement: <b>Java 21+</b> installed.</p>
+    <ol class="steplist">
+      <li>In the repository, go to <b>Releases</b> (right sidebar on GitHub) and download the latest <span class="inline-code">btc-tracking.jar</span>.</li>
+      <li>Open a terminal in the download folder.</li>
+      <li>Start the app:
+        <pre class="cmd">java -jar btc-tracking.jar</pre>
+      </li>
+      <li>The browser opens automatically at <span class="inline-code">http://localhost:8080/btc-tracking</span>. Data is stored by default in <span class="inline-code">btc-tracking-data.mv.db</span> next to the JAR (H2, persistent) — back up this file to keep your data.</li>
+    </ol>
+
+    <h3>Variant 2 — Portable ZIP for Windows (no Java required)</h3>
+    <p>Includes a bundled JRE — no separate Java installation needed.</p>
+    <ol class="steplist">
+      <li>In the repository under <b>Releases</b>, download the ZIP for Windows (includes bundled JRE + launcher).</li>
+      <li>Fully extract the ZIP (don't just open it — the JRE has to be extracted too).</li>
+      <li>In the extracted folder, run <span class="inline-code">BtcTracking.exe</span> (or the <span class="inline-code">.bat</span> startup script).</li>
+      <li>The server starts locally on port 8080, the browser opens automatically at <span class="inline-code">http://localhost:8080/btc-tracking</span>.</li>
+    </ol>
+
+    <div class="note">
+      <span>ℹ</span>
+      <span><b>Note:</b> Details on further setup variants (in-memory without persistence, MySQL connection, building from source with <span class="inline-code">./gradlew bootJar</span>) are in the repository's README.</span>
+    </div>
+  </section>
+
+  <section class="step" id="option-b">
+    <div class="step-num">OPTION B</div>
+    <h2>Installation on Umbrel</h2>
+    <p>
+      The app can also be installed as an app on an <b>Umbrel</b> node —
+      via a dedicated Community App Store, no listing in the official
+      Umbrel App Store required.
+    </p>
+
+    <div class="repo-card">
+      <div class="repo-name">
+        github.com/thatsme4now/thatsme4now-umbrel-apps
+        <span class="muted">Community App Store · contains the app „thatsme4now-btc-tracking“</span>
+      </div>
+      <a class="repo-btn" href="https://github.com/thatsme4now/thatsme4now-umbrel-apps" target="_blank" rel="noopener">Open repository ↗</a>
+    </div>
+
+    <ol class="steplist">
+      <li>In the <b>umbrelOS</b> interface, go to the App Store and open the <b>Community App Stores</b> section (external store URLs can be added there).</li>
+      <li>Enter as URL:
+        <pre class="cmd">https://github.com/thatsme4now/thatsme4now-umbrel-apps</pre>
+      </li>
+      <li>Add the store — Umbrel loads the apps contained in the repository.</li>
+      <li>Select the app <b>„BTC Tracking“</b> from this community store and install it like any other Umbrel app.</li>
+      <li>After installation, the app is reachable via the Umbrel dashboard, data stays persistent on the Umbrel node.</li>
+    </ol>
+
+    <div class="note">
+      <span>ℹ</span>
+      <span><b>Note:</b> Community App Stores are a regular Umbrel feature for apps outside the official store. Exact menu paths may differ slightly depending on the umbrelOS version.</span>
+    </div>
+  </section>
+
+  <section class="step" style="border-bottom:none">
+    <div class="step-num">OVERVIEW</div>
+    <h2>Which variant fits?</h2>
+    <table class="compare">
+      <tr><th>Variant</th><th>Requirement</th><th>Suitable for</th></tr>
+      <tr><td class="field">JAR</td><td class="desc">Java 21+ installed</td><td class="desc">Linux/Mac/Windows, for those already using Java</td></tr>
+      <tr><td class="field">Portable Windows ZIP</td><td class="desc">None — JRE included</td><td class="desc">Windows without a Java installation</td></tr>
+      <tr><td class="field">Umbrel</td><td class="desc">Running Umbrel node</td><td class="desc">Continuous operation on your own hardware/server, alongside other Umbrel apps</td></tr>
+    </table>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · Usage &amp; Setup · <a href="index.html">← Back to Guide</a>
+</footer>
+
+</body>
+</html>

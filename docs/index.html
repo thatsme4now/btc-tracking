@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    position:fixed;
+    top:20px;
+    right:24px;
+    z-index:500;
+    display:flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+  @media (max-width:600px){
+    .lang-switch{top:12px; right:12px;}
+  }
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figcaption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  pre.csv{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    overflow-x:auto;
+    color:var(--text);
+    line-height:1.7;
+  }
+  pre.csv .v{color:var(--green);}
+  pre.csv .c{color:var(--muted);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch">
+  <a href="de/index.html">DE</a>
+  <a href="index.html" class="active">EN</a>
+</div>
+
+<header class="hero">
+  <div class="hero-tag"><span class="dot"></span>Guide · English</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Guide</h1>
+  <p class="lead">
+    Quick guide to the core features of the BTC-Tracking app:
+    CSV import, recording transactions, reading the dashboard, and CSV export.
+  </p>
+  <a class="back-link" href="usage.html">Usage / Setup — Download &amp; Installation →</a>
+</header>
+
+<nav class="steps">
+  <a href="#step-1"><span>01</span>CSV Import</a>
+  <a href="#step-2"><span>02</span>CSV Format</a>
+  <a href="#step-3"><span>03</span>Add Transaction</a>
+  <a href="#step-4"><span>04</span>Dashboard</a>
+  <a href="#step-5"><span>05</span>CSV Export</a>
+</nav>
+
+<main>
+
+  <section class="step" id="step-1">
+    <div class="step-text">
+      <div class="step-num">01 / 05</div>
+      <h2>Import CSV</h2>
+      <p>
+        Use <b>“Import CSV”</b> to select a file. The app automatically
+        detects the columns and suggests a mapping — e.g. for CoinTracking
+        exports or your own files with different column names.
+      </p>
+
+      <ul class="tight">
+        <li><b>Required fields</b> (marked *): Type, Date, Wallets &amp; Exchanges, Buy Value, Buy Currency, Sell Value, Sell Currency must each be mapped to a CSV column.</li>
+        <li><b>Fixed Wallet / Exchange:</b> overrides the column mapping and sets the same position for <i>all</i> rows — useful for files that only cover one exchange.</li>
+        <li><b>Type value mapping:</b> every raw value found in the file (e.g. <span class="inline-code">Auszahlung</span>, <span class="inline-code">Staking</span>) is explicitly mapped to an internal type — or set to <span class="inline-code">– ignore –</span> to skip these rows on import.</li>
+      </ul>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Tip:</b> Before finalizing the import, check the number of detected rows shown at the top of the dialog — if it doesn't match the source file, check whether the delimiter or header row was detected correctly.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/import_with_auto_mapping_for_cointracking.png" alt="Dialog for CSV column mapping with auto-mapping" onclick="openLightbox(this)">
+        <figcaption>313 detected rows with an automatic column-mapping suggestion <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-2">
+    <div class="step-text">
+      <div class="step-num">02 / 05</div>
+      <h2>The app's own CSV format</h2>
+      <p>
+        Without the CoinTracking option, the app exports in its own format.
+        This is also the format expected by a manual CSV import when not
+        using CoinTracking auto-mapping.
+      </p>
+
+      <pre class="csv"><span class="c">"typ","date","exchange","buyQty","buyCur","sellQty","sellCur","fee","feeCur","comment"</span>
+<span class="v">"Einzahlung"</span>,"20.07.2026 16:53:27","Bitbox02","0.00490000","BTC","","","","EUR","Example transfer to own wallet"
+<span class="v">"Auszahlung"</span>,"20.07.2026 16:53:26","21 Bitcoin","","","0.00500000","BTC","0.00010000","BTC","Example transfer to own wallet"
+<span class="v">"Trade"</span>,"19.07.2026 16:53:26","21 Bitcoin","0.01000000","BTC","500.00","EUR","0.00000000","EUR","Example transaction"</pre>
+
+      <p class="muted">Important: <span class="inline-code">typ</span> controls the transaction kind — the app uses the fixed literal values <span class="inline-code">Einzahlung</span> (deposit), <span class="inline-code">Auszahlung</span> (withdrawal) and <span class="inline-code">Trade</span>, regardless of UI language. <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> and <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> describe what was bought and sold, respectively.</p>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/example_csv.png" alt="Example of an exported CSV file" onclick="openLightbox(this)">
+        <figcaption>Example CSV rows: Einzahlung (deposit), Auszahlung (withdrawal), Trade <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-3">
+    <div class="step-text">
+      <div class="step-num">03 / 05</div>
+      <h2>Add a transaction manually</h2>
+      <p>
+        Use <b>“Add Transaction”</b> in the dashboard header to open a form
+        for a single entry.
+      </p>
+
+      <table class="fields">
+        <tr><th>Field</th><th>Meaning</th></tr>
+        <tr><td class="field">Amount (BTC)</td><td class="desc">BTC quantity traded, e.g. <span class="inline-code">0.1</span></td></tr>
+        <tr><td class="field">Date &amp; Time</td><td class="desc">Timestamp of the transaction</td></tr>
+        <tr><td class="field">Type</td><td class="desc"><span class="inline-code">BUY</span> or <span class="inline-code">SELL</span></td></tr>
+        <tr><td class="field">Fiat Amount</td><td class="desc">Equivalent value in the trading currency, e.g. <span class="inline-code">5000</span></td></tr>
+        <tr><td class="field">Currency</td><td class="desc">Trading currency, e.g. EUR or USDT</td></tr>
+        <tr><td class="field">Exchange Rate to Display Currency</td><td class="desc">Only relevant if trading and display currency differ</td></tr>
+        <tr><td class="field">Exchange</td><td class="desc">Select an existing position or create a new one via <span class="inline-code">+ New position…</span></td></tr>
+        <tr><td class="field">Fees / Currency (Fees)</td><td class="desc">Trading fee including its own currency</td></tr>
+      </table>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Tip:</b> Every exchange/wallet must be created once as a position before the first booking — either directly in the form or via “Add Wallet / Exchange” in the dashboard.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/add_manually_transaction.png" alt="Form: Add Transaction" onclick="openLightbox(this)">
+        <figcaption>Example: 0.1 BTC BUY for 5,000 EUR via the exchange “21 Bitcoin” <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-4">
+    <div class="step-text">
+      <div class="step-num">04 / 05</div>
+      <h2>Reading and using the dashboard</h2>
+      <p>The dashboard is divided into three areas:</p>
+
+      <ul class="tight">
+        <li><b>Metrics:</b> Performance, Total Sats, Invested, Realized, number of transactions.</li>
+        <li><b>Positions &amp; Allocation:</b> Table of all wallets/exchanges with balance, value and gain/loss — clicking a row filters the transaction list. The donut chart shows the allocation by wallet/exchange.</li>
+        <li><b>All Transactions:</b> Full list. Select one or more rows via checkbox to open the action menu.</li>
+      </ul>
+
+      <p>Row actions for selected transactions:</p>
+      <table class="fields">
+        <tr><th>Action</th><th>Meaning</th></tr>
+        <tr><td class="field">Export Selected</td><td class="desc">Export only the marked rows as CSV</td></tr>
+        <tr><td class="field">Pair Transfers</td><td class="desc">Link two rows (deposit/withdrawal) as a matching wallet transfer</td></tr>
+        <tr><td class="field">Change wallet or exchange</td><td class="desc">Change the position afterwards</td></tr>
+        <tr><td class="field">Set Exchange Rate</td><td class="desc">Correct the rate to the display currency</td></tr>
+        <tr><td class="field">Not a duplicate</td><td class="desc">Confirm a row flagged as a possible duplicate and remove the marking</td></tr>
+        <tr><td class="field">Mark as Solo Transfer</td><td class="desc">Deliberately mark a deposit/withdrawal that has no counterpart</td></tr>
+        <tr><td class="field">Delete</td><td class="desc">Remove the selected transactions</td></tr>
+      </table>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Row color highlighting</h3>
+      <p class="muted">The background color of a row in the transaction list automatically indicates one of four states:</p>
+      <table class="fields">
+        <tr><th>Color</th><th>Meaning</th></tr>
+        <tr><td class="field">🟠 Orange</td><td class="desc">Foreign currency without exchange rate — transaction in a currency other than the display currency, exchange rate still at 1. Fix via “Set Exchange Rate”.</td></tr>
+        <tr><td class="field">🟣 Purple</td><td class="desc">Possible duplicate — date, type and amount match an existing transaction. Review, then confirm via “Not a duplicate” or delete the row.</td></tr>
+        <tr><td class="field">🔵 Blue</td><td class="desc">Solo transfer — deposit or withdrawal with no matching booking on another position, deliberately marked as a standalone entry.</td></tr>
+        <tr><td class="field">🔴 Dark red</td><td class="desc">Recently imported — row comes from the CSV import of the current session, for quick review right after import.</td></tr>
+      </table>
+      <p class="muted">The legend directly above the table in the dashboard shows the same four colors for quick reference.</p>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/dashboard_with_row_actions.png" alt="Dashboard with metrics, positions and row actions" onclick="openLightbox(this)">
+        <figcaption>Metrics (top), Positions &amp; Allocation (middle), transaction list with row actions (bottom) <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="images/transaction_highlighting.png" alt="Row color highlighting in the transaction list" onclick="openLightbox(this)">
+        <figcaption>Example of all four markings: recently imported, solo transfer, foreign currency without exchange rate, possible duplicate <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-5">
+    <div class="step-text">
+      <div class="step-num">05 / 05</div>
+      <h2>Export CSV</h2>
+      <p>
+        Use <b>“Export CSV”</b> in the header to export either all
+        transactions or — after selecting rows in the table — only
+        specific ones.
+      </p>
+
+      <table class="fields">
+        <tr><th>Option</th><th>Meaning</th></tr>
+        <tr><td class="field">CoinTracking Format</td><td class="desc">Enable the checkbox to export in the CoinTracking-compatible format instead of the app's own format</td></tr>
+        <tr><td class="field">Password (optional)</td><td class="desc">Leave empty → export as plain <span class="inline-code">.csv</span>. Set a password → encrypted <span class="inline-code">.enc</span> file</td></tr>
+      </table>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/export_with_password_or_as_cointracking.png" alt="Export dialog with CoinTracking format and optional password" onclick="openLightbox(this)">
+        <figcaption>Export dialog: choose format and optionally encrypt with a password <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · Guide
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ Close (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>
