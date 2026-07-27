@@ -1,0 +1,4 @@
+.flow-node rect { stroke: var(--border); stroke-width: 1px; cursor: pointer; }
+.flow-node text { fill: var(--text); font-family: var(--font); font-size: .72rem; pointer-events: none; }
+.flow-link { fill: none; stroke-opacity: .35; transition: stroke-opacity .15s; cursor: pointer; }
+.flow-link:hover { stroke-opacity: .75; }

@@ -199,5 +199,21 @@
   "applock.error.passwordMismatch": "Le password non coincidono",
   "applock.error.passwordRequired": "Password richiesta",
   "applock.error.wrongPassword": "Password errata o file corrotto",
-  "applock.error.rateLimited": "Troppi tentativi falliti. Riprova tra {SECONDS}s."
+  "applock.error.rateLimited": "Troppi tentativi falliti. Riprova tra {SECONDS}s.",
+  "nav.btn.flow": "Diagramma di flusso",
+  "flow.title": "Flusso delle posizioni",
+  "flow.back": "Indietro",
+  "flow.loading": "Caricamento diagramma…",
+  "flow.empty": "Nessun dato disponibile.",
+  "flow.legend.buy": "Acquisto",
+  "flow.legend.sell": "Vendita",
+  "flow.legend.transfer": "Trasferimento",
+  "flow.legend.external": "Esterno",
+  "flow.node.buy": "Acquisto @ {label}",
+  "flow.node.sell": "Vendita @ {label}",
+  "flow.node.externalIn": "Deposito esterno ({label})",
+  "flow.node.externalOut": "Prelievo esterno ({label})",
+  "flow.node.balance": "Saldo attuale",
+  "flow.link.total": "Totale",
+  "flow.link.transactions": "{COUNT} transazione/i"
 }

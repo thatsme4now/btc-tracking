@@ -199,5 +199,21 @@
   "applock.error.passwordMismatch": "Passwords do not match",
   "applock.error.passwordRequired": "Password required",
   "applock.error.wrongPassword": "Wrong password or corrupted file",
-  "applock.error.rateLimited": "Too many failed attempts. Try again in {SECONDS}s."
+  "applock.error.rateLimited": "Too many failed attempts. Try again in {SECONDS}s.",
+  "nav.btn.flow": "Flow Diagram",
+  "flow.title": "Holdings Flow",
+  "flow.back": "Back",
+  "flow.loading": "Loading diagram…",
+  "flow.empty": "No data available.",
+  "flow.legend.buy": "Buy",
+  "flow.legend.sell": "Sell",
+  "flow.legend.transfer": "Transfer",
+  "flow.legend.external": "External",
+  "flow.node.buy": "Buy @ {label}",
+  "flow.node.sell": "Sell @ {label}",
+  "flow.node.externalIn": "External Deposit ({label})",
+  "flow.node.externalOut": "External Withdrawal ({label})",
+  "flow.node.balance": "Current Balance",
+  "flow.link.total": "Total",
+  "flow.link.transactions": "{COUNT} transaction(s)"
 }

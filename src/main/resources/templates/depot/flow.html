@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title data-i18n="flow.title">Bestandsfluss</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/css/flow.css}"/>
+</head>
+<body class="depot-body">
+
+<nav class="navbar depot-navbar">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+        <a class="navbar-brand depot-brand" th:href="@{/btc-tracking}">
+            <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+        </a>
+        <a th:href="@{/btc-tracking}" class="btn depot-btn-outline">
+            <i class="bi bi-arrow-left me-1"></i><span data-i18n="flow.back">Zurück</span>
+        </a>
+    </div>
+</nav>
+
+<main class="container-fluid px-4 py-4">
+    <div class="depot-card mb-3">
+        <div class="depot-card-header" data-i18n="flow.title">Bestandsfluss</div>
+
+        <div id="flowLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--pos)"></span><span data-i18n="flow.legend.buy">Kauf</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--neg)"></span><span data-i18n="flow.legend.sell">Verkauf</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--accent)"></span><span data-i18n="flow.legend.transfer">Transfer</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--text-muted)"></span><span data-i18n="flow.legend.external">Extern</span></span>
+        </div>
+
+        <div id="flowChartWrapper" style="position:relative;min-height:500px">
+            <div id="flowLoading" style="color:var(--text-muted);padding:1rem" data-i18n="flow.loading">Lade Diagramm…</div>
+            <svg id="flowSvg" style="width:100%;height:70vh;display:none"></svg>
+            <div id="flowEmpty" class="d-none" style="color:var(--text-muted);padding:1rem" data-i18n="flow.empty">Keine Daten vorhanden.</div>
+        </div>
+    </div>
+</main>
+
+<div id="flowTooltip" class="depot-card" style="position:fixed;display:none;z-index:9999;padding:.6rem .8rem;font-size:.72rem;max-width:280px;pointer-events:none"></div>
+
+<script th:src="@{/vendor/js/d3.v7.min.js}"></script>
+<script th:src="@{/vendor/js/d3-sankey.min.js}"></script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/flow.js}"></script>
+<script>
+    I18N.ready.then(() => { I18N.applyI18n(); initFlow(); });
+</script>
+</body>
+</html>

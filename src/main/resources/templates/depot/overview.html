@@ -63,6 +63,10 @@
 	    </div>
 	
 	    <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
+	    
+	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline">
+		    <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+		</a>
 	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
 	            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
 	            <input style="display:none" onclick="openAddTx()"/>
@@ -134,6 +138,9 @@
         <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column gap-2">
+        <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline">
+		    <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+		</a>
         <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
             <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
         </button>

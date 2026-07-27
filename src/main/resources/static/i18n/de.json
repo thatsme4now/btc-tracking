@@ -199,5 +199,21 @@
   "applock.error.passwordMismatch": "Passwörter stimmen nicht überein",
   "applock.error.passwordRequired": "Passwort erforderlich",
   "applock.error.wrongPassword": "Falsches Passwort oder beschädigte Datei",
-  "applock.error.rateLimited": "Zu viele Fehlversuche. Bitte in {SECONDS}s erneut versuchen."
+  "applock.error.rateLimited": "Zu viele Fehlversuche. Bitte in {SECONDS}s erneut versuchen.",
+  "nav.btn.flow": "Fluss-Diagramm",
+  "flow.title": "Bestandsfluss",
+  "flow.back": "Zurück",
+  "flow.loading": "Lade Diagramm…",
+  "flow.empty": "Keine Daten vorhanden.",
+  "flow.legend.buy": "Kauf",
+  "flow.legend.sell": "Verkauf",
+  "flow.legend.transfer": "Transfer",
+  "flow.legend.external": "Extern",
+  "flow.node.buy": "Kauf @ {label}",
+  "flow.node.sell": "Verkauf @ {label}",
+  "flow.node.externalIn": "Externe Einzahlung ({label})",
+  "flow.node.externalOut": "Externe Auszahlung ({label})",
+  "flow.node.balance": "Aktueller Bestand",
+  "flow.link.total": "Gesamt",
+  "flow.link.transactions": "{COUNT} Transaktion(en)"
 }

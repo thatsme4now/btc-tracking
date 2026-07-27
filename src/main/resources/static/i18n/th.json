@@ -199,5 +199,21 @@
   "applock.error.passwordMismatch": "รหัสผ่านไม่ตรงกัน",
   "applock.error.passwordRequired": "ต้องระบุรหัสผ่าน",
   "applock.error.wrongPassword": "รหัสผ่านผิดหรือไฟล์เสียหาย",
-  "applock.error.rateLimited": "พยายามผิดหลายครั้งเกินไป กรุณาลองใหม่ใน {SECONDS} วินาที"
+  "applock.error.rateLimited": "พยายามผิดหลายครั้งเกินไป กรุณาลองใหม่ใน {SECONDS} วินาที",
+  "nav.btn.flow": "แผนภาพการไหล",
+  "flow.title": "การไหลของสินทรัพย์",
+  "flow.back": "กลับ",
+  "flow.loading": "กำลังโหลดแผนภาพ…",
+  "flow.empty": "ไม่มีข้อมูล",
+  "flow.legend.buy": "ซื้อ",
+  "flow.legend.sell": "ขาย",
+  "flow.legend.transfer": "โอน",
+  "flow.legend.external": "ภายนอก",
+  "flow.node.buy": "ซื้อ @ {label}",
+  "flow.node.sell": "ขาย @ {label}",
+  "flow.node.externalIn": "ฝากจากภายนอก ({label})",
+  "flow.node.externalOut": "ถอนไปภายนอก ({label})",
+  "flow.node.balance": "ยอดคงเหลือปัจจุบัน",
+  "flow.link.total": "รวม",
+  "flow.link.transactions": "{COUNT} ธุรกรรม"
 }

@@ -199,5 +199,21 @@
   "applock.error.passwordMismatch": "Les mots de passe ne correspondent pas",
   "applock.error.passwordRequired": "Mot de passe requis",
   "applock.error.wrongPassword": "Mot de passe incorrect ou fichier corrompu",
-  "applock.error.rateLimited": "Trop de tentatives échouées. Réessayez dans {SECONDS}s."
+  "applock.error.rateLimited": "Trop de tentatives échouées. Réessayez dans {SECONDS}s.",
+  "nav.btn.flow": "Diagramme de flux",
+  "flow.title": "Flux des positions",
+  "flow.back": "Retour",
+  "flow.loading": "Chargement du diagramme…",
+  "flow.empty": "Aucune donnée disponible.",
+  "flow.legend.buy": "Achat",
+  "flow.legend.sell": "Vente",
+  "flow.legend.transfer": "Virement",
+  "flow.legend.external": "Externe",
+  "flow.node.buy": "Achat @ {label}",
+  "flow.node.sell": "Vente @ {label}",
+  "flow.node.externalIn": "Dépôt externe ({label})",
+  "flow.node.externalOut": "Retrait externe ({label})",
+  "flow.node.balance": "Solde actuel",
+  "flow.link.total": "Total",
+  "flow.link.transactions": "{COUNT} transaction(s)"
 }
