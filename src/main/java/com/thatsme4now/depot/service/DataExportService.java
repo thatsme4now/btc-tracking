@@ -148,4 +148,12 @@ public class DataExportService {
         public int positions;
         public int transactions;
     }
+    
+ // ── Clear (für App-Lock) ──────────────────────────────────
+
+    @Transactional
+    public void clearAll() {
+        jdbcTemplate.update("DELETE FROM `transaction`");
+        jdbcTemplate.update("DELETE FROM `position`");
+    }
 }

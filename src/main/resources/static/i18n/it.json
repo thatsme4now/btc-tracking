@@ -1,7 +1,8 @@
 {
   "nav.btn.density": "Dimensione testo",
-  "nav.brand": "PORTAFOGLIO BITCOIN",
+  "nav.brand": "PORTAFOGLIO BITCOIN 1.3",
   "nav.btn.refresh": "Aggiorna",
+  "nav.btn.help": "Guida",
   "nav.btn.addTransaction": "Aggiungi transazione",
   "nav.btn.removeAll": "Elimina tutto",
   "nav.btn.importCsv": "Importa CSV",
@@ -181,5 +182,22 @@
   "csv.import.mapping.time": "Colonna ora (opzionale)",
   "csv.import.dateTimeWarning": "La colonna data selezionata non contiene l'ora. Mappa una colonna ora separata, altrimenti l'importazione sarà bloccata.",
   "nav.btn.actions": "Azioni",
-  "section.positions.title": "Posizioni e allocazione"
+  "section.positions.title": "Posizioni e allocazione",
+  "applock.icon.lock.title": "Blocca app",
+  "applock.icon.unlock.title": "Sblocca app",
+  "applock.setModal.title": "Blocca App",
+  "applock.setModal.hint": "Tutti i dati verranno crittografati e rimossi dal database. L'app resterà bloccata finché non viene inserita nuovamente la password.",
+  "applock.setModal.password": "Password",
+  "applock.setModal.passwordConfirm": "Conferma password",
+  "applock.setModal.btn": "Blocca",
+  "applock.lockedModal.title": "App bloccata",
+  "applock.lockedModal.hint": "I dati sono crittografati. Inserisci la password per sbloccare.",
+  "applock.lockedModal.password": "Password",
+  "applock.lockedModal.btn": "Sblocca",
+  "applock.toast.locked": "App bloccata – dati crittografati",
+  "applock.toast.unlocked": "App sbloccata – {POS} posizioni, {TX} transazioni ripristinate",
+  "applock.error.passwordMismatch": "Le password non coincidono",
+  "applock.error.passwordRequired": "Password richiesta",
+  "applock.error.wrongPassword": "Password errata o file corrotto",
+  "applock.error.rateLimited": "Troppi tentativi falliti. Riprova tra {SECONDS}s."
 }

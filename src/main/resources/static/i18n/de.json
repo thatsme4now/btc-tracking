@@ -1,7 +1,8 @@
 {
   "nav.btn.density": "Schriftgröße",
-  "nav.brand": "BITCOIN PORTFOLIO",
+  "nav.brand": "BITCOIN PORTFOLIO 1.3",
   "nav.btn.refresh": "Aktualisieren",
+  "nav.btn.help": "Anleitung",
   "nav.btn.addTransaction": "Transaktion hinzufügen",
   "nav.btn.removeAll": "Alle löschen",
   "nav.btn.importCsv": "CSV importieren",
@@ -181,5 +182,22 @@
   "csv.import.mapping.time": "Uhrzeit-Spalte (optional)",
   "csv.import.dateTimeWarning": "Die gewählte Datums-Spalte enthält keine Uhrzeit. Bitte eine separate Uhrzeit-Spalte zuordnen, sonst ist der Import blockiert.",
   "section.positions.title": "Positionen & Allokation",
-  "nav.btn.actions": "Aktionen"
+  "nav.btn.actions": "Aktionen",
+  "applock.icon.lock.title": "App sperren",
+  "applock.icon.unlock.title": "App entsperren",
+  "applock.setModal.title": "App sperren",
+  "applock.setModal.hint": "Alle Daten werden verschlüsselt gespeichert und aus der Datenbank entfernt. Die App ist danach gesperrt, bis das Passwort erneut eingegeben wird.",
+  "applock.setModal.password": "Passwort",
+  "applock.setModal.passwordConfirm": "Passwort bestätigen",
+  "applock.setModal.btn": "Sperren",
+  "applock.lockedModal.title": "App gesperrt",
+  "applock.lockedModal.hint": "Die Daten sind verschlüsselt. Bitte Passwort eingeben, um die App zu entsperren.",
+  "applock.lockedModal.password": "Passwort",
+  "applock.lockedModal.btn": "Entsperren",
+  "applock.toast.locked": "App gesperrt – Daten verschlüsselt",
+  "applock.toast.unlocked": "App entsperrt – {POS} Positionen, {TX} Transaktionen wiederhergestellt",
+  "applock.error.passwordMismatch": "Passwörter stimmen nicht überein",
+  "applock.error.passwordRequired": "Passwort erforderlich",
+  "applock.error.wrongPassword": "Falsches Passwort oder beschädigte Datei",
+  "applock.error.rateLimited": "Zu viele Fehlversuche. Bitte in {SECONDS}s erneut versuchen."
 }

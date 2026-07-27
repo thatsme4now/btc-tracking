@@ -384,6 +384,14 @@ I18N.ready.then(() => {
 
 });
 
+function openHelp() {
+	if (I18N.currentLang() == "de") {
+		window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
+	} else {		
+		window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
+	}
+}
+
 // ── Settings Modal ────────────────────────────────────────
 let settingsModal = null;
 

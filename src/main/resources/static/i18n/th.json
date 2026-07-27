@@ -1,7 +1,8 @@
 {
   "nav.btn.density": "ขนาดข้อความ",
-  "nav.brand": "พอร์ตบิตคอยน์",
+  "nav.brand": "พอร์ตบิตคอยน์ 1.3",
   "nav.btn.refresh": "รีเฟรช",
+  "nav.btn.help": "คู่มือ",
   "nav.btn.addTransaction": "เพิ่มธุรกรรม",
   "nav.btn.removeAll": "ลบทั้งหมด",
   "nav.btn.importCsv": "นำเข้า CSV",
@@ -181,5 +182,22 @@
   "csv.import.mapping.time": "คอลัมน์เวลา (ไม่บังคับ)",
   "csv.import.dateTimeWarning": "คอลัมน์วันที่ที่เลือกไม่มีเวลา กรุณาแมปคอลัมน์เวลาแยกต่างหาก มิฉะนั้นจะไม่สามารถนำเข้าได้",
   "nav.btn.actions": "การดำเนินการ",
-  "section.positions.title": "ตำแหน่งและการจัดสรร"
+  "section.positions.title": "ตำแหน่งและการจัดสรร",
+  "applock.icon.lock.title": "ล็อกแอป",
+  "applock.icon.unlock.title": "ปลดล็อกแอป",
+  "applock.setModal.title": "ล็อกแอป",
+  "applock.setModal.hint": "ข้อมูลทั้งหมดจะถูกเข้ารหัสและลบออกจากฐานข้อมูล แอปจะถูกล็อกจนกว่าจะป้อนรหัสผ่านอีกครั้ง",
+  "applock.setModal.password": "รหัสผ่าน",
+  "applock.setModal.passwordConfirm": "ยืนยันรหัสผ่าน",
+  "applock.setModal.btn": "ล็อก",
+  "applock.lockedModal.title": "แอปถูกล็อก",
+  "applock.lockedModal.hint": "ข้อมูลถูกเข้ารหัส กรุณาป้อนรหัสผ่านเพื่อปลดล็อก",
+  "applock.lockedModal.password": "รหัสผ่าน",
+  "applock.lockedModal.btn": "ปลดล็อก",
+  "applock.toast.locked": "ล็อกแอปแล้ว – ข้อมูลถูกเข้ารหัส",
+  "applock.toast.unlocked": "ปลดล็อกแอปแล้ว – กู้คืน {POS} ตำแหน่ง, {TX} ธุรกรรม",
+  "applock.error.passwordMismatch": "รหัสผ่านไม่ตรงกัน",
+  "applock.error.passwordRequired": "ต้องระบุรหัสผ่าน",
+  "applock.error.wrongPassword": "รหัสผ่านผิดหรือไฟล์เสียหาย",
+  "applock.error.rateLimited": "พยายามผิดหลายครั้งเกินไป กรุณาลองใหม่ใน {SECONDS} วินาที"
 }

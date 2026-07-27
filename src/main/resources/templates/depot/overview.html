@@ -90,6 +90,10 @@
 	    </div>
 
 	    <div class="ms-2 d-flex align-items-right gap-3">
+	        <button class="btn depot-btn-icon px-2" id="btnAppLock"
+			        onclick="AppLock.onIconClick()" data-i18n-title="applock.icon.lock.title" title="Lock app">
+			    <i class="bi bi-unlock-fill" id="appLockIcon"></i>
+			</button>
 	        <button class="btn depot-btn-icon px-2" id="btnLightning"
 	                onclick="sendSomeSats()" title="Send some sats!">
 	            <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
@@ -110,6 +114,16 @@
 	                data-i18n-title="nav.btn.settings" title="Settings">
 	            <i class="bi bi-gear-fill"></i>
 	        </button>
+	
+	        
+	        <button class="btn depot-btn-icon px-2" onclick="openHelp()"
+	                data-i18n-title="nav.btn.help" title="Help">
+	            <i class="bi bi-question-circle"></i>
+	        </button>
+	     
+	        
+	        
+	        
 	    </div>
 	</div>
 </nav>
@@ -1084,7 +1098,72 @@
 	        </div>
 	    </div>
 	</div>
+	
+	<!-- App gesperrt (nicht schließbar) -->
+	<div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-lock-fill me-2" style="color:var(--neg)"></i>
+	                    <span data-i18n="applock.lockedModal.title">App locked</span>
+	                </span>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem"
+	                   data-i18n="applock.lockedModal.hint">Data is encrypted. Enter password to unlock.</p>
+	                <label class="depot-label" data-i18n="applock.lockedModal.password">Password</label>
+	                <input type="text" id="unlockPassword"
+	                       class="form-control depot-input depot-password-field"
+	                       autocomplete="off" spellcheck="false"
+	                       onkeydown="if(event.key==='Enter') AppLock.doUnlock()"/>
+	                <div id="unlockError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="AppLock.doUnlock()">
+	                    <i class="bi bi-unlock-fill me-1"></i><span data-i18n="applock.lockedModal.btn">Unlock</span>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
 
+	<!-- App sperren -->
+	<div class="modal fade" id="appLockSetModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-lock-fill me-2"></i><span data-i18n="applock.setModal.title">Lock app</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem"
+	                   data-i18n="applock.setModal.hint"></p>
+	                <div class="mb-3">
+	                    <label class="depot-label" data-i18n="applock.setModal.password">Password</label>
+	                    <input type="text" id="lockPassword"
+	                           class="form-control depot-input depot-password-field"
+	                           autocomplete="off" spellcheck="false"/>
+	                </div>
+	                <div class="mb-1">
+	                    <label class="depot-label" data-i18n="applock.setModal.passwordConfirm">Confirm password</label>
+	                    <input type="text" id="lockPasswordConfirm"
+	                           class="form-control depot-input depot-password-field"
+	                           autocomplete="off" spellcheck="false"
+	                           onkeydown="if(event.key==='Enter') AppLock.doLock()"/>
+	                </div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="AppLock.doLock()">
+	                    <i class="bi bi-lock-fill me-1"></i><span data-i18n="applock.setModal.btn">Lock</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
 </main>
 
 <script th:inline="javascript">
@@ -1116,6 +1195,7 @@
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/offline.js}"></script>
+<script th:src="@{/js/applock.js}"></script>
 <script th:src="@{/js/depot.js}"></script>
 </body>
 </html>
