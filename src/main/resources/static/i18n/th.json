@@ -215,5 +215,7 @@
   "flow.node.externalOut": "ถอนไปภายนอก ({label})",
   "flow.node.balance": "ยอดคงเหลือปัจจุบัน",
   "flow.link.total": "รวม",
-  "flow.link.transactions": "{COUNT} ธุรกรรม"
+  "flow.link.transactions": "{COUNT} ธุรกรรม",
+  "nav.btn.visualization": "การแสดงผล",
+  "nav.btn.comingSoon": "เร็วๆ นี้"
 }

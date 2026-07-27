@@ -63,35 +63,61 @@
 	    </div>
 	
 	    <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
-	    
-	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline">
-		    <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
-		</a>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-	            <input style="display:none" onclick="openAddTx()"/>
-	        </label>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-	            <input style="display:none" onclick="removeAll()"/>
-	        </label>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-	            <input type="file" id="csvFileInput" accept=".csv,.enc"
-	                   style="display:none" onchange="importCsv(this)"/>
-	        </label>
-	        <button class="btn depot-btn-outline" onclick="openExportModal()">
-	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	        </button>
-	        <button class="btn depot-btn-outline" onclick="openDbExportModal()">
-	            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-	        </button>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-	            <input type="file" id="dbImportFileInput" accept=".json,.enc"
-	                   style="display:none" onchange="onDbImportFileSelected(this)"/>
-	        </label>
-	    </div>
+		    <div class="dropdown">
+		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
+		                data-bs-toggle="dropdown" aria-expanded="false">
+		            <i class="bi bi-lightning-charge me-1"></i><span data-i18n="nav.btn.actions">Aktionen</span>
+		        </button>
+		        <ul class="dropdown-menu depot-dropdown-menu">
+		            <li><button class="dropdown-item" onclick="openAddTx()">
+		                <i class="bi bi-plus-circle me-2"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+		            </button></li>
+		            <li><button class="dropdown-item" onclick="removeAll()">
+		                <i class="bi bi-trash me-2"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+		            </button></li>
+		            <li><hr class="dropdown-divider"></li>
+		            <li>
+		                <label class="dropdown-item mb-0" style="cursor:pointer">
+		                    <i class="bi bi-upload me-2"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+		                    <input type="file" id="csvFileInput" accept=".csv,.enc"
+		                           style="display:none" onchange="importCsv(this)"/>
+		                </label>
+		            </li>
+		            <li><button class="dropdown-item" onclick="openExportModal()">
+		                <i class="bi bi-download me-2"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+		            </button></li>
+		            <li><hr class="dropdown-divider"></li>
+		            <li><button class="dropdown-item" onclick="openDbExportModal()">
+		                <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+		            </button></li>
+		            <li>
+		                <label class="dropdown-item mb-0" style="cursor:pointer">
+		                    <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+		                    <input type="file" id="dbImportFileInput" accept=".json,.enc"
+		                           style="display:none" onchange="onDbImportFileSelected(this)"/>
+		                </label>
+		            </li>
+		        </ul>
+		    </div>
+		
+		    <div class="dropdown">
+		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
+		                data-bs-toggle="dropdown" aria-expanded="false">
+		            <i class="bi bi-bar-chart-line me-1"></i><span data-i18n="nav.btn.visualization">Visualisierung</span>
+		        </button>
+		        <ul class="dropdown-menu depot-dropdown-menu">
+		            <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
+		                <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+		            </a></li>
+		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
+		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+		            </span></li>
+		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
+		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+		            </span></li>
+		        </ul>
+		    </div>
+		</div>
 
 	    <div class="ms-2 d-flex align-items-right gap-3">
 	        <button class="btn depot-btn-icon px-2" id="btnAppLock"
@@ -138,32 +164,38 @@
         <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column gap-2">
-        <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline">
-		    <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
-		</a>
-        <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
-            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-        </button>
-        <button class="btn depot-btn-outline w-100" onclick="removeAll()">
-            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-        </button>
-        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-            <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
-                   style="display:none" onchange="importCsv(this)"/>
-        </label>
-        <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
-            <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-        </button>
-        <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
-            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-        </button>
-        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-            <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
-                   style="display:none" onchange="onDbImportFileSelected(this)"/>
-        </label>
-    </div>
+	    <div class="depot-card-header mb-1" data-i18n="nav.btn.actions">Aktionen</div>
+	    <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
+	        <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+	    </button>
+	    <button class="btn depot-btn-outline w-100" onclick="removeAll()">
+	        <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+	    </button>
+	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+	        <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+	        <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
+	               style="display:none" onchange="importCsv(this)"/>
+	    </label>
+	    <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
+	        <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+	    </button>
+	    <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
+	        <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+	    </button>
+	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+	        <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+	        <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
+	               style="display:none" onchange="onDbImportFileSelected(this)"/>
+	    </label>
+	
+	    <div class="depot-card-header mb-1 mt-2" data-i18n="nav.btn.visualization">Visualisierung</div>
+	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
+	        <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+	    </a>
+	    <button class="btn depot-btn-outline w-100" disabled style="opacity:.5">
+	        <i class="bi bi-hourglass-split me-1"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+	    </button>
+	</div>
 </div>
 
 <main class="container-fluid px-4 py-4">

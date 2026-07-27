@@ -215,5 +215,7 @@
   "flow.node.externalOut": "Retiro externo ({label})",
   "flow.node.balance": "Saldo actual",
   "flow.link.total": "Total",
-  "flow.link.transactions": "{COUNT} transacción(es)"
+  "flow.link.transactions": "{COUNT} transacción(es)",
+  "nav.btn.visualization": "Visualización",
+  "nav.btn.comingSoon": "Próximamente"
 }

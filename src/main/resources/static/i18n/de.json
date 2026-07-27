@@ -215,5 +215,7 @@
   "flow.node.externalOut": "Externe Auszahlung ({label})",
   "flow.node.balance": "Aktueller Bestand",
   "flow.link.total": "Gesamt",
-  "flow.link.transactions": "{COUNT} Transaktion(en)"
+  "flow.link.transactions": "{COUNT} Transaktion(en)",
+  "nav.btn.visualization": "Visualisierung",
+  "nav.btn.comingSoon": "Bald verfügbar"
 }

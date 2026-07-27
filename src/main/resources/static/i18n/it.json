@@ -215,5 +215,7 @@
   "flow.node.externalOut": "Prelievo esterno ({label})",
   "flow.node.balance": "Saldo attuale",
   "flow.link.total": "Totale",
-  "flow.link.transactions": "{COUNT} transazione/i"
+  "flow.link.transactions": "{COUNT} transazione/i",
+  "nav.btn.visualization": "Visualizzazione",
+  "nav.btn.comingSoon": "Prossimamente"
 }
