@@ -110,11 +110,37 @@ async function loadFlowGraph() {
 
     renderSankey(data);
     _renderFlowTxPanel();
+    _scheduleFlowSettleRerender();
+}
+
+/**
+ * Sicherheitsnetz gegen einen Chrome-DevTools-Device-Toolbar-Bug: Beim (Re-)Load mit
+ * aktivem Device-Emulator wird die Seite manchmal kurzzeitig noch mit der alten/Desktop-
+ * Viewport-Breite gelayoutet, bevor die Media Query auf die Mobile-/Tablet-Breakpoints
+ * (siehe flow.css) umschaltet. DevTools korrigiert das zwar wenig später, feuert dabei
+ * aber weder ein reguläres 'resize'-Event noch ändert sich die Box-Größe von
+ * #flowChartWrapper nach außen sichtbar – der ResizeObserver greift also nicht.
+ * Ergebnis: Das Sankey-SVG bleibt mit der falschen (zu breiten) Größe stehen, bis man
+ * manuell resized. Dieser einmalige Nachzügler-Redraw kurz nach dem Erstrender fängt
+ * genau dieses Zeitfenster ab, unabhängig davon, ob ein Resize-Event ausgelöst wurde.
+ */
+function _scheduleFlowSettleRerender() {
+    setTimeout(() => {
+        if (_flowGraphCache) renderSankey(_flowGraphCache);
+    }, 400);
 }
 
 window.addEventListener('resize', () => {
     if (_flowGraphCache) renderSankey(_flowGraphCache);
 });
+
+// Reagiert explizit auf den .flow-main-row-Breakpoint (siehe flow.css), unabhängig davon,
+// ob dabei ein 'resize'-Event feuert (z.B. bei DevTools-Device-Toolbar-Metrikwechseln).
+if (typeof window.matchMedia === 'function') {
+    window.matchMedia('(max-width: 991px)').addEventListener('change', () => {
+        if (_flowGraphCache) renderSankey(_flowGraphCache);
+    });
+}
 
 let _flowResizeObserver = null;
 

@@ -553,6 +553,8 @@ function closeHistory() {
 
 // ── Transactions Panel ────────────────────────────────────
 let txLoaded = false;
+let _lastTxData = null; // letzte geladenen Rohdaten, für Re-Render bei Viewport-/Compact-Wechsel
+let _lastTxIsCompact = null;
 // txModal / txModalAdd (bootstrap.Modal instances) now live in tx-form.js
 
 function toggleTransactions() {
@@ -573,6 +575,7 @@ async function loadTransactions() {
         .then(r => r.json())
         .then(data => {
             txLoaded = true;
+            _lastTxData = data;
             renderTxTable(data);
 			const countEl = document.getElementById('transactionCountValue');
 			if (countEl) countEl.textContent = data.length;
@@ -617,6 +620,7 @@ function renderTxTable(data) {
     };
 	
 	const isCompact = getDeviceType() !== 'DESKTOP';
+	_lastTxIsCompact = isCompact;
 
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
