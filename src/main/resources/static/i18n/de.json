@@ -217,5 +217,14 @@
   "flow.link.total": "Gesamt",
   "flow.link.transactions": "{COUNT} Transaktion(en)",
   "nav.btn.visualization": "Visualisierung",
-  "nav.btn.comingSoon": "Bald verfügbar"
+  "nav.btn.comingSoon": "Bald verfügbar",
+  "flow.filter.from": "Von",
+  "flow.filter.to": "Bis",
+  "flow.filter.positions": "Positionen",
+  "flow.filter.positions.hint": "Strg/Cmd-Klick für Mehrfachauswahl. Keine Auswahl = alle Positionen.",
+  "flow.filter.apply": "Anwenden",
+  "flow.filter.reset": "Zurücksetzen",
+  "flow.filter.position": "Position",
+  "flow.filter.position.all": "Alle Positionen",
+  "flow.link.originalAmount": "von {AMOUNT} BTC"
 }

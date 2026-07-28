@@ -217,5 +217,8 @@
   "flow.link.total": "รวม",
   "flow.link.transactions": "{COUNT} ธุรกรรม",
   "nav.btn.visualization": "การแสดงผล",
-  "nav.btn.comingSoon": "เร็วๆ นี้"
+  "nav.btn.comingSoon": "เร็วๆ นี้",
+  "flow.filter.position": "ตำแหน่ง",
+  "flow.filter.position.all": "ทุกตำแหน่ง",
+  "flow.link.originalAmount": "จาก {AMOUNT} BTC"
 }

@@ -20,19 +20,69 @@ function _flowNodeLabel(node) {
     }
 }
 
+let _flowGraphCache = null;
+
 async function initFlow() {
+    await _loadFlowPositionOptions();
+    await loadFlowGraph();
+}
+
+async function _loadFlowPositionOptions() {
+    const sel = document.getElementById('flowFilterPosition');
+    if (!sel) return;
+    try {
+        const data = await fetch('/api/btc-tracking/positions').then(r => r.json());
+        sel.innerHTML = `<option value="">${t('flow.filter.position.all')}</option>` +
+            data.map(p => `<option value="${p.id}">${esc(p.label)}</option>`).join('');
+    } catch (err) {
+        console.warn('positions load failed', err.message);
+    }
+}
+
+function _buildFlowQuery() {
+    const from = document.getElementById('flowFilterFrom')?.value;
+    const to   = document.getElementById('flowFilterTo')?.value;
+    const positionId = document.getElementById('flowFilterPosition')?.value;
+
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    if (positionId) params.set('positionId', positionId);
+    return params.toString();
+}
+
+function applyFlowFilter() {
+    loadFlowGraph();
+}
+
+function resetFlowFilter() {
+    document.getElementById('flowFilterFrom').value = '';
+    document.getElementById('flowFilterTo').value = '';
+    document.getElementById('flowFilterPosition').value = '';
+    loadFlowGraph();
+}
+
+async function loadFlowGraph() {
     const loading = document.getElementById('flowLoading');
     const emptyEl = document.getElementById('flowEmpty');
+    const svgEl   = document.getElementById('flowSvg');
 
+    emptyEl.classList.add('d-none');
+    svgEl.style.display = 'none';
+    loading.classList.remove('d-none');
+    loading.textContent = t('flow.loading');
+
+    const query = _buildFlowQuery();
     let data;
     try {
-        data = await fetch('/api/btc-tracking/flow').then(r => r.json());
+        data = await fetch('/api/btc-tracking/flow' + (query ? '?' + query : '')).then(r => r.json());
     } catch (err) {
         loading.textContent = t('toast.error') + ': ' + err.message;
         return;
     }
 
     loading.classList.add('d-none');
+    _flowGraphCache = data;
 
     if (!data.nodes?.length || !data.links?.length) {
         emptyEl.classList.remove('d-none');
@@ -40,8 +90,11 @@ async function initFlow() {
     }
 
     renderSankey(data);
-    window.addEventListener('resize', () => renderSankey(data), { once: false });
 }
+
+window.addEventListener('resize', () => {
+    if (_flowGraphCache) renderSankey(_flowGraphCache);
+});
 
 let _flowResizeTimeout = null;
 
@@ -130,7 +183,14 @@ function _showLinkTooltip(event, d, tooltip) {
     const raw = d.raw;
     const details = raw.details.slice()
         .sort((a, b) => a.date.localeCompare(b.date))
-        .map(det => `${det.date.substring(0, 10)} — ${_flowFmt8(det.quantity)} BTC`)
+        .map(det => {
+            const isClipped = det.originalQuantity != null
+                && Number(det.originalQuantity) > Number(det.quantity) + 1e-9;
+            const suffix = isClipped
+                ? ` <span style="color:var(--text-muted)">(${t('flow.link.originalAmount', { AMOUNT: _flowFmt8(det.originalQuantity) })})</span>`
+                : '';
+            return `${det.date.substring(0, 10)} — ${_flowFmt8(det.quantity)} BTC${suffix}`;
+        })
         .join('<br>');
     tooltip.innerHTML = `
         <div style="font-weight:600;margin-bottom:.3rem">${raw.month}</div>
@@ -154,4 +214,13 @@ function _positionTooltip(event, tooltip) {
     tooltip.style.display = 'block';
     tooltip.style.left = (event.clientX + 14) + 'px';
     tooltip.style.top  = (event.clientY + 14) + 'px';
+}
+
+function esc(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }

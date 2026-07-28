@@ -217,5 +217,8 @@
   "flow.link.total": "Totale",
   "flow.link.transactions": "{COUNT} transazione/i",
   "nav.btn.visualization": "Visualizzazione",
-  "nav.btn.comingSoon": "Prossimamente"
+  "nav.btn.comingSoon": "Prossimamente",
+  "flow.filter.position": "Posizione",
+  "flow.filter.position.all": "Tutte le posizioni",
+  "flow.link.originalAmount": "di {AMOUNT} BTC"
 }

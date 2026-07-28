@@ -48,8 +48,13 @@ public class DepotRestController {
 
     
     @GetMapping("/flow")
-    public com.thatsme4now.depot.dto.FlowGraphDTO getFlow() {
-        return flowService.buildFlowGraph();
+    public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
+            @RequestParam(required = false, name = "from") String from,
+            @RequestParam(required = false, name = "to") String to,
+            @RequestParam(required = false, name = "positionId") Long positionId) {
+		java.time.LocalDate fromDate = (from != null && !from.isBlank()) ? java.time.LocalDate.parse(from) : null;
+		java.time.LocalDate toDate = (to != null && !to.isBlank()) ? java.time.LocalDate.parse(to) : null;
+		return flowService.buildFlowGraph(fromDate, toDate, positionId);
     }
     
     @PostMapping("/refresh")

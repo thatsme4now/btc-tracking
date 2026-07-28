@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 @Data
 public class FlowLinkDetailDTO {
     private LocalDateTime date;
-    private BigDecimal quantity;
+    private BigDecimal quantity;     
+    private BigDecimal originalQuantity;
     private String transactionId;
 }
