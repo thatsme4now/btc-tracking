@@ -219,6 +219,12 @@
   "nav.btn.visualization": "การแสดงผล",
   "nav.btn.comingSoon": "เร็วๆ นี้",
   "flow.filter.position": "ตำแหน่ง",
+  "flow.filter.from": "จาก",
+  "flow.filter.to": "ถึง",
+  "flow.filter.positions": "ตำแหน่ง",
+  "flow.filter.positions.hint": "กด Ctrl/Cmd ค้างเพื่อเลือกหลายรายการ ไม่เลือก = ทุกตำแหน่ง",
+  "flow.filter.apply": "นำไปใช้",
+  "flow.filter.reset": "รีเซ็ต",
   "flow.filter.position.all": "ทุกตำแหน่ง",
   "flow.link.originalAmount": "จาก {AMOUNT} BTC"
 }

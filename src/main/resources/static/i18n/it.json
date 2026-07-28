@@ -219,6 +219,12 @@
   "nav.btn.visualization": "Visualizzazione",
   "nav.btn.comingSoon": "Prossimamente",
   "flow.filter.position": "Posizione",
+  "flow.filter.from": "Da",
+  "flow.filter.to": "A",
+  "flow.filter.positions": "Posizioni",
+  "flow.filter.positions.hint": "Ctrl/Cmd-clic per selezione multipla. Nessuna selezione = tutte le posizioni.",
+  "flow.filter.apply": "Applica",
+  "flow.filter.reset": "Reimposta",
   "flow.filter.position.all": "Tutte le posizioni",
   "flow.link.originalAmount": "di {AMOUNT} BTC"
 }

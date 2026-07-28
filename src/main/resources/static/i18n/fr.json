@@ -219,6 +219,12 @@
   "nav.btn.visualization": "Visualisation",
   "nav.btn.comingSoon": "Bientôt disponible",
   "flow.filter.position": "Position",
+  "flow.filter.from": "Du",
+  "flow.filter.to": "Au",
+  "flow.filter.positions": "Positions",
+  "flow.filter.positions.hint": "Ctrl/Cmd-clic pour sélection multiple. Aucune sélection = toutes les positions.",
+  "flow.filter.apply": "Appliquer",
+  "flow.filter.reset": "Réinitialiser",
   "flow.filter.position.all": "Toutes les positions",
   "flow.link.originalAmount": "sur {AMOUNT} BTC"
 }
