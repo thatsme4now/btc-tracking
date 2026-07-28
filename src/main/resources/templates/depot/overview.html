@@ -63,33 +63,67 @@
 	    </div>
 	
 	    <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-	            <input style="display:none" onclick="openAddTx()"/>
-	        </label>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-	            <input style="display:none" onclick="removeAll()"/>
-	        </label>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-	            <input type="file" id="csvFileInput" accept=".csv,.enc"
-	                   style="display:none" onchange="importCsv(this)"/>
-	        </label>
-	        <button class="btn depot-btn-outline" onclick="openExportModal()">
-	             <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	        </button>
-	        <button class="btn depot-btn-outline" onclick="openDbExportModal()">
-	            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-	        </button>
-	        <label class="btn depot-btn-outline mb-0" style="cursor:pointer">
-	            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-	            <input type="file" id="dbImportFileInput" accept=".json,.enc"
-	                   style="display:none" onchange="onDbImportFileSelected(this)"/>
-	        </label>
-	    </div>
+		    <div class="dropdown">
+		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
+		                data-bs-toggle="dropdown" aria-expanded="false">
+		            <i class="bi bi-lightning-charge me-1"></i><span data-i18n="nav.btn.actions">Aktionen</span>
+		        </button>
+		        <ul class="dropdown-menu depot-dropdown-menu">
+		            <li><button class="dropdown-item" onclick="openAddTx()">
+		                <i class="bi bi-plus-circle me-2"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+		            </button></li>
+		            <li><button class="dropdown-item" onclick="removeAll()">
+		                <i class="bi bi-trash me-2"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+		            </button></li>
+		            <li><hr class="dropdown-divider"></li>
+		            <li>
+		                <label class="dropdown-item mb-0" style="cursor:pointer">
+		                    <i class="bi bi-upload me-2"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+		                    <input type="file" id="csvFileInput" accept=".csv,.enc"
+		                           style="display:none" onchange="importCsv(this)"/>
+		                </label>
+		            </li>
+		            <li><button class="dropdown-item" onclick="openExportModal()">
+		                <i class="bi bi-download me-2"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+		            </button></li>
+		            <li><hr class="dropdown-divider"></li>
+		            <li><button class="dropdown-item" onclick="openDbExportModal()">
+		                <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+		            </button></li>
+		            <li>
+		                <label class="dropdown-item mb-0" style="cursor:pointer">
+		                    <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+		                    <input type="file" id="dbImportFileInput" accept=".json,.enc"
+		                           style="display:none" onchange="onDbImportFileSelected(this)"/>
+		                </label>
+		            </li>
+		        </ul>
+		    </div>
+		
+		    <div class="dropdown">
+		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
+		                data-bs-toggle="dropdown" aria-expanded="false">
+		            <i class="bi bi-bar-chart-line me-1"></i><span data-i18n="nav.btn.visualization">Visualisierung</span>
+		        </button>
+		        <ul class="dropdown-menu depot-dropdown-menu">
+		            <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
+		                <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+		            </a></li>
+		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
+		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+		            </span></li>
+		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
+		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+		            </span></li>
+		        </ul>
+		    </div>
+		</div>
 
 	    <div class="ms-2 d-flex align-items-right gap-3">
+	        <button class="btn depot-btn-icon px-2" id="btnAppLock"
+			        onclick="AppLock.onIconClick()" data-i18n-title="applock.icon.lock.title" title="Lock app">
+			    <i class="bi bi-unlock-fill" id="appLockIcon"></i>
+			</button>
 	        <button class="btn depot-btn-icon px-2" id="btnLightning"
 	                onclick="sendSomeSats()" title="Send some sats!">
 	            <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
@@ -110,6 +144,16 @@
 	                data-i18n-title="nav.btn.settings" title="Settings">
 	            <i class="bi bi-gear-fill"></i>
 	        </button>
+	
+	        
+	        <button class="btn depot-btn-icon px-2" onclick="openHelp()"
+	                data-i18n-title="nav.btn.help" title="Help">
+	            <i class="bi bi-question-circle"></i>
+	        </button>
+	     
+	        
+	        
+	        
 	    </div>
 	</div>
 </nav>
@@ -120,29 +164,38 @@
         <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column gap-2">
-        <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
-            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-        </button>
-        <button class="btn depot-btn-outline w-100" onclick="removeAll()">
-            <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-        </button>
-        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-            <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-            <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
-                   style="display:none" onchange="importCsv(this)"/>
-        </label>
-        <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
-            <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-        </button>
-        <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
-            <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-        </button>
-        <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-            <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-            <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
-                   style="display:none" onchange="onDbImportFileSelected(this)"/>
-        </label>
-    </div>
+	    <div class="depot-card-header mb-1" data-i18n="nav.btn.actions">Aktionen</div>
+	    <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
+	        <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+	    </button>
+	    <button class="btn depot-btn-outline w-100" onclick="removeAll()">
+	        <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
+	    </button>
+	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+	        <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+	        <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
+	               style="display:none" onchange="importCsv(this)"/>
+	    </label>
+	    <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
+	        <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+	    </button>
+	    <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
+	        <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+	    </button>
+	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+	        <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+	        <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
+	               style="display:none" onchange="onDbImportFileSelected(this)"/>
+	    </label>
+	
+	    <div class="depot-card-header mb-1 mt-2" data-i18n="nav.btn.visualization">Visualisierung</div>
+	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
+	        <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+	    </a>
+	    <button class="btn depot-btn-outline w-100" disabled style="opacity:.5">
+	        <i class="bi bi-hourglass-split me-1"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
+	    </button>
+	</div>
 </div>
 
 <main class="container-fluid px-4 py-4">
@@ -316,7 +369,7 @@
 	                                    </tr>
 	                                    </thead>
 	                                    <tbody id="posTableBody">
-	                                        <tr th:each="p : ${positions}"
+	                                        <tr th:each="p : ${positions}" th:if="${p.quantityInSats > 0}"
 	                                            class="depot-row"
 	                                            th:data-label="${p.label}"
 	                                            onclick="filterExchangeTransaction(this.dataset.label)">
@@ -488,6 +541,7 @@
 					        <input type="checkbox" id="txSelectAll" style="accent-color:var(--accent)"
 					               onchange="toggleSelectAll(this)"/>
 					    </th>
+	                    <th style="width:1rem"></th>
 	                    <th data-i18n="table.col.date">Date</th>
 	                    <th data-i18n="table.col.position">Position</th>
 	                    <th data-i18n="table.col.type">Type</th>
@@ -500,7 +554,7 @@
 	                </tr>
 	                </thead>
 	                <tbody id="txTableBody">
-	                <tr><td colspan="10" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
+	                <tr><td colspan="11" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
 	                </tbody>
 	            </table>
 	        </div>
@@ -771,94 +825,8 @@
         </div>
     </div>
 
-    <!-- Edit Transaction Modal -->
-    <div class="modal fade" id="txModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-                <div class="modal-header" style="border-bottom:1px solid var(--border)">
-                    <span class="depot-card-header mb-0" data-i18n="modal.editTx.title">Edit Transaction</span>
-                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="editTxId"/>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.qty">Quantity (BTC)</label>
-                            <input type="number" id="editTxQty" class="form-control depot-input" step="0.00000001"/>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.date">Date &amp; Time</label>
-                            <input type="datetime-local" id="editTxDate" class="form-control depot-input"/>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.type">Type</label>
-                            <select id="editTxType" class="form-select depot-input" onchange="updateRelevantFields()">
-                                <option value="BUY">BUY</option>
-                                <option value="SELL">SELL</option>
-                                <option value="TRANSFER_OUT">TRANSFER_OUT</option>
-                                <option value="TRANSFER_IN">TRANSFER_IN</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 d-none fiat-field">
-                            <label class="depot-label" data-i18n="modal.field.qtyFiat">Quantity Fiat</label>
-                            <input type="number" id="editTxQuantityFiat" class="form-control depot-input" step="0.01"/>
-                        </div>
-                        <div class="col-md-4 d-none fiat-field">
-                            <label class="depot-label" data-i18n="modal.field.currency">Currency</label>
-                            <input type="text" id="editTxCurrency" class="form-control depot-input"
-                                   placeholder="EUR" maxlength="10"/>
-                            <div class="form-text text-muted" style="font-size:.7rem"
-                                 data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
-                        </div>
-                        <div class="col-md-4 d-none fiat-field">
-                            <label class="depot-label" data-i18n="modal.field.exchangeRate">Exchange Rate to €</label>
-                            <input type="number" id="editTxExchangeRate" class="form-control depot-input"
-                                   step="0.000001" placeholder="1.000000"/>
-                            <div class="form-text text-muted" style="font-size:.7rem"
-                                 data-i18n="modal.field.exchangeRate.hint">1 [Currency] = ? EUR</div>
-                        </div>
-                        <div class="col-md-4 position-field">
-						    <label class="depot-label" data-i18n="modal.field.exchange">Exchange</label>
-						    <select id="editTxExchangeSelect" class="form-select depot-input mb-1"
-						            onchange="onExchangeSelectChange('edit')">
-						        <option value="">— Select position —</option>
-						    </select>
-						    <input type="text" id="editTxExchange" class="form-control depot-input d-none"
-						           maxlength="100" placeholder="New position name"
-						           data-i18n-placeholder="modal.field.exchange.hint"/>
-						    <div class="form-text text-muted" style="font-size:.7rem"
-						         data-i18n="modal.field.exchange.hint">Position (e.g. Bitcoin.de, Bitget, Wallet)</div>
-						</div>
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.fees">Fees (€)</label>
-                            <input type="number" id="editTxFees" class="form-control depot-input" step="0.01"/>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.fees.currency">Fee Currency</label>
-                            <input type="text" id="editTxFeesCurrency" class="form-control depot-input"
-                                   placeholder="EUR" maxlength="10"
-                                   data-i18n-placeholder="modal.field.fees.currency"/>
-                            <div class="form-text text-muted" style="font-size:.7rem"
-                                 data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
-                            <textarea id="editTxComment" class="form-control depot-input"></textarea>
-                        </div>
-                        <div class="col-12 d-none currency-field">
-                            <hr style="border-color:var(--border)"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid var(--border)">
-                    <button class="btn depot-btn-primary" onclick="saveOrAddTx(false)">
-                        <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.editTx.btn">Save</span>
-                    </button>
-                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Edit Transaction Modal (shared fragment, also used by flow.html) -->
+    <div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
 
     <!-- CSV Mapping Modal -->
     <div class="modal fade" id="csvMappingModal" tabindex="-1">
@@ -1084,7 +1052,72 @@
 	        </div>
 	    </div>
 	</div>
+	
+	<!-- App gesperrt (nicht schließbar) -->
+	<div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-lock-fill me-2" style="color:var(--neg)"></i>
+	                    <span data-i18n="applock.lockedModal.title">App locked</span>
+	                </span>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem"
+	                   data-i18n="applock.lockedModal.hint">Data is encrypted. Enter password to unlock.</p>
+	                <label class="depot-label" data-i18n="applock.lockedModal.password">Password</label>
+	                <input type="text" id="unlockPassword"
+	                       class="form-control depot-input depot-password-field"
+	                       autocomplete="off" spellcheck="false"
+	                       onkeydown="if(event.key==='Enter') AppLock.doUnlock()"/>
+	                <div id="unlockError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="AppLock.doUnlock()">
+	                    <i class="bi bi-unlock-fill me-1"></i><span data-i18n="applock.lockedModal.btn">Unlock</span>
+	                </button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
 
+	<!-- App sperren -->
+	<div class="modal fade" id="appLockSetModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-lock-fill me-2"></i><span data-i18n="applock.setModal.title">Lock app</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem"
+	                   data-i18n="applock.setModal.hint"></p>
+	                <div class="mb-3">
+	                    <label class="depot-label" data-i18n="applock.setModal.password">Password</label>
+	                    <input type="text" id="lockPassword"
+	                           class="form-control depot-input depot-password-field"
+	                           autocomplete="off" spellcheck="false"/>
+	                </div>
+	                <div class="mb-1">
+	                    <label class="depot-label" data-i18n="applock.setModal.passwordConfirm">Confirm password</label>
+	                    <input type="text" id="lockPasswordConfirm"
+	                           class="form-control depot-input depot-password-field"
+	                           autocomplete="off" spellcheck="false"
+	                           onkeydown="if(event.key==='Enter') AppLock.doLock()"/>
+	                </div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="AppLock.doLock()">
+	                    <i class="bi bi-lock-fill me-1"></i><span data-i18n="applock.setModal.btn">Lock</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
 </main>
 
 <script th:inline="javascript">
@@ -1116,6 +1149,8 @@
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/offline.js}"></script>
+<script th:src="@{/js/applock.js}"></script>
+<script th:src="@{/js/tx-form.js}"></script>
 <script th:src="@{/js/depot.js}"></script>
 </body>
 </html>

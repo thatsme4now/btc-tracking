@@ -30,6 +30,11 @@ public class DepotViewController {
     public String root() {
     	return "redirect:/btc-tracking";
     }
+    
+    @GetMapping("/btc-tracking/flow")
+    public String flow() {
+        return "depot/flow";
+    }
 
     @GetMapping("/btc-tracking")
     public String overview(Model model, HttpServletRequest request) {

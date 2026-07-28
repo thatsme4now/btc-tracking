@@ -695,7 +695,10 @@ input#dt-search-1 {
     background: var(--text-muted);
 }
 
- 
+.navbar-actions-desktop .dropdown {
+	float: left;
+	margin-left: 10px;
+}
  
  
  

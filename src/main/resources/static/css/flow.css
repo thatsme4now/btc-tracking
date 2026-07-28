@@ -1,0 +1,160 @@
+.flow-node rect { stroke: var(--border); stroke-width: 1px; cursor: pointer; transition: opacity .15s, stroke-width .15s; }
+.flow-node text { fill: var(--text); font-family: var(--font); font-size: .72rem; pointer-events: none; transition: opacity .15s; }
+.flow-link { fill: none; stroke-opacity: .35; transition: stroke-opacity .15s; cursor: pointer; }
+.flow-link:hover { stroke-opacity: .75; }
+
+/* ── Selection highlighting (Node/Link-Klick) ─────────────── */
+.flow-link.flow-dimmed { stroke-opacity: .05; }
+.flow-link.flow-dimmed:hover { stroke-opacity: .2; }
+.flow-link.flow-highlighted { stroke-opacity: .9; }
+.flow-link.flow-highlighted:hover { stroke-opacity: 1; }
+.flow-node.flow-dimmed rect { opacity: .3; }
+.flow-node.flow-dimmed text { opacity: .4; }
+.flow-node.flow-highlighted rect { stroke: var(--accent); stroke-width: 2px; }
+
+/* ── Layout: Sankey + Transaktionsliste nebeneinander ─────── */
+.flow-main-row {
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.flow-chart-col {
+    flex: 1 1 65%;
+    min-width: 0; /* damit die SVG innerhalb des Flex-Items schrumpfen kann */
+}
+
+.flow-tx-col {
+    flex: 1 1 35%;
+    max-width: 420px;
+    min-width: 280px;
+    background:    var(--bg-card);
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    padding:       .85rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.flow-tx-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .6rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.flow-tx-title { font-size: .78rem; font-weight: 600; color: var(--text); }
+.flow-tx-count { font-size: .68rem; color: var(--text-muted); margin-top: .15rem; }
+
+.flow-tx-list {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    overflow-y: auto;
+    max-height: 70vh;
+    padding-right: .15rem;
+}
+
+.flow-tx-empty { color: var(--text-muted); font-size: .78rem; padding: 1rem 0; text-align: center; }
+
+/* ── Transaktions-Card ─────────────────────────────────────── */
+.flow-tx-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .55rem .7rem;
+    font-size: .72rem;
+    position: relative;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.flow-tx-card:hover { border-color: var(--accent); }
+.flow-tx-card.flow-tx-card-pinned {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.flow-tx-search-row { margin-bottom: .6rem; }
+.flow-tx-search-wrap { position: relative; }
+.flow-tx-search-wrap input { font-size: .74rem; padding-right: 1.9rem; }
+.flow-tx-search-clear {
+    position: absolute;
+    right: .35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: .78rem;
+    line-height: 1;
+    padding: .25rem;
+    cursor: pointer;
+}
+.flow-tx-search-clear:hover { color: var(--text); }
+
+.flow-tx-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .4rem;
+    margin-bottom: .35rem;
+    font-weight: 600;
+}
+
+.flow-tx-card-actions {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    flex: 0 0 auto;
+}
+
+.flow-tx-card-badge {
+    font-size: .6rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .1rem .4rem;
+    border-radius: 999px;
+    background: var(--border);
+    color: var(--text-muted);
+}
+.flow-tx-card-badge.pair-out { color: var(--neg); }
+.flow-tx-card-badge.pair-in  { color: var(--pos); }
+.flow-tx-card-badge.type-sell { color: var(--neg); }
+.flow-tx-card-badge.type-buy  { color: var(--pos); }
+
+.flow-tx-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .12rem 0;
+}
+.flow-tx-field-label {
+    color: var(--text-muted);
+    font-size: .66rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+.flow-tx-field-value {
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.flow-tx-card.warning-duplicate { border-color: var(--warn-duplicate, #b8860b); }
+
+/* ── Responsive: gestapelt statt nebeneinander ───────────── */
+@media (max-width: 991px) {
+    .flow-main-row { flex-direction: column; }
+    .flow-tx-col { max-width: none; min-width: 0; }
+    .flow-tx-list { max-height: 60vh; }
+}
+
+@media (max-width: 768px) {
+    .flow-chart-col svg#flowSvg { height: 55vh !important; }
+}

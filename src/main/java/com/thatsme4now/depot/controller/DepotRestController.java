@@ -29,6 +29,7 @@ import com.thatsme4now.depot.service.CsvImportService;
 import com.thatsme4now.depot.service.CsvImportService.ImportResult;
 import com.thatsme4now.depot.service.DataExportService;
 import com.thatsme4now.depot.service.DepotService;
+import com.thatsme4now.depot.service.FlowService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,7 +44,18 @@ public class DepotRestController {
     private final CsvImportService csvImportService;
     private final CsvEncryptionService csvEncryptionService;
     private final DataExportService dataExportService;
+    private final FlowService flowService;
 
+    
+    @GetMapping("/flow")
+    public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
+            @RequestParam(required = false, name = "from") String from,
+            @RequestParam(required = false, name = "to") String to,
+            @RequestParam(required = false, name = "positionId") Long positionId) {
+		java.time.LocalDate fromDate = (from != null && !from.isBlank()) ? java.time.LocalDate.parse(from) : null;
+		java.time.LocalDate toDate = (to != null && !to.isBlank()) ? java.time.LocalDate.parse(to) : null;
+		return flowService.buildFlowGraph(fromDate, toDate, positionId);
+    }
     
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refresh(

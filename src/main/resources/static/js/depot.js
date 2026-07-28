@@ -135,55 +135,9 @@ function _applyCardState(id) {
     });
 })();
 
-// ── Flatpickr Date Pickers ────────────────────────────────
-const FLATPICKR_LOCALES = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
-
-let _fpAdd  = null;
-let _fpEdit = null;
-let _fpTransferIn = null;
-
-function _fpLocale() {
-    const lang = I18N.currentLang();
-    return FLATPICKR_LOCALES[lang] || 'default';
-}
-
-function _fpConfig(inputEl) {
-    return {
-        enableTime:  true,
-        time_24hr:   true,
-		enableSeconds:	true,
-        dateFormat:  'Y-m-d H:i:S',     // internes Format — bleibt immer ISO für JS-Logik
-        altInput:    true,
-        altFormat:   _fpLocale() === 'default' ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
-        locale:      _fpLocale(),
-        allowInput:  true,
-        minuteIncrement: 1,
-    };
-}
-
-function initFlatpickr() {
-    const locale = _fpLocale();
-    const isEn   = locale === 'default';
-    const cfg = {
-        enableTime:     true,
-		enableSeconds:	true,
-        time_24hr:      !isEn,
-        dateFormat:     'Y-m-d H:i:S',
-        altInput:       true,
-        altFormat:      isEn ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
-        locale:         locale,
-        allowInput:     true,
-        minuteIncrement: 1,
-    };
-
-    if (_fpAdd)        { _fpAdd.destroy();        _fpAdd = null; }
-    if (_fpEdit)       { _fpEdit.destroy();       _fpEdit = null; }
-    if (_fpTransferIn) { _fpTransferIn.destroy(); _fpTransferIn = null; }
-
-    _fpAdd        = flatpickr('#addTxDate',       cfg);
-    _fpEdit       = flatpickr('#editTxDate',      cfg);
-    _fpTransferIn = flatpickr('#transferInDate',  cfg);
-}
+// ── Flatpickr Date Pickers / Add-Edit-Transaction modal ───
+// Moved to tx-form.js (shared with the Flow Diagram page): FLATPICKR_LOCALES,
+// _fpAdd/_fpEdit/_fpTransferIn, _fpLocale(), initFlatpickr().
 
 // ── Section Reordering (Native Drag&Drop Desktop, Up/Down Buttons Mobile) ─
 const SECTION_ORDER_KEY = 'depot-section-order';
@@ -281,63 +235,10 @@ function moveSectionDown(btn) {
 document.addEventListener('DOMContentLoaded', initSectionOrder);
 
 
-// ── Exchange Dropdown ─────────────────────────────────────
-let _positionsCache = null;
-
-async function _ensurePositionsLoaded(prefix) {
-    const sel = document.getElementById(prefix + 'TxExchangeSelect');
-    if (_positionsCache) {
-        _fillExchangeDropdown(sel, _positionsCache);
-        return;
-    }
-    const data = await fetch('/api/btc-tracking/positions').then(r => r.json());
-    _positionsCache = data;
-    _fillExchangeDropdown(sel, data);
-}
-
-function _fillExchangeDropdown(sel, data) {
-    const current = sel.dataset.current || '';
-    sel.innerHTML =
-        '<option value="">— Select position —</option>' +
-        data.map(p => `<option value="${esc(p.label)}" ${p.label === current ? 'selected' : ''}>${esc(p.label)}</option>`).join('') +
-        '<option value="__new__">＋ New position...</option>';
-    // Wenn current nicht in Liste → "__new__" vorwählen + Textfeld zeigen
-    const known = data.some(p => p.label === current);
-    if (current && !known) {
-        sel.value = '__new__';
-        _showExchangeNewInput(sel.id.replace('ExchangeSelect', ''));
-    }
-}
-
-function onExchangeSelectChange(prefix) {
-    const sel = document.getElementById(prefix + 'TxExchangeSelect');
-    const isNew = sel.value === '__new__';
-    const input = document.getElementById(prefix + 'TxExchange');
-    input.classList.toggle('d-none', !isNew);
-    if (isNew) input.focus();
-}
-
-function _showExchangeNewInput(prefix) {
-    document.getElementById(prefix + 'TxExchange').classList.remove('d-none');
-}
-
-function _getExchangeValue(prefix) {
-    const sel = document.getElementById(prefix + 'TxExchangeSelect');
-    if (sel.value === '__new__') {
-        return (document.getElementById(prefix + 'TxExchange').value || '').trim();
-    }
-    return sel.value;
-}
-
-function _setExchangeValue(prefix, label) {
-    const sel = document.getElementById(prefix + 'TxExchangeSelect');
-    sel.dataset.current = label;
-    // Dropdown neu befüllen mit vorselektiertem Wert
-    if (_positionsCache) {
-        _fillExchangeDropdown(sel, _positionsCache);
-    }
-    document.getElementById(prefix + 'TxExchange').value = label;
-}
+// ── Exchange Dropdown / Add-Edit-Transaction helpers ──────
+// Moved to tx-form.js (shared with the Flow Diagram page): _positionsCache,
+// _ensurePositionsLoaded(), _fillExchangeDropdown(), onExchangeSelectChange(),
+// _showExchangeNewInput(), _getExchangeValue(), _setExchangeValue().
 
 // ── i18n + currency init ─────────────────────────────────
 I18N.ready.then(() => {
@@ -383,6 +284,14 @@ I18N.ready.then(() => {
     });	
 
 });
+
+function openHelp() {
+	if (I18N.currentLang() == "de") {
+		window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
+	} else {		
+		window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
+	}
+}
 
 // ── Settings Modal ────────────────────────────────────────
 let settingsModal = null;
@@ -644,8 +553,9 @@ function closeHistory() {
 
 // ── Transactions Panel ────────────────────────────────────
 let txLoaded = false;
-let txModal  = null;
-let txModalAdd  = null;
+let _lastTxData = null; // letzte geladenen Rohdaten, für Re-Render bei Viewport-/Compact-Wechsel
+let _lastTxIsCompact = null;
+// txModal / txModalAdd (bootstrap.Modal instances) now live in tx-form.js
 
 function toggleTransactions() {
     const panel   = document.getElementById('transactionsPanel');
@@ -665,6 +575,7 @@ async function loadTransactions() {
         .then(r => r.json())
         .then(data => {
             txLoaded = true;
+            _lastTxData = data;
             renderTxTable(data);
 			const countEl = document.getElementById('transactionCountValue');
 			if (countEl) countEl.textContent = data.length;
@@ -692,7 +603,7 @@ async function loadTransactions() {
 		            </span>`;
 			}
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -709,6 +620,7 @@ function renderTxTable(data) {
     };
 	
 	const isCompact = getDeviceType() !== 'DESKTOP';
+	_lastTxIsCompact = isCompact;
 
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
@@ -753,11 +665,12 @@ function renderTxTable(data) {
 		} else {
 			earning="–";
 		}
-		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 		    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 		               style="accent-color:var(--accent)"/>
 		    </td>
+		    <td class="text-center">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</td>
 		    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
 		    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
 		    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
@@ -786,11 +699,11 @@ function renderTxTable(data) {
 
     document.getElementById('txTableBody').innerHTML =
         rows.length ? rows.join('') :
-        `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+        `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
 	_markDuplicates();
 	
     $('#txTable').DataTable({
-        order:      [[1, 'desc']],
+        order:      [[2, 'desc']],
         pageLength: 500,
 		lengthMenu: [25, 50, 100, 250, 500],
 		autoWidth:  false, 
@@ -800,169 +713,16 @@ function renderTxTable(data) {
             info:       t('dt.info'),
             paginate:   { previous: t('dt.previous'), next: t('dt.next') }
         },
-        columnDefs: [{ orderable: false, targets: [0, -1] }]
+        columnDefs: [{ orderable: false, targets: [0, 1, -1] }]
     });
 }
 
-function updateRelevantFields() {
-    const selected = document.getElementById('addTxType').value;
-    const isTrade  = selected === 'BUY' || selected === 'SELL';
-    const isOut    = selected === 'TRANSFER_OUT';
-
-    document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
-    document.getElementById('transferPairSection').classList.toggle('d-none', !isOut);
-
-    if (isOut) {
-        _loadPositionsDropdown();
-        // Datum + Quantity aus OUT-Feldern vorausfüllen
-        const date = document.getElementById('addTxDate').value;
-        const qty  = document.getElementById('addTxQty').value;
-        const tDate = document.getElementById('transferInDate');
-        const tQty  = document.getElementById('transferInQty');
-        //if (!tDate.value && date) tDate.value = date;
-		if (_fpTransferIn && !_fpTransferIn.selectedDates.length && date) {
-		    _fpTransferIn.setDate(date, false);
-		}
-        if (!tQty.value  && qty)  tQty.value  = qty;
-    }
-}
-
-function _loadPositionsDropdown() {
-    const sel = document.getElementById('transferTargetSelect');
-    if (sel.dataset.loaded) return;
-    fetch('/api/btc-tracking/positions')
-        .then(r => r.json())
-        .then(data => {
-            sel.innerHTML =
-                '<option value="">— Select position —</option>' +
-                data.map(p => `<option value="${esc(p.label)}">${esc(p.label)}</option>`).join('') +
-                '<option value="__new__">＋ New position...</option>';
-            sel.dataset.loaded = '1';
-        });
-}
-
-async function openAddTx(tx) {
-	await _ensurePositionsLoaded('add');
-    // Reset new-position input
-    document.getElementById('addTxExchange').classList.add('d-none');
-    document.getElementById('addTxExchange').value = '';
-
-    if (tx !== undefined) {
-       document.getElementById('addTxId').value           = '';
-	   if (_fpAdd) _fpAdd.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
-       document.getElementById('addTxType').value         = tx.type;
-       document.getElementById('addTxQty').value          = tx.quantity;
-       document.getElementById('addTxQuantityFiat').value = tx.quantityFiat || '';
-       _setExchangeValue('add', tx.positionLabel || '');
-       document.getElementById('addTxFees').value         = tx.fees || '';
-       document.getElementById('addTxFeesCurrency').value = tx.feesCurrency || 'EUR';
-       document.getElementById('addTxCurrency').value     = tx.currency || 'EUR';
-       document.getElementById('addTxExchangeRate').value = tx.exchangeRate || '1';
-       document.getElementById('addTxComment').value      = tx.comment || '';
-       const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
-       document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
-   } else {
-		document.getElementById('addTxId').value           = '';
-		var now = new Date();
-		now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-		if (_fpAdd) _fpAdd.setDate(now, false);
-        document.getElementById('addTxType').value         = 'BUY';
-        document.getElementById('addTxQty').value          = '';
-        document.getElementById('addTxQuantityFiat').value = '';
-        document.getElementById('addTxExchange').value     = '';
-        document.getElementById('addTxFees').value         = '';
-        document.getElementById('addTxFeesCurrency').value = CURRENCY.current();
-        document.getElementById('addTxCurrency').value     = CURRENCY.current();
-        document.getElementById('addTxExchangeRate').value = '1';
-        document.getElementById('addTxComment').value      = '';
-		document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', false));
-		_setExchangeValue('add', '');
-    }
-	updateRelevantFields();
-	if (!txModalAdd) txModalAdd = new bootstrap.Modal(document.getElementById('txModalAdd'));
-	txModalAdd.show();
-}
-
-async function openEditTx(tx) {
-    await _ensurePositionsLoaded('edit');
-    // Reset new-position input
-    document.getElementById('editTxExchange').classList.add('d-none');
-    document.getElementById('editTxExchange').value = '';
-    document.getElementById('editTxId').value           = tx.id;
-	if (_fpEdit) _fpEdit.setDate(tx.date ? tx.date.substring(0, 19) : '', false);
-
-    document.getElementById('editTxType').value         = tx.type;
-    document.getElementById('editTxQty').value          = tx.quantity;
-    document.getElementById('editTxQuantityFiat').value = tx.quantityFiat || '';
-    _setExchangeValue('edit', tx.positionLabel || '');
-    document.getElementById('editTxFees').value         = tx.fees || '';
-    document.getElementById('editTxFeesCurrency').value = tx.feesCurrency || 'EUR';
-    document.getElementById('editTxCurrency').value     = tx.currency || 'EUR';
-    document.getElementById('editTxExchangeRate').value = tx.exchangeRate || '1';
-    document.getElementById('editTxComment').value      = tx.comment || '';
-
-	document.getElementById('editTxType').disabled = true;
-    const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
-    document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
-
-    if (!txModal) txModal = new bootstrap.Modal(document.getElementById('txModal'));
-    txModal.show();
-}
-
-function saveOrAddTx(isAdd) {
-    const pref    = isAdd ? 'add' : 'edit';
-    const id      = document.getElementById(pref + 'TxId').value;
-    const dateVal = document.getElementById(pref + 'TxDate').value;
-    const txType  = document.getElementById(pref + 'TxType').value;
-    const isTrade = txType === 'BUY' || txType === 'SELL';
-
-    const payload = {
-        date:         dateVal ? dateVal : null,
-        type:         txType,
-        quantity:     parseFloat(document.getElementById(pref + 'TxQty').value) || 0,
-        quantityFiat: parseFloat(document.getElementById(pref + 'TxQuantityFiat').value) || 0,
-        fees:         parseFloat(document.getElementById(pref + 'TxFees').value) || 0,
-        feesCurrency: isTrade ? (document.getElementById(pref + 'TxFeesCurrency').value || CURRENCY.current()) : null,
-        currency:     isTrade ? (document.getElementById(pref + 'TxCurrency').value || CURRENCY.current()) : null,
-        exchangeRate: isTrade ? (parseFloat(document.getElementById(pref + 'TxExchangeRate').value) || 1) : null,
-        comment:      document.getElementById(pref + 'TxComment').value,
-        exchange:     _getExchangeValue(pref)
-    };
-
-    // TRANSFER_OUT pairing
-    if (isAdd && txType === 'TRANSFER_OUT') {
-        const selEl  = document.getElementById('transferTargetSelect');
-        let target   = selEl.value === '__new__'
-            ? (document.getElementById('transferTargetNew').value || '').trim()
-            : selEl.value;
-        if (target) {
-            payload.transferTarget    = target;
-            const tDate = document.getElementById('transferInDate').value;
-            const tQty  = document.getElementById('transferInQty').value;
-            payload.transferInDate     = tDate ? tDate : null;
-            payload.transferInQuantity = parseFloat(tQty) || null;
-        }
-    }
-
-    const url    = isAdd ? '/api/btc-tracking/transactions' : '/api/btc-tracking/transactions/' + id;
-    const method = isAdd ? 'POST' : 'PUT';
-    fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload)
-    })
-    .then(r => r.json())
-    .then(() => {
-        (isAdd ? txModalAdd : txModal).hide();
-        // Reset dropdown loaded-flag so next open refreshes positions
-        const sel = document.getElementById('transferTargetSelect');
-        if (sel) delete sel.dataset.loaded;
-        txLoaded = false;
-		_positionsCache = null;
-        loadTransactions();
-        showToast('✓ ' + t(isAdd ? 'toast.txAdded' : 'toast.txUpdated'), 'success');
-    })
-    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+// updateRelevantFields(), _loadPositionsDropdown(), openAddTx(), openEditTx()
+// and saveOrAddTx() now live in tx-form.js (shared with the Flow Diagram page).
+// saveOrAddTx() calls onTxSaved() after a successful save — this page's hook:
+function onTxSaved() {
+    txLoaded = false;
+    loadTransactions();
 }
 
 async function removeAll() {
@@ -1573,13 +1333,7 @@ function _doRefreshPrices() {
 }
 
 // ── Toast ─────────────────────────────────────────────────
-function showToast(msg, type) {
-	const toast     = document.getElementById('statusToast');
-	    toast.innerHTML = msg.replace(/\n/g, '<br>');
-	    toast.className = 'depot-toast ' + (type || '');
-	    toast.classList.remove('d-none');
-	    setTimeout(() => toast.classList.add('d-none'), 5000);
-}
+// showToast() now lives in tx-form.js (shared with the Flow Diagram page).
 
 // ── Formatters ────────────────────────────────────────────
 function formatEur(val) {

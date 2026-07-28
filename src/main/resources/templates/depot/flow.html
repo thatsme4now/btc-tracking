@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title data-i18n="flow.title">Bestandsfluss</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/flatpickr.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/css/flow.css}"/>
+</head>
+<body class="depot-body">
+
+<nav class="navbar depot-navbar">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+        <a class="navbar-brand depot-brand" th:href="@{/btc-tracking}">
+            <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+        </a>
+        <a th:href="@{/btc-tracking}" class="btn depot-btn-outline">
+            <i class="bi bi-arrow-left me-1"></i><span data-i18n="flow.back">Zurück</span>
+        </a>
+    </div>
+</nav>
+
+<main class="container-fluid px-4 py-4">
+    <div class="depot-card mb-3">
+        <div class="depot-card-header" data-i18n="flow.title">Bestandsfluss</div>
+		<div id="flowFilterBar" class="d-flex flex-wrap align-items-end gap-3 px-1 pb-3" style="border-bottom:1px solid var(--border);margin-bottom:.75rem">
+		    <div>
+		        <label class="depot-label" data-i18n="flow.filter.from">Von</label>
+		        <input type="date" id="flowFilterFrom" class="form-control depot-input" style="width:160px"/>
+		    </div>
+		    <div>
+		        <label class="depot-label" data-i18n="flow.filter.to">Bis</label>
+		        <input type="date" id="flowFilterTo" class="form-control depot-input" style="width:160px"/>
+		    </div>
+		    <div>
+			    <label class="depot-label" data-i18n="flow.filter.position">Position</label>
+			    <select id="flowFilterPosition" class="form-select depot-input" style="min-width:220px">
+			        <option value="" data-i18n="flow.filter.position.all">Alle Positionen</option>
+			    </select>
+			</div>
+		    <div class="d-flex gap-2">
+		        <button class="btn depot-btn-primary" onclick="applyFlowFilter()">
+		            <i class="bi bi-funnel me-1"></i><span data-i18n="flow.filter.apply">Anwenden</span>
+		        </button>
+		        <button class="btn depot-btn-outline" onclick="resetFlowFilter()">
+		            <i class="bi bi-x-lg me-1"></i><span data-i18n="flow.filter.reset">Zurücksetzen</span>
+		        </button>
+		    </div>
+		</div>	
+        <div id="flowLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--pos)"></span><span data-i18n="flow.legend.buy">Kauf</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--neg)"></span><span data-i18n="flow.legend.sell">Verkauf</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--accent)"></span><span data-i18n="flow.legend.transfer">Transfer</span></span>
+            <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--text-muted)"></span><span data-i18n="flow.legend.external">Extern</span></span>
+        </div>
+
+        <div id="flowMainRow" class="flow-main-row">
+            <div id="flowChartWrapper" class="flow-chart-col" style="position:relative;min-height:500px">
+                <div id="flowLoading" style="color:var(--text-muted);padding:1rem" data-i18n="flow.loading">Lade Diagramm…</div>
+                <svg id="flowSvg" style="width:100%;height:70vh;display:none"></svg>
+                <div id="flowEmpty" class="d-none" style="color:var(--text-muted);padding:1rem" data-i18n="flow.empty">Keine Daten vorhanden.</div>
+            </div>
+
+            <div id="flowTxPanel" class="flow-tx-col">
+                <div class="flow-tx-header">
+                    <div>
+                        <div id="flowTxTitle" class="flow-tx-title" data-i18n="flow.panel.all">Alle Transaktionen</div>
+                        <div id="flowTxCount" class="flow-tx-count"></div>
+                    </div>
+                    <button id="flowTxClearBtn" class="btn btn-xs depot-btn-outline d-none" onclick="clearFlowSelection()">
+                        <i class="bi bi-x-lg me-1"></i><span data-i18n="flow.panel.clear">Alle anzeigen</span>
+                    </button>
+                </div>
+                <div class="flow-tx-search-row">
+                    <div class="flow-tx-search-wrap">
+                        <input type="text" id="flowTxSearch" class="form-control depot-input"
+                               data-i18n-placeholder="flow.panel.search" placeholder="Transaktionen durchsuchen…"
+                               oninput="onFlowTxSearchInput(this.value)"/>
+                        <button type="button" id="flowTxSearchClear" class="flow-tx-search-clear d-none"
+                                onclick="clearFlowTxSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="flowTxList" class="flow-tx-list"></div>
+                <div id="flowTxEmpty" class="d-none flow-tx-empty" data-i18n="flow.panel.empty">Keine Transaktionen vorhanden.</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="flowTooltip" class="depot-card" style="position:fixed;display:none;z-index:9999;padding:.6rem .8rem;font-size:.72rem;max-width:500px;max-height:500px;pointer-events:none"></div>
+
+<div id="statusToast" class="depot-toast d-none"></div>
+
+<!-- Edit Transaction Modal (shared fragment, same dialog as the main dashboard) -->
+<div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
+
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-de.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-th.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
+<script th:src="@{/vendor/js/d3.v7.min.js}"></script>
+<script th:src="@{/vendor/js/d3-sankey.min.js}"></script>
+<!-- load order: i18n → currency → tx-form → flow -->
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/currency.js}"></script>
+<script th:src="@{/js/tx-form.js}"></script>
+<script th:src="@{/js/flow.js}"></script>
+<script>
+    I18N.ready.then(() => { I18N.applyI18n(); initFlow(); });
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ public class TransactionDTO {
     private String transactionId;
     private Long positionId;
     private String positionLabel;
+    private String positionType;      // EXCHANGE, WALLET, ... (Position.type)
     private TransactionType type;
     private LocalDateTime date;
     private BigDecimal quantity;      // BTC

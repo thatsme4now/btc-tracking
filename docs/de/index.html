@@ -335,22 +335,26 @@
     Kurzanleitung zu den zentralen Funktionen der BTC-Tracking App:
     CSV-Import, Transaktionen erfassen, das Dashboard lesen und per CSV exportieren.
   </p>
-  <a class="back-link" href="usage.html">Nutzung / Setup — Download &amp; Installation →</a>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a class="back-link" href="usage.html">Nutzung / Setup — Download &amp; Installation →</a>
+    <a class="back-link" href="visualizations.html">Visualisierungen →</a>
+  </div>
 </header>
 
 <nav class="steps">
   <a href="#step-1"><span>01</span>CSV Import</a>
   <a href="#step-2"><span>02</span>CSV-Format</a>
   <a href="#step-3"><span>03</span>Transaktion hinzufügen</a>
-  <a href="#step-4"><span>04</span>Dashboard</a>
-  <a href="#step-5"><span>05</span>CSV Export</a>
+  <a href="#step-4"><span>04</span>App sperren</a>
+  <a href="#step-5"><span>05</span>Dashboard</a>
+  <a href="#step-6"><span>06</span>CSV Export</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1">
     <div class="step-text">
-      <div class="step-num">01 / 05</div>
+      <div class="step-num">01 / 06</div>
       <h2>CSV importieren</h2>
       <p>
         Über <b>„CSV importieren“</b> eine Datei auswählen. Die App erkennt die
@@ -379,7 +383,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 05</div>
+      <div class="step-num">02 / 06</div>
       <h2>Eigenes CSV-Format</h2>
       <p>
         Ohne CoinTracking-Option exportiert die App im eigenen Format. Das ist
@@ -404,7 +408,7 @@
 
   <section class="step" id="step-3">
     <div class="step-text">
-      <div class="step-num">03 / 05</div>
+      <div class="step-num">03 / 06</div>
       <h2>Transaktion manuell hinzufügen</h2>
       <p>
         Über <b>„Transaktion hinzufügen“</b> im Dashboard-Header öffnet sich ein
@@ -438,7 +442,44 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 05</div>
+      <div class="step-num">04 / 06</div>
+      <h2>App sperren</h2>
+      <p>
+        Das Schloss-Symbol im Header (neben „Aktionen“ / „Visualisierung“)
+        verschlüsselt alle Positionen und Transaktionen mit einem Passwort und
+        entfernt die Klartextdaten aus der Datenbank. Nützlich, wenn die App
+        unbeaufsichtigt bleibt oder der zugrunde liegende Rechner nicht
+        vollständig vertrauenswürdig ist.
+      </p>
+      <table class="fields">
+        <tr><th>Feld</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Passwort</td><td class="desc">Verschlüsselungspasswort — zum späteren Entsperren erforderlich</td></tr>
+        <tr><td class="field">Passwort bestätigen</td><td class="desc">Muss exakt übereinstimmen, sonst wird das Sperren abgelehnt</td></tr>
+      </table>
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Was beim Sperren passiert:</b> Alle Positionen und Transaktionen werden mit dem Passwort verschlüsselt und aus der Datenbank entfernt. Die App zeigt danach bei jedem Aufruf einen blockierenden „App gesperrt“-Dialog, bis das richtige Passwort erneut eingegeben wird — das stellt auch die Daten wieder her. Falsche Versuche werden mit einer steigenden Wartezeit gedrosselt.</span>
+      </div>
+      <div class="note">
+        <span>🔒</span>
+        <span><b>Verschlüsselung:</b> <span class="inline-code">AES-256-GCM</span>, der Schlüssel wird per <span class="inline-code">PBKDF2WithHmacSHA256</span> mit 310.000 Iterationen und einem zufälligen 16-Byte-Salt aus dem Passwort abgeleitet. Pro Verschlüsselung wird ein zufälliger 12-Byte-GCM-Nonce verwendet; das 128-Bit-Auth-Tag erkennt beim Entsperren ein falsches Passwort oder manipulierte Daten.</span>
+      </div>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>Wichtig:</b> Es gibt keine Passwort-Wiederherstellung. Geht das Passwort verloren, können die verschlüsselten Daten nicht wiederhergestellt werden.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/lock_app.png" alt="Dialog zum Sperren der App mit Passwortfeldern" onclick="openLightbox(this)">
+        <figcaption>„App sperren“-Dialog, geöffnet über das Schloss-Symbol im Header <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-5">
+    <div class="step-text">
+      <div class="step-num">05 / 06</div>
       <h2>Dashboard lesen und bedienen</h2>
       <p>Das Dashboard gliedert sich in drei Bereiche:</p>
 
@@ -483,9 +524,9 @@
     </div>
   </section>
 
-  <section class="step" id="step-5">
+  <section class="step" id="step-6">
     <div class="step-text">
-      <div class="step-num">05 / 05</div>
+      <div class="step-num">06 / 06</div>
       <h2>CSV exportieren</h2>
       <p>
         Über <b>„CSV exportieren“</b> im Header lassen sich alle oder — nach
