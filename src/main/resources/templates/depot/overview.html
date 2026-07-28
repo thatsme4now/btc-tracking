@@ -369,7 +369,7 @@
 	                                    </tr>
 	                                    </thead>
 	                                    <tbody id="posTableBody">
-	                                        <tr th:each="p : ${positions}"
+	                                        <tr th:each="p : ${positions}" th:if="${p.quantityInSats > 0}"
 	                                            class="depot-row"
 	                                            th:data-label="${p.label}"
 	                                            onclick="filterExchangeTransaction(this.dataset.label)">
