@@ -133,15 +133,51 @@ function _doRenderSankey(data) {
     svg.selectAll('*').remove();
 
     const tooltip = document.getElementById('flowTooltip');
+	
+	function _linkCategory(link) {
+	    const s = link.source, t = link.target;
+	    if (s.kind === 'BUY') return 'buy';
+	    if (t.kind === 'SELL') return 'sell';
+	    if (s.kind === 'EXTERNAL_IN' || t.kind === 'EXTERNAL_OUT') return 'external';
+	    if (s.kind === 'POSITION' && t.kind === 'POSITION') return 'transfer';
+	    return 'external';
+	}
+
+	/** Erzeugt eine Palette heller/dunkler Varianten einer Basisfarbe, im Zickzack sortiert
+	 *  (hell, dunkel, hell, dunkel, ...), damit aufeinanderfolgende Kanten maximal kontrastieren. */
+	function _buildShadePalette(cssVarName, steps) {
+	    const baseHex = getComputedStyle(document.body).getPropertyValue(cssVarName).trim() || '#888888';
+	    const base = d3.hsl(baseHex);
+	    const spread = 0.34;
+	    const shades = [];
+	    for (let i = 0; i < steps; i++) {
+	        const frac = steps === 1 ? 0.5 : i / (steps - 1);
+	        const l = Math.min(0.82, Math.max(0.18, base.l - spread / 2 + spread * frac));
+	        shades.push(d3.hsl(base.h, Math.min(1, base.s * 1.05 || 0.5), l).formatHex());
+	    }
+	    const zigzag = [];
+	    let lo = 0, hi = shades.length - 1;
+	    while (lo <= hi) {
+	        zigzag.push(shades[lo++]);
+	        if (lo <= hi) zigzag.push(shades[hi--]);
+	    }
+	    return zigzag;
+	}
+
+	const shadePalettes = {
+        buy:      _buildShadePalette('--pos', 6),
+        sell:     _buildShadePalette('--neg', 6),
+        transfer: _buildShadePalette('--accent', 6),
+        external: _buildShadePalette('--text-muted', 6)
+    };
+    const shadeCounters = { buy: 0, sell: 0, transfer: 0, external: 0 };
 
     function colorForLink(link) {
-        const srcNode = link.source;
-        const tgtNode = link.target;
-        if (srcNode.kind === 'BUY') return _flowVar('--pos');
-        if (tgtNode.kind === 'SELL') return _flowVar('--neg');
-        if (srcNode.kind === 'EXTERNAL_IN' || tgtNode.kind === 'EXTERNAL_OUT') return _flowVar('--text-muted');
-        if (srcNode.kind === 'POSITION' && tgtNode.kind === 'POSITION') return _flowVar('--accent');
-        return _flowVar('--text-muted');
+        const cat = _linkCategory(link);
+        const palette = shadePalettes[cat];
+        const idx = shadeCounters[cat] % palette.length;
+        shadeCounters[cat]++;
+        return palette[idx];
     }
 
     svg.append('g')
