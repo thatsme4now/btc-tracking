@@ -335,22 +335,26 @@
     Quick guide to the core features of the BTC-Tracking app:
     CSV import, recording transactions, reading the dashboard, and CSV export.
   </p>
-  <a class="back-link" href="usage.html">Usage / Setup — Download &amp; Installation →</a>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a class="back-link" href="usage.html">Usage / Setup — Download &amp; Installation →</a>
+    <a class="back-link" href="visualizations.html">Visualizations →</a>
+  </div>
 </header>
 
 <nav class="steps">
   <a href="#step-1"><span>01</span>CSV Import</a>
   <a href="#step-2"><span>02</span>CSV Format</a>
   <a href="#step-3"><span>03</span>Add Transaction</a>
-  <a href="#step-4"><span>04</span>Dashboard</a>
-  <a href="#step-5"><span>05</span>CSV Export</a>
+  <a href="#step-4"><span>04</span>Lock App</a>
+  <a href="#step-5"><span>05</span>Dashboard</a>
+  <a href="#step-6"><span>06</span>CSV Export</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1">
     <div class="step-text">
-      <div class="step-num">01 / 05</div>
+      <div class="step-num">01 / 06</div>
       <h2>Import CSV</h2>
       <p>
         Use <b>“Import CSV”</b> to select a file. The app automatically
@@ -379,7 +383,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 05</div>
+      <div class="step-num">02 / 06</div>
       <h2>The app's own CSV format</h2>
       <p>
         Without the CoinTracking option, the app exports in its own format.
@@ -404,7 +408,7 @@
 
   <section class="step" id="step-3">
     <div class="step-text">
-      <div class="step-num">03 / 05</div>
+      <div class="step-num">03 / 06</div>
       <h2>Add a transaction manually</h2>
       <p>
         Use <b>“Add Transaction”</b> in the dashboard header to open a form
@@ -438,7 +442,46 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 05</div>
+      <div class="step-num">04 / 06</div>
+      <h2>Lock the app</h2>
+      <p>
+        The lock icon in the navbar header (next to “Actions” / “Visualization”)
+        encrypts all positions and transactions with a password and removes the
+        plaintext data from the database. Use it whenever the app is about to
+        be left unattended or the underlying machine isn't fully trusted.
+      </p>
+
+      <table class="fields">
+        <tr><th>Field</th><th>Meaning</th></tr>
+        <tr><td class="field">Password</td><td class="desc">Encryption password — required to unlock again later</td></tr>
+        <tr><td class="field">Confirm password</td><td class="desc">Must match exactly, otherwise the lock is rejected</td></tr>
+      </table>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>What happens on lock:</b> All positions and transactions are encrypted with the password and deleted from the plain database. The app then shows a blocking “App locked” dialog on every load until the correct password is entered again — this also restores the data. Wrong attempts are rate-limited with an increasing wait time.</span>
+      </div>
+      <div class="note">
+        <span>🔒</span>
+        <span><b>Encryption:</b> <span class="inline-code">AES-256-GCM</span>, key derived from the password via <span class="inline-code">PBKDF2WithHmacSHA256</span> with 310,000 iterations and a random 16-byte salt. A random 12-byte GCM nonce is used per encryption, and the 128-bit authentication tag detects a wrong password or tampered data on unlock.</span>
+      </div>
+
+      <div class="note">
+        <span>⚠</span>
+        <span><b>Important:</b> There is no password recovery. If the password is lost, the encrypted data cannot be restored.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/lock_app.png" alt="Lock app dialog with password fields" onclick="openLightbox(this)">
+        <figcaption>“Lock app” dialog, opened via the lock icon in the header <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-5">
+    <div class="step-text">
+      <div class="step-num">05 / 06</div>
       <h2>Reading and using the dashboard</h2>
       <p>The dashboard is divided into three areas:</p>
 
@@ -483,9 +526,9 @@
     </div>
   </section>
 
-  <section class="step" id="step-5">
+  <section class="step" id="step-6">
     <div class="step-text">
-      <div class="step-num">05 / 05</div>
+      <div class="step-num">06 / 06</div>
       <h2>Export CSV</h2>
       <p>
         Use <b>“Export CSV”</b> in the header to export either all

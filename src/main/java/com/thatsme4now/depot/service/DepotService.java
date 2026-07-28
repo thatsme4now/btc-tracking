@@ -202,11 +202,12 @@ public class DepotService {
         return dto;
     }
 
-    private TransactionDTO toTransactionDTO(Transaction tx) {
+    TransactionDTO toTransactionDTO(Transaction tx) {
         TransactionDTO dto = new TransactionDTO();
         dto.setId(tx.getId());
         dto.setPositionId(tx.getPosition().getId());
         dto.setPositionLabel(tx.getPosition().getLabel());
+        dto.setPositionType(tx.getPosition().getType() != null ? tx.getPosition().getType().name() : null);
         dto.setType(tx.getType());
         dto.setDate(tx.getDate());
         dto.setQuantity(tx.getQuantity());

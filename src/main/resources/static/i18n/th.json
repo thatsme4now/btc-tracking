@@ -226,5 +226,14 @@
   "flow.filter.apply": "นำไปใช้",
   "flow.filter.reset": "รีเซ็ต",
   "flow.filter.position.all": "ทุกตำแหน่ง",
-  "flow.link.originalAmount": "จาก {AMOUNT} BTC"
+  "flow.link.originalAmount": "จาก {AMOUNT} BTC",
+  "flow.panel.all": "ธุรกรรมทั้งหมด",
+  "flow.panel.filteredBy": "กรองแล้ว: {LABEL}",
+  "flow.panel.clear": "แสดงทั้งหมด",
+  "flow.panel.empty": "ไม่มีธุรกรรม",
+  "flow.panel.count": "{COUNT} ธุรกรรม",
+  "flow.panel.transferOut": "ขาออก",
+  "flow.panel.transferIn": "ขาเข้า",
+  "flow.panel.search": "ค้นหาธุรกรรม…",
+  "flow.panel.search.clear": "ล้างการค้นหา"
 }

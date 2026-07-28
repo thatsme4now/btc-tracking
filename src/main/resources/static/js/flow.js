@@ -20,11 +20,23 @@ function _flowNodeLabel(node) {
     }
 }
 
-let _flowGraphCache = null;
+let _flowGraphCache   = null;
+let _flowSelection    = null; // { type: 'node'|'link', id: string } | null — Chart-Klick, filtert auch die Liste
+let _flowCardHighlight = null; // { linkId, txId } | null — Card-Klick, hebt nur im Chart hervor
+let _flowTxSearchTerm = '';
+let _flowHoveredLinkId = null;
 
 async function initFlow() {
+    if (typeof initFlatpickr === 'function') initFlatpickr();
+    _wireFlowTxListEvents();
     await _loadFlowPositionOptions();
     await loadFlowGraph();
+    _ensureFlowResizeObserver();
+}
+
+/** Hook called by tx-form.js (saveOrAddTx) after a transaction was saved. */
+function onTxSaved() {
+    loadFlowGraph();
 }
 
 async function _loadFlowPositionOptions() {
@@ -82,25 +94,55 @@ async function loadFlowGraph() {
     }
 
     loading.classList.add('d-none');
-    _flowGraphCache = data;
+    _flowGraphCache    = data;
+    _flowSelection     = null;
+    _flowCardHighlight = null;
+    _flowTxSearchTerm  = '';
+    const searchInput = document.getElementById('flowTxSearch');
+    if (searchInput) searchInput.value = '';
+    document.getElementById('flowTxSearchClear')?.classList.add('d-none');
 
     if (!data.nodes?.length || !data.links?.length) {
         emptyEl.classList.remove('d-none');
+        _renderFlowTxPanel();
         return;
     }
 
     renderSankey(data);
+    _renderFlowTxPanel();
 }
 
 window.addEventListener('resize', () => {
     if (_flowGraphCache) renderSankey(_flowGraphCache);
 });
 
+let _flowResizeObserver = null;
+
+/**
+ * Beobachtet die tatsächliche Box-Größe des Chart-Containers (statt nur window-resize).
+ * Fängt u.a. den Fall ab, dass die Seite direkt in einem schmalen Tablet-/Phone-Viewport
+ * geladen wird und clientWidth beim allerersten Render noch nicht die endgültige,
+ * bereits umgebrochene Flex-Layout-Breite widerspiegelt (z.B. DevTools-Device-Toolbar).
+ */
+function _ensureFlowResizeObserver() {
+    if (_flowResizeObserver || typeof ResizeObserver === 'undefined') return;
+    const wrapper = document.getElementById('flowChartWrapper');
+    if (!wrapper) return;
+    _flowResizeObserver = new ResizeObserver(() => {
+        if (_flowGraphCache) renderSankey(_flowGraphCache);
+    });
+    _flowResizeObserver.observe(wrapper);
+}
+
 let _flowResizeTimeout = null;
 
 function renderSankey(data) {
     clearTimeout(_flowResizeTimeout);
-    _flowResizeTimeout = setTimeout(() => _doRenderSankey(data), 50);
+    _flowResizeTimeout = setTimeout(() => {
+        // Zwei rAF-Ticks abwarten, damit das Flex-/Media-Query-Layout sicher final
+        // eingerastet ist, bevor wir clientWidth/clientHeight für die SVG messen.
+        requestAnimationFrame(() => requestAnimationFrame(() => _doRenderSankey(data)));
+    }, 50);
 }
 
 function _doRenderSankey(data) {
@@ -190,13 +232,15 @@ function _doRenderSankey(data) {
         .attr('stroke', colorForLink)
         .attr('stroke-width', d => Math.max(1, d.width))
         .on('mousemove', (event, d) => _showLinkTooltip(event, d, tooltip))
-        .on('mouseleave', () => tooltip.style.display = 'none');
+        .on('mouseleave', () => tooltip.style.display = 'none')
+        .on('click', (event, d) => { event.stopPropagation(); onFlowLinkClick(d); });
 
     const node = svg.append('g')
         .selectAll('g')
         .data(graph.nodes)
         .join('g')
-        .attr('class', 'flow-node');
+        .attr('class', 'flow-node')
+        .on('click', (event, d) => { event.stopPropagation(); onFlowNodeClick(d); });
 
     node.append('rect')
         .attr('x', d => d.x0)
@@ -213,6 +257,8 @@ function _doRenderSankey(data) {
         .attr('dy', '0.35em')
         .attr('text-anchor', d => d.x0 < width / 2 ? 'start' : 'end')
         .text(d => _flowNodeLabel(d));
+
+    _applyFlowHighlight();
 }
 
 function _showLinkTooltip(event, d, tooltip) {
@@ -259,4 +305,334 @@ function esc(str) {
         .replace(/"/g, '&quot;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
+}
+
+// ── Node/Link-Klick → Auswahl & Transaktionsliste rechts ──────────────────
+
+function onFlowNodeClick(d) {
+    _toggleFlowSelection('node', d.id);
+}
+
+function onFlowLinkClick(d) {
+    _toggleFlowSelection('link', d.raw.id);
+}
+
+function _toggleFlowSelection(type, id) {
+    if (_flowSelection && _flowSelection.type === type && _flowSelection.id === id) {
+        _flowSelection = null; // erneuter Klick auf gleiche Auswahl → zurücksetzen
+    } else {
+        _flowSelection = { type, id }; // Klick auf andere Node/Link → sofort umschalten
+    }
+    _flowCardHighlight = null; // Chart-Auswahl hat Vorrang vor einer reinen Card-Vorschau
+    _flowHoveredLinkId = null;
+    _applyFlowHighlight();
+    _renderFlowTxPanel();
+}
+
+function clearFlowSelection() {
+    _flowSelection = null;
+    _flowCardHighlight = null;
+    _flowHoveredLinkId = null;
+    _applyFlowHighlight();
+    _renderFlowTxPanel();
+}
+
+/**
+ * Klick auf eine Transaktions-Card rechts hebt NUR die zugehörige Transaktion im
+ * Sankey hervor – im Gegensatz zum Klick auf eine Node/Link im Diagramm selbst
+ * filtert das NICHT die Liste und ändert nicht deren Titel/Zähler. Ein Link kann
+ * mehrere Transaktionen bündeln (mehrere Cards teilen sich dieselbe linkId),
+ * daher wird zusätzlich die konkrete tx-Id verglichen, damit ein Klick auf eine
+ * ANDERE Card derselben Gruppe nicht fälschlich als "gleiche Auswahl" gilt.
+ */
+function _toggleFlowCardHighlight(linkId, txId) {
+    txId = txId ?? null;
+    const isSame = _flowCardHighlight
+        && _flowCardHighlight.linkId === linkId
+        && _flowCardHighlight.txId === txId;
+    _flowCardHighlight = isSame ? null : { linkId, txId };
+    _applyFlowCardPinnedClass();
+    _applyFlowHighlight();
+}
+
+function _applyFlowCardPinnedClass() {
+    const listEl = document.getElementById('flowTxList');
+    if (!listEl) return;
+    const pinnedTxId = _flowCardHighlight ? _flowCardHighlight.txId : null;
+    listEl.querySelectorAll('.flow-tx-card').forEach(card => {
+        card.classList.toggle('flow-tx-card-pinned', pinnedTxId != null && card.dataset.txId === pinnedTxId);
+    });
+}
+
+/**
+ * Hover über eine Transaktions-Card zeigt immer eine reine Vorschau-Hervorhebung
+ * im Sankey (temporär, ändert keinen Zustand). Klick pinnt die Hervorhebung für
+ * genau diese Transaktion, ohne die Liste zu filtern.
+ */
+function _wireFlowTxListEvents() {
+    const listEl = document.getElementById('flowTxList');
+    if (!listEl || listEl._flowWired) return;
+    listEl._flowWired = true;
+
+    listEl.addEventListener('mouseover', (event) => {
+        if (_flowSelection) return;
+        const card = event.target.closest('.flow-tx-card');
+        if (!card) return;
+        const linkId = card.dataset.linkId;
+        if (!linkId || linkId === _flowHoveredLinkId) return;
+        _flowHoveredLinkId = linkId;
+        _applyFlowHighlight({ type: 'link', id: linkId });
+    });
+
+    listEl.addEventListener('mouseout', (event) => {
+        const card = event.target.closest('.flow-tx-card');
+        if (!card || card.contains(event.relatedTarget)) return;
+        _flowHoveredLinkId = null;
+        _applyFlowHighlight();
+    });
+
+    listEl.addEventListener('click', (event) => {
+        const card = event.target.closest('.flow-tx-card');
+        if (!card) return;
+        const linkId = card.dataset.linkId;
+        if (!linkId) return;
+        _flowHoveredLinkId = null;
+        _toggleFlowCardHighlight(linkId, card.dataset.txId);
+    });
+}
+
+function _flowLinksForNode(nodeId) {
+    if (!_flowGraphCache) return [];
+    return _flowGraphCache.links.filter(l => l.source === nodeId || l.target === nodeId);
+}
+
+/**
+ * Zeichnet Highlight/Dimmed-Klassen im Sankey. Ohne Argument gilt Priorität:
+ * 1) die "harte" Chart-Auswahl (_flowSelection, filtert auch die Liste),
+ * 2) sonst eine per Card-Klick gepinnte reine Hervorhebung (_flowCardHighlight).
+ * Mit expliziter selection (auch null) kann eine rein visuelle Vorschau (Hover
+ * über eine Transaktions-Card) angezeigt werden, ohne einen der beiden
+ * Zustände zu verändern.
+ */
+function _applyFlowHighlight(selectionOverride) {
+    const sel = selectionOverride !== undefined
+        ? selectionOverride
+        : (_flowSelection || (_flowCardHighlight ? { type: 'link', id: _flowCardHighlight.linkId } : null));
+    const svg = d3.select('#flowSvg');
+    if (!sel) {
+        svg.selectAll('.flow-link, .flow-node').classed('flow-dimmed', false).classed('flow-highlighted', false);
+        return;
+    }
+
+    const linkIds = new Set();
+    const nodeIds = new Set();
+
+    if (sel.type === 'link') {
+        linkIds.add(sel.id);
+        const link = _flowGraphCache.links.find(l => l.id === sel.id);
+        if (link) { nodeIds.add(link.source); nodeIds.add(link.target); }
+    } else if (sel.type === 'node') {
+        nodeIds.add(sel.id);
+        for (const l of _flowLinksForNode(sel.id)) {
+            linkIds.add(l.id);
+            nodeIds.add(l.source);
+            nodeIds.add(l.target);
+        }
+    }
+
+    svg.selectAll('.flow-link')
+        .classed('flow-highlighted', d => linkIds.has(d.raw.id))
+        .classed('flow-dimmed', d => !linkIds.has(d.raw.id));
+    svg.selectAll('.flow-node')
+        .classed('flow-highlighted', d => nodeIds.has(d.id))
+        .classed('flow-dimmed', d => !nodeIds.has(d.id));
+}
+
+// ── Transaktionsliste rechts ───────────────────────────────────────────────
+
+function _flowTxListFromLinks(links) {
+    const list = [];
+    const seen = new Set();
+    for (const link of links) {
+        for (const det of (link.details || [])) {
+            if (det.transaction && !seen.has(det.transaction.id)) {
+                seen.add(det.transaction.id);
+                list.push({ tx: det.transaction, pairRole: det.pairedTransaction ? 'out' : null, linkId: link.id });
+            }
+            if (det.pairedTransaction && !seen.has(det.pairedTransaction.id)) {
+                seen.add(det.pairedTransaction.id);
+                list.push({ tx: det.pairedTransaction, pairRole: 'in', linkId: link.id });
+            }
+        }
+    }
+    list.sort((a, b) => (b.tx.date || '').localeCompare(a.tx.date || ''));
+    return list;
+}
+
+/**
+ * Baut einen durchsuchbaren Text aus allen auf der Card sichtbaren Feldern.
+ * Zahlenwerte werden sowohl mit Punkt (Rohwert, z.B. aus der API) als auch mit
+ * Komma (so wie sie auf der Card angezeigt werden, de-DE-Format) aufgenommen,
+ * damit die Suche unabhängig vom eingegebenen Dezimaltrennzeichen funktioniert.
+ */
+function _flowTxSearchHaystack(item) {
+    const tx = item.tx;
+    const parts = [
+        tx.positionLabel, tx.positionType, tx.type, tx.date,
+        tx.currency, tx.feesCurrency, tx.transferId, tx.transactionId, tx.comment
+    ];
+    for (const n of [tx.quantity, tx.pricePerBtc, tx.fees, tx.quantityFiat, tx.exchangeRate]) {
+        if (n == null) continue;
+        const raw = String(n);
+        parts.push(raw, raw.replace('.', ','));
+    }
+    return parts.filter(v => v != null).join(' ').toLowerCase();
+}
+
+function onFlowTxSearchInput(value) {
+    _flowTxSearchTerm = (value || '').trim().toLowerCase();
+    const clearBtn = document.getElementById('flowTxSearchClear');
+    if (clearBtn) clearBtn.classList.toggle('d-none', !value);
+    _renderFlowTxPanel();
+}
+
+function clearFlowTxSearch() {
+    const input = document.getElementById('flowTxSearch');
+    if (input) input.value = '';
+    onFlowTxSearchInput('');
+    input?.focus();
+}
+
+function _flowSelectionTxList() {
+    if (!_flowGraphCache) return [];
+    if (!_flowSelection) return _flowTxListFromLinks(_flowGraphCache.links);
+
+    if (_flowSelection.type === 'node') {
+        return _flowTxListFromLinks(_flowLinksForNode(_flowSelection.id));
+    }
+    if (_flowSelection.type === 'link') {
+        const link = _flowGraphCache.links.find(l => l.id === _flowSelection.id);
+        return link ? _flowTxListFromLinks([link]) : [];
+    }
+    return _flowTxListFromLinks(_flowGraphCache.links);
+}
+
+function _flowSelectionLabel() {
+    if (!_flowSelection || !_flowGraphCache) return '';
+    if (_flowSelection.type === 'node') {
+        const node = _flowGraphCache.nodes.find(n => n.id === _flowSelection.id);
+        return node ? _flowNodeLabel(node) : _flowSelection.id;
+    }
+    const link = _flowGraphCache.links.find(l => l.id === _flowSelection.id);
+    if (!link) return _flowSelection.id;
+    const srcNode = _flowGraphCache.nodes.find(n => n.id === link.source);
+    const tgtNode = _flowGraphCache.nodes.find(n => n.id === link.target);
+    const src = srcNode ? _flowNodeLabel(srcNode) : link.source;
+    const tgt = tgtNode ? _flowNodeLabel(tgtNode) : link.target;
+    return `${src} → ${tgt} (${link.month})`;
+}
+
+function _renderFlowTxPanel() {
+    const listEl   = document.getElementById('flowTxList');
+    const emptyEl  = document.getElementById('flowTxEmpty');
+    const titleEl  = document.getElementById('flowTxTitle');
+    const countEl  = document.getElementById('flowTxCount');
+    const clearBtn = document.getElementById('flowTxClearBtn');
+    if (!listEl) return;
+
+    let items = _flowSelectionTxList();
+    if (_flowTxSearchTerm) {
+        items = items.filter(item => _flowTxSearchHaystack(item).includes(_flowTxSearchTerm));
+    }
+
+    if (_flowSelection) {
+        titleEl.textContent = t('flow.panel.filteredBy', { LABEL: _flowSelectionLabel() });
+        clearBtn.classList.remove('d-none');
+    } else {
+        titleEl.textContent = t('flow.panel.all');
+        clearBtn.classList.add('d-none');
+    }
+    countEl.textContent = t('flow.panel.count', { COUNT: items.length });
+
+    if (!items.length) {
+        listEl.innerHTML = '';
+        emptyEl.classList.remove('d-none');
+        return;
+    }
+    emptyEl.classList.add('d-none');
+    listEl.innerHTML = items.map(_renderFlowTxCard).join('');
+    _applyFlowCardPinnedClass();
+}
+
+function _flowFormatFiat(val, code) {
+    if (val == null) return '–';
+    const num = Number(val).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return code ? `${num} ${code}` : num;
+}
+
+function _renderFlowTxCard(item) {
+    const tx = item.tx;
+    const date = tx.date ? String(tx.date).replace('T', ' ').substring(0, 19) : '–';
+
+    let badge = '';
+    if (item.pairRole === 'out') {
+        badge = `<span class="flow-tx-card-badge pair-out">${esc(t('flow.panel.transferOut'))}</span>`;
+    } else if (item.pairRole === 'in') {
+        badge = `<span class="flow-tx-card-badge pair-in">${esc(t('flow.panel.transferIn'))}</span>`;
+    } else if (tx.type === 'BUY') {
+        badge = `<span class="flow-tx-card-badge type-buy">${esc(t('flow.legend.buy'))}</span>`;
+    } else if (tx.type === 'SELL') {
+        badge = `<span class="flow-tx-card-badge type-sell">${esc(t('flow.legend.sell'))}</span>`;
+    }
+
+    const priceLine = tx.pricePerBtc != null
+        ? _flowFieldRow(t('table.col.pricePerBtc'), _flowFormatFiat(tx.pricePerBtc, tx.currency))
+        : '';
+    const totalLine = tx.quantityFiat != null
+        ? _flowFieldRow(t('table.col.total'), _flowFormatFiat(tx.quantityFiat, tx.currency))
+        : '';
+    const feesLine = tx.fees != null
+        ? _flowFieldRow(t('table.col.fees'), _flowFormatFiat(tx.fees, tx.feesCurrency || tx.currency))
+        : '';
+    const exRateLine = (tx.exchangeRate != null && Number(tx.exchangeRate) !== 1)
+        ? _flowFieldRow(t('modal.field.exchangeRate'), tx.exchangeRate)
+        : '';
+    const transferLine = tx.transferId
+        ? _flowFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
+        : '';
+    const commentLine = tx.comment
+        ? _flowFieldRow(t('modal.field.comment'), esc(tx.comment), tx.comment)
+        : '';
+    const dupClass = tx.duplicate ? ' warning-duplicate' : '';
+
+    const positionSub = tx.positionType
+        ? `<div style="color:var(--text-muted);font-size:.62rem;letter-spacing:.03em;text-transform:uppercase;margin:-.2rem 0 .35rem">${esc(tx.positionType)}</div>`
+        : '';
+
+    const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
+
+    return `<div class="flow-tx-card${dupClass}" data-link-id="${esc(item.linkId || '')}" data-tx-id="${esc(tx.id)}">
+        <div class="flow-tx-card-head">
+            <span>${esc(tx.positionLabel || '–')}</span>
+            <span class="flow-tx-card-actions">
+                ${badge}
+                <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
+                        onclick="event.stopPropagation(); openEditTx(${txJson})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+            </span>
+        </div>
+        ${positionSub}
+        ${_flowFieldRow(t('table.col.date'), date)}
+        ${_flowFieldRow(t('table.col.type'), esc(tx.type))}
+        ${_flowFieldRow(t('table.col.btc'), _flowFmt8(tx.quantity))}
+        ${priceLine}${totalLine}${feesLine}${exRateLine}${transferLine}${commentLine}
+    </div>`;
+}
+
+function _flowFieldRow(label, value, title) {
+    return `<div class="flow-tx-field">
+        <span class="flow-tx-field-label">${esc(label)}</span>
+        <span class="flow-tx-field-value"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
+    </div>`;
 }

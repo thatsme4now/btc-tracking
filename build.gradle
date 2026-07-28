@@ -49,10 +49,18 @@ dependencies {
 }
 
 
+// Bundle third-party license notices into the JAR so they ship with the binary
+// (required e.g. by the BSD-3-Clause terms of the vendored D3 libraries).
+tasks.named('processResources') {
+    from(rootProject.file('NOTICE.md')) {
+        into ''
+    }
+}
+
 jar {
     enabled = false
 }
- 
+
 bootJar {
     archiveFileName = 'btc-tracking.jar'
 }

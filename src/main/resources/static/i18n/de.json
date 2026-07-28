@@ -226,5 +226,14 @@
   "flow.filter.reset": "Zurücksetzen",
   "flow.filter.position": "Position",
   "flow.filter.position.all": "Alle Positionen",
-  "flow.link.originalAmount": "von {AMOUNT} BTC"
+  "flow.link.originalAmount": "von {AMOUNT} BTC",
+  "flow.panel.all": "Alle Transaktionen",
+  "flow.panel.filteredBy": "Gefiltert: {LABEL}",
+  "flow.panel.clear": "Alle anzeigen",
+  "flow.panel.empty": "Keine Transaktionen vorhanden.",
+  "flow.panel.count": "{COUNT} Transaktion(en)",
+  "flow.panel.transferOut": "Ausgang",
+  "flow.panel.transferIn": "Eingang",
+  "flow.panel.search": "Transaktionen durchsuchen…",
+  "flow.panel.search.clear": "Suche leeren"
 }

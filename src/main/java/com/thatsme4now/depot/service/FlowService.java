@@ -25,6 +25,7 @@ public class FlowService {
 
     private final PositionRepository positionRepo;
     private final TransactionRepository transactionRepo;
+    private final DepotService depotService;
 
     // ── Public entry point ───────────────────────────────────────────────
 
@@ -97,6 +98,8 @@ public class FlowService {
         BigDecimal creditQty;  // bei targetPositionId angekommene Menge (kann wg. Fee < debitQty sein)
         LocalDateTime date;
         String transactionId;
+        Transaction tx;        // primäre Transaktion (z.B. TRANSFER_OUT-Seite bei Transfers)
+        Transaction pairedTx;  // gepaarte Gegenbuchung (TRANSFER_IN), null wenn nicht anwendbar
     }
 
     private static class Allocation {
@@ -115,12 +118,12 @@ public class FlowService {
             switch (tx.getType()) {
                 case BUY -> {
                     edges.add(mkEdge("e" + edges.size(), "buy-" + tx.getPosition().getId(), "pos-" + tx.getPosition().getId(),
-                            null, tx.getPosition().getId(), null, tx.getQuantity(), tx));
+                            null, tx.getPosition().getId(), null, tx.getQuantity(), tx, null));
                     processed.add(tx.getId());
                 }
                 case SELL -> {
                     edges.add(mkEdge("e" + edges.size(), "pos-" + tx.getPosition().getId(), "sell-" + tx.getPosition().getId(),
-                            tx.getPosition().getId(), null, tx.getQuantity(), null, tx));
+                            tx.getPosition().getId(), null, tx.getQuantity(), null, tx, null));
                     processed.add(tx.getId());
                 }
                 case TRANSFER_OUT -> {
@@ -131,12 +134,12 @@ public class FlowService {
                         if (!pairIn.getPosition().getId().equals(tx.getPosition().getId())) {
                             edges.add(mkEdge("e" + edges.size(), "pos-" + tx.getPosition().getId(), "pos-" + pairIn.getPosition().getId(),
                                     tx.getPosition().getId(), pairIn.getPosition().getId(),
-                                    tx.getQuantity(), pairIn.getQuantity(), tx));
+                                    tx.getQuantity(), pairIn.getQuantity(), tx, pairIn));
                         }
                         // sonst: Self-Transfer (SELF-Import) -> kein Edge
                     } else {
                         edges.add(mkEdge("e" + edges.size(), "pos-" + tx.getPosition().getId(), "ext-out-" + tx.getPosition().getId(),
-                                tx.getPosition().getId(), null, tx.getQuantity(), null, tx));
+                                tx.getPosition().getId(), null, tx.getQuantity(), null, tx, null));
                         processed.add(tx.getId());
                     }
                 }
@@ -146,7 +149,7 @@ public class FlowService {
                         processed.add(tx.getId()); // bereits über OUT-Seite verarbeitet
                     } else {
                         edges.add(mkEdge("e" + edges.size(), "ext-in-" + tx.getPosition().getId(), "pos-" + tx.getPosition().getId(),
-                                null, tx.getPosition().getId(), null, tx.getQuantity(), tx));
+                                null, tx.getPosition().getId(), null, tx.getQuantity(), tx, null));
                         processed.add(tx.getId());
                     }
                 }
@@ -157,7 +160,7 @@ public class FlowService {
     }
 
     private FlowEdge mkEdge(String id, String sourceNode, String targetNode, Long sourcePositionId, Long targetPositionId,
-                             BigDecimal debitQty, BigDecimal creditQty, Transaction tx) {
+                             BigDecimal debitQty, BigDecimal creditQty, Transaction tx, Transaction pairedTx) {
         FlowEdge e = new FlowEdge();
         e.id = id;
         e.sourceNode = sourceNode;
@@ -168,6 +171,8 @@ public class FlowService {
         e.creditQty = creditQty != null ? creditQty : debitQty;
         e.date = tx.getDate();
         e.transactionId = tx.getTransactionId();
+        e.tx = tx;
+        e.pairedTx = pairedTx;
         return e;
     }
 
@@ -310,6 +315,10 @@ public class FlowService {
             detail.setQuantity(qty.setScale(8, RoundingMode.HALF_UP));
             detail.setOriginalQuantity(e.debitQty.setScale(8, RoundingMode.HALF_UP));
             detail.setTransactionId(e.transactionId);
+            detail.setTransaction(depotService.toTransactionDTO(e.tx));
+            if (e.pairedTx != null) {
+                detail.setPairedTransaction(depotService.toTransactionDTO(e.pairedTx));
+            }
             link.getDetails().add(detail);
         }
 

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Edit Transaction modal — shared fragment.
+  Included by both overview.html (main dashboard) and flow.html (Flow Diagram
+  page) so editing a transaction always opens the exact same dialog. Requires
+  tx-form.js (openEditTx/saveOrAddTx/onExchangeSelectChange/...), flatpickr
+  and bootstrap.bundle.min.js to be loaded on the including page.
+-->
+<div th:fragment="editTxModal">
+    <div class="modal fade" id="txModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" data-i18n="modal.editTx.title">Edit Transaction</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editTxId"/>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.qty">Quantity (BTC)</label>
+                            <input type="number" id="editTxQty" class="form-control depot-input" step="0.00000001"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.date">Date &amp; Time</label>
+                            <input type="datetime-local" id="editTxDate" class="form-control depot-input"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.type">Type</label>
+                            <select id="editTxType" class="form-select depot-input" onchange="updateRelevantFields()">
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                                <option value="TRANSFER_OUT">TRANSFER_OUT</option>
+                                <option value="TRANSFER_IN">TRANSFER_IN</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-none fiat-field">
+                            <label class="depot-label" data-i18n="modal.field.qtyFiat">Quantity Fiat</label>
+                            <input type="number" id="editTxQuantityFiat" class="form-control depot-input" step="0.01"/>
+                        </div>
+                        <div class="col-md-4 d-none fiat-field">
+                            <label class="depot-label" data-i18n="modal.field.currency">Currency</label>
+                            <input type="text" id="editTxCurrency" class="form-control depot-input"
+                                   placeholder="EUR" maxlength="10"/>
+                            <div class="form-text text-muted" style="font-size:.7rem"
+                                 data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
+                        </div>
+                        <div class="col-md-4 d-none fiat-field">
+                            <label class="depot-label" data-i18n="modal.field.exchangeRate">Exchange Rate to €</label>
+                            <input type="number" id="editTxExchangeRate" class="form-control depot-input"
+                                   step="0.000001" placeholder="1.000000"/>
+                            <div class="form-text text-muted" style="font-size:.7rem"
+                                 data-i18n="modal.field.exchangeRate.hint">1 [Currency] = ? EUR</div>
+                        </div>
+                        <div class="col-md-4 position-field">
+						    <label class="depot-label" data-i18n="modal.field.exchange">Exchange</label>
+						    <select id="editTxExchangeSelect" class="form-select depot-input mb-1"
+						            onchange="onExchangeSelectChange('edit')">
+						        <option value="">— Select position —</option>
+						    </select>
+						    <input type="text" id="editTxExchange" class="form-control depot-input d-none"
+						           maxlength="100" placeholder="New position name"
+						           data-i18n-placeholder="modal.field.exchange.hint"/>
+						    <div class="form-text text-muted" style="font-size:.7rem"
+						         data-i18n="modal.field.exchange.hint">Position (e.g. Bitcoin.de, Bitget, Wallet)</div>
+						</div>
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.fees">Fees (€)</label>
+                            <input type="number" id="editTxFees" class="form-control depot-input" step="0.01"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.fees.currency">Fee Currency</label>
+                            <input type="text" id="editTxFeesCurrency" class="form-control depot-input"
+                                   placeholder="EUR" maxlength="10"
+                                   data-i18n-placeholder="modal.field.fees.currency"/>
+                            <div class="form-text text-muted" style="font-size:.7rem"
+                                 data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
+                            <textarea id="editTxComment" class="form-control depot-input"></textarea>
+                        </div>
+                        <div class="col-12 d-none currency-field">
+                            <hr style="border-color:var(--border)"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="saveOrAddTx(false)">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.editTx.btn">Save</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

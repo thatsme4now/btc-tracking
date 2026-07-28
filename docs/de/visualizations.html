@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Visualisierungen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-links{display:flex; flex-wrap:wrap; gap:12px;}
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    position:fixed;
+    top:20px;
+    right:24px;
+    z-index:500;
+    display:flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+  @media (max-width:600px){
+    .lang-switch{top:12px; right:12px;}
+  }
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+  nav.steps a.soon{opacity:.45; cursor:default; pointer-events:none;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step.single{grid-template-columns:1fr;}
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    margin:32px 0 12px;
+    color:var(--accent);
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  .swatch{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figure.missing img{display:none;}
+  .img-fallback{
+    display:none;
+    padding:56px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.9;
+  }
+  .img-fallback .path{color:var(--accent-dim);}
+  figure.missing .img-fallback{display:block;}
+  figcaption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  .roadmap-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+    margin:20px 0;
+  }
+  .roadmap-card ul.tight{margin:8px 0 0;}
+  .roadmap-card li.done::before{content:"✓ "; color:var(--green); font-family:'JetBrains Mono',monospace;}
+  .roadmap-card li.planned{color:var(--muted);}
+  .roadmap-card li.planned::before{content:"— "; font-family:'JetBrains Mono',monospace;}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="lang-switch">
+  <a href="visualizations.html" class="active">DE</a>
+  <a href="../visualizations.html">EN</a>
+</div>
+
+<header class="hero">
+  <div class="hero-tag"><span class="dot"></span>Visualisierungen · Deutsch</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Visualisierungen</h1>
+  <p class="lead">
+    Neben der tabellarischen Dashboard-Ansicht bietet die App eigene
+    Visualisierungen, um die Portfolio-Historie zu erkunden. Diese Seite ist
+    bewusst offen gehalten — aktuell beschreibt sie das <b>Fluss-Diagramm</b>
+    und wächst mit jeder weiteren Visualisierung (in der App selbst ist im
+    Menü bereits ein „Bald verfügbar“-Platzhalter dafür reserviert).
+  </p>
+  <div class="back-links">
+    <a class="back-link" href="index.html">← Zurück zur Anleitung</a>
+    <a class="back-link" href="usage.html">Nutzung / Setup →</a>
+  </div>
+</header>
+
+<nav class="steps">
+  <a href="#viz-flow"><span>01</span>Fluss-Diagramm (Sankey)</a>
+  <a class="soon"><span>·</span>Weitere Visualisierungen — bald verfügbar</a>
+</nav>
+
+<main>
+
+  <section class="step" id="viz-flow">
+    <div class="step-text">
+      <div class="step-num">VISUALISIERUNG 01</div>
+      <h2>Fluss-Diagramm (Sankey)</h2>
+      <p>
+        Aufrufbar im Dashboard-Header über <b>„Visualisierung“ → „Fluss-Diagramm“</b>
+        (oder direkt unter <span class="inline-code">/btc-tracking/flow</span>).
+        Es zeichnet ein <b>Sankey-Diagramm</b> davon, wie sich die eigenen BTC über
+        die Zeit bewegt haben: Käufe fließen von links hinein, Verkäufe und
+        externe Auszahlungen fließen nach rechts hinaus, und Transfers zwischen
+        eigenen Wallets/Börsen erscheinen als Verbindungen zwischen den
+        Positions-Knoten. Buchungen werden pro Monat und pro Quelle/Ziel-Paar
+        gebündelt, damit das Diagramm auch bei langer Historie lesbar bleibt.
+      </p>
+
+      <h3>Filter</h3>
+      <table class="fields">
+        <tr><th>Filter</th><th>Wirkung</th></tr>
+        <tr><td class="field">Von / Bis</td><td class="desc">Diagramm auf einen Zeitraum einschränken</td></tr>
+        <tr><td class="field">Position</td><td class="desc">Diagramm auf eine Wallet/Börse verankern — verfolgt deren BTC rückwärts (Herkunft) und vorwärts (Ziel)</td></tr>
+      </table>
+
+      <h3>Farblegende</h3>
+      <ul class="tight">
+        <li><span class="swatch" style="background:var(--green)"></span><b>Kauf</b> — BTC in eine Position gekauft</li>
+        <li><span class="swatch" style="background:var(--red)"></span><b>Verkauf</b> — BTC aus einer Position verkauft</li>
+        <li><span class="swatch" style="background:var(--accent)"></span><b>Transfer</b> — zwischen zwei eigenen Positionen bewegt</li>
+        <li><span class="swatch" style="background:var(--muted)"></span><b>Extern</b> — Einzahlung von bzw. Auszahlung an eine Adresse außerhalb der erfassten Positionen</li>
+      </ul>
+
+      <h3>Transaktions-Panel</h3>
+      <p>
+        Neben dem Diagramm zeigt ein Panel jede zugrunde liegende Buchung als
+        Card (Datum, Position, Typ, BTC-Menge, Preis, Gebühren, Währung,
+        Wechselkurs, Transfer-ID, Kommentar). Kauf, Verkauf sowie Transfer-Ein-
+        und -Ausgang bekommen jeweils ein kleines farbiges Badge. Ein Suchfeld
+        über der Liste filtert nach jedem auf den Cards sichtbaren Wert
+        (Position, Typ, Datum, Beträge, Kommentar, …) — unabhängig davon, ob
+        Beträge mit Punkt oder Komma eingegeben werden. Auf schmaleren
+        Bildschirmen rutscht das Panel unter das Diagramm statt daneben zu stehen.
+      </p>
+
+      <h3>Interaktion im Diagramm</h3>
+      <table class="fields">
+        <tr><th>Aktion</th><th>Ergebnis</th></tr>
+        <tr><td class="field">Node oder Link hovern</td><td class="desc">Tooltip mit exakter Menge, Monat, Positions-Bestand und der Liste der einzelnen Buchungen dahinter</td></tr>
+        <tr><td class="field">Node oder Link anklicken</td><td class="desc">Hebt ihn hervor und <b>filtert</b> das Transaktions-Panel auf nur die zugehörigen Buchungen; der Panel-Titel wechselt auf „Gefiltert: …“ mit Button zum Zurücksetzen. Erneuter Klick auf dasselbe Element setzt zurück, Klick auf ein anderes wechselt sofort um.</td></tr>
+      </table>
+
+      <h3>Interaktion im Transaktions-Panel</h3>
+      <table class="fields">
+        <tr><th>Aktion</th><th>Ergebnis</th></tr>
+        <tr><td class="field">Transaktions-Card hovern</td><td class="desc">Temporäre Vorschau-Hervorhebung des passenden Links/der Nodes im Diagramm (nur solange keine Diagramm-Auswahl aktiv ist)</td></tr>
+        <tr><td class="field">Transaktions-Card anklicken</td><td class="desc"><b>Pinnt</b> die Hervorhebung für genau diese Buchung im Diagramm — <i>ohne</i> die Liste zu filtern oder zu verkleinern, und ohne Panel-Titel/Zähler zu ändern. Erneuter Klick auf dieselbe Card entfernt das Pinning, Klick auf eine andere Card wechselt die Hervorhebung sofort um.</td></tr>
+      </table>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Warum zwei unterschiedliche Klick-Verhalten?</b> Ein Klick direkt im <i>Diagramm</i> dient zum Eingrenzen („zeig mir nur, was zu diesem Node/Link gehört“). Ein Klick auf eine bereits sichtbare <i>Card</i> in der Liste dient dem schnellen visuellen Nachschlagen („wo im Diagramm ist diese eine Buchung?“), ohne die Position in der vollständigen Liste zu verlieren.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/flowchart.png" alt="Fluss-Diagramm mit farbcodierten Verbindungen und dem Transaktions-Panel"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot folgt in Kürze<br><span class="path">images/flowchart.png</span></div>
+        <figcaption>Fluss-Diagramm mit dem Transaktions-Panel rechts <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step single" style="border-bottom:none">
+    <div class="step-text">
+      <div class="step-num">ROADMAP</div>
+      <h2>Was es gibt — und was als Nächstes kommt</h2>
+      <p class="muted">
+        Diese Seite ist bewusst offen gehalten: Jede Visualisierung bekommt oben
+        einen eigenen, nummerierten Abschnitt, und das „Visualisierung“-Menü in
+        der App reserviert bereits einen Platz für kommende Diagrammtypen
+        neben dem Fluss-Diagramm.
+      </p>
+      <div class="roadmap-card">
+        <ul class="tight">
+          <li class="done">Fluss-Diagramm (Sankey) — Kauf/Verkauf/Transfer-Fluss über die Zeit, mit filter- und durchsuchbarem Transaktions-Panel</li>
+          <li class="planned">Weitere Visualisierungen — werden hier dokumentiert, sobald verfügbar</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · Visualisierungen · <a href="index.html" style="color:var(--muted)">← Zurück zur Anleitung</a>
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ Schließen (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>
