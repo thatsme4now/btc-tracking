@@ -362,8 +362,9 @@
     Neben der tabellarischen Dashboard-Ansicht bietet die App eigene
     Visualisierungen, um die Portfolio-Historie zu erkunden. Diese Seite ist
     bewusst offen gehalten — aktuell beschreibt sie das <b>Fluss-Diagramm</b>
-    und wächst mit jeder weiteren Visualisierung (in der App selbst ist im
-    Menü bereits ein „Bald verfügbar“-Platzhalter dafür reserviert).
+    und die <b>Bestandsansicht</b>, und wächst mit jeder weiteren Visualisierung
+    (in der App selbst ist im Menü bereits ein „Bald verfügbar“-Platzhalter dafür
+    reserviert).
   </p>
   <div class="back-links">
     <a class="back-link" href="index.html">← Zurück zur Anleitung</a>
@@ -373,6 +374,7 @@
 
 <nav class="steps">
   <a href="#viz-flow"><span>01</span>Fluss-Diagramm (Sankey)</a>
+  <a href="#viz-holdings"><span>02</span>Bestandsansicht</a>
   <a class="soon"><span>·</span>Weitere Visualisierungen — bald verfügbar</a>
 </nav>
 
@@ -450,6 +452,65 @@
     </div>
   </section>
 
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">VISUALISIERUNG 02</div>
+      <h2>Bestandsansicht</h2>
+      <p>
+        Aufrufbar im Dashboard-Header über <b>„Visualisierung“ → „Bestandsansicht“</b>
+        (oder direkt unter <span class="inline-code">/btc-tracking/holdings</span>).
+        Sie schlüsselt das Portfolio <b>Jahr für Jahr</b> in drei Diagrammen auf:
+        was gekauft und verkauft wurde, was das an realisiertem und unrealisiertem
+        Gewinn/Verlust bedeutet, und wie sich der BTC-Bestand entwickelt hat.
+      </p>
+
+      <h3>Käufe- &amp; Verkäufe-Diagramm</h3>
+      <p>
+        Ein Balkenpaar pro Jahr: <b>Käufe</b>, gestapelt nach Wallet/Börse (jede
+        Position bekommt einen eigenen Blau-/Türkis-Ton, sodass sowohl die
+        Gesamtsumme pro Jahr als auch die Verteilung auf die einzelnen
+        Börsen/Wallets erkennbar ist), daneben ein separater <b>Verkäufe</b>-Balken
+        (lila) für dasselbe Jahr.
+      </p>
+
+      <h3>Realisierter &amp; Unrealisierter Gewinn/Verlust-Diagramm</h3>
+      <p>
+        Ein zweites Diagramm mit einer Balkengruppe pro Jahr und zwei Serien:
+        <b>realisierter Gewinn/Verlust</b> (Verkaufserlös abzüglich der gewichteten
+        durchschnittlichen Anschaffungskosten der verkauften BTC — also eine echte
+        Gewinn/Verlust-Kennzahl, nicht nur der reine Verkaufsbetrag) und
+        <b>unrealisierter Gewinn/Verlust</b> (Bestandswert zum Jahresende abzüglich
+        Anschaffungskosten zu diesem Zeitpunkt). Beide grün bei Gewinn, rot/orange
+        bei Verlust. Der unrealisierte Gewinn/Verlust nutzt für das laufende,
+        noch nicht abgeschlossene Jahr den Live-Kurs; vergangene Jahre nutzen den
+        weiter unten beschriebenen 31.12.-Referenzkurs — fehlt der für ein
+        vergangenes Jahr noch, bleibt dessen Balken schlicht leer, bis einer
+        hinterlegt wird.
+      </p>
+
+      <h3>BTC-Bestand-Diagramm</h3>
+      <p>
+        Ein drittes Diagramm zeigt den gesamten <b>BTC-Bestand</b> über das ganze
+        Portfolio hinweg zum 31.12. jedes Jahres (bzw. jetzt, für das laufende
+        Jahr), in Bitcoin-Orange.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Referenzkurse für vergangene Jahre:</b> die App hinterlegt einmalig im Hintergrund einen ungefähren BTC-Jahresend-Kurs (31.12.) je Währung für vergangene Jahre — genau das treibt die Unrealisiert-Balken für vergangene Jahre oben an. Eine Tabelle unterhalb der Diagramme erlaubt es, diese Werte selbst einzusehen und zu korrigieren sowie ein Jahr nachzutragen, das der Hintergrund-Seed noch nicht abdeckt (z. B. ein gerade erst zu Ende gegangenes Jahr).</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/holdings.png" alt="Bestandsansicht mit Jahres-Diagrammen für Käufe, Verkäufe und Gewinn/Verlust"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot folgt in Kürze<br><span class="path">images/holdings.png</span></div>
+        <figcaption>Jährliche Käufe (gestapelt nach Börse) sowie Verkaufs-/Gewinn-Verlust-Diagramm <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section class="step single" style="border-bottom:none">
     <div class="step-text">
       <div class="step-num">ROADMAP</div>
@@ -463,6 +524,7 @@
       <div class="roadmap-card">
         <ul class="tight">
           <li class="done">Fluss-Diagramm (Sankey) — Kauf/Verkauf/Transfer-Fluss über die Zeit, mit filter- und durchsuchbarem Transaktions-Panel</li>
+          <li class="done">Bestandsansicht — jährliche Käufe nach Börse, Verkäufe, realisierter und unrealisierter Gewinn/Verlust</li>
           <li class="planned">Weitere Visualisierungen — werden hier dokumentiert, sobald verfügbar</li>
         </ul>
       </div>

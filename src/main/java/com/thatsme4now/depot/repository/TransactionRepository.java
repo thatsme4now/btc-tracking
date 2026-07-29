@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
@@ -21,6 +22,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByPositionIdAndTypeInOrderByDateAsc(Long positionId, List<TransactionType> types);
 
     List<Transaction> findAllByOrderByDateDesc();
+
+    Optional<Transaction> findFirstByOrderByDateAsc();
 
     boolean existsByPositionIdAndDateAndTypeAndQuantity(
             Long positionId, LocalDateTime date, TransactionType type, BigDecimal quantity);

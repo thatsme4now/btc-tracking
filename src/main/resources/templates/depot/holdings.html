@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title data-i18n="holdings.title">Bestandsansicht</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/css/holdings.css}"/>
+</head>
+<body class="depot-body">
+
+<nav class="navbar depot-navbar">
+    <div class="container-fluid px-4 d-flex align-items-center justify-content-between">
+        <a class="navbar-brand depot-brand" th:href="@{/btc-tracking}">
+            <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+        </a>
+        <a th:href="@{/btc-tracking}" class="btn depot-btn-outline">
+            <i class="bi bi-arrow-left me-1"></i><span data-i18n="flow.back">Zurück</span>
+        </a>
+    </div>
+</nav>
+
+<main class="container-fluid px-4 py-4">
+    <div class="depot-card mb-3">
+        <div class="depot-card-header d-flex align-items-center justify-content-between">
+            <span data-i18n="holdings.title">Bestandsansicht</span>
+            <button id="holdingsResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetHoldingsLayout()">
+                <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
+            </button>
+        </div>
+
+        <div id="holdingsLoading" style="color:var(--text-muted);padding:1rem" data-i18n="holdings.loading">Lade Daten…</div>
+        <div id="holdingsEmpty" class="d-none" style="color:var(--text-muted);padding:1rem" data-i18n="holdings.empty">Keine Daten vorhanden.</div>
+
+        <div id="holdingsContent" class="d-none">
+            <p class="holdings-layout-hint d-none" id="holdingsLayoutHint" data-i18n="holdings.layout.hint">
+                Ziehe die Kacheln per Drag &amp; Drop in die gewünschte Reihenfolge — bis zu 3 pro Reihe.
+            </p>
+
+            <div id="holdingsGrid" class="holdings-grid">
+                <div class="holdings-grid-row" data-row="0">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-buys">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buysAndSells">Käufe &amp; Verkäufe pro Jahr</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsBuysChart"></div>
+                    </div>
+
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-pnl">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.pnl">Realisierter &amp; Unrealisierter Gewinn/Verlust pro Jahr</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsPnlChart"></div>
+                    </div>
+                </div>
+
+                <div class="holdings-grid-row" data-row="1">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-balance">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.balance">BTC-Bestand pro Jahr</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-balance', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-balance', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsBalanceChart"></div>
+                    </div>
+
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-refprices">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.refPrices.title">Referenzkurse pro Jahr (31.12.)</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-refprices', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-refprices', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <p class="holdings-refprices-hint" data-i18n="holdings.refPrices.hint">
+                            Für vergangene Jahre ohne hinterlegten Wert — z.B. weil das Jahr gerade erst zu Ende gegangen ist — kannst du den BTC-Kurs zum 31.12. hier selbst eintragen.
+                        </p>
+                        <table class="holdings-refprices-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="holdings.refPrices.col.year">Jahr</th>
+                                    <th data-i18n="holdings.refPrices.col.price">Kurs zum 31.12.</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdingsRefPricesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="holdings-grid-row" data-row="2"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" data-row="3"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" data-row="4"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="statusToast" class="depot-toast d-none"></div>
+
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/vendor/js/apexcharts.min.js}"></script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/currency.js}"></script>
+<script th:src="@{/js/holdings.js}"></script>
+<script>
+    I18N.ready.then(() => { I18N.applyI18n(); initHoldings(); });
+</script>
+</body>
+</html>

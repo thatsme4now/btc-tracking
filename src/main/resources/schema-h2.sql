@@ -60,3 +60,17 @@ CREATE TABLE IF NOT EXISTS current_price (
     loaded_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (ticker, currency)
 );
+
+-- Year-end (31.12.) reference prices per currency, used by the "Bestandsansicht"
+-- (yearly holdings) visualization for past years. Approximate values, seeded
+-- once per (ticker, year, currency) by HistoricalPriceSeeder — see that class.
+CREATE TABLE IF NOT EXISTS historical_price (
+    id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ticker     VARCHAR(10)    NOT NULL DEFAULT 'BTC',
+    price_year INT            NOT NULL,
+    currency   VARCHAR(10)    NOT NULL,
+    price      DECIMAL(18,2)  NOT NULL,
+    CONSTRAINT uq_hp_ticker_year_currency UNIQUE (ticker, price_year, currency)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hp_year ON historical_price(price_year);

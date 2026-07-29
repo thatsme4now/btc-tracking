@@ -30,6 +30,8 @@ import com.thatsme4now.depot.service.CsvImportService.ImportResult;
 import com.thatsme4now.depot.service.DataExportService;
 import com.thatsme4now.depot.service.DepotService;
 import com.thatsme4now.depot.service.FlowService;
+import com.thatsme4now.depot.service.HistoricalPriceService;
+import com.thatsme4now.depot.service.HoldingsYearlyService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,8 +47,44 @@ public class DepotRestController {
     private final CsvEncryptionService csvEncryptionService;
     private final DataExportService dataExportService;
     private final FlowService flowService;
+    private final HoldingsYearlyService holdingsYearlyService;
+    private final HistoricalPriceService historicalPriceService;
 
-    
+    @GetMapping("/holdings/yearly")
+    public List<com.thatsme4now.depot.dto.YearlyHoldingsDTO> getYearlyHoldings(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return holdingsYearlyService.getYearlyHoldings(cur);
+    }
+
+    @GetMapping("/historical-prices")
+    public List<com.thatsme4now.depot.dto.HistoricalPriceDTO> getHistoricalPrices(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return historicalPriceService.getYearly(cur);
+    }
+
+    @PutMapping("/historical-prices")
+    public ResponseEntity<Map<String, Object>> upsertHistoricalPrice(@RequestBody HistoricalPriceUpdateRequest req) {
+        try {
+            com.thatsme4now.depot.dto.HistoricalPriceDTO dto =
+                    historicalPriceService.upsert(req.getYear(), req.getCurrency(), req.getPrice());
+            return ResponseEntity.ok(Map.of(
+                    "year", dto.getYear(),
+                    "currency", dto.getCurrency(),
+                    "price", dto.getPrice()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/flow")
     public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
             @RequestParam(required = false, name = "from") String from,
@@ -761,5 +799,12 @@ public class DepotRestController {
     @lombok.Data
     public static class BulkClearDuplicateRequest {
         private List<Long> ids;
+    }
+
+    @lombok.Data
+    public static class HistoricalPriceUpdateRequest {
+        private Integer year;
+        private String currency;
+        private java.math.BigDecimal price;
     }
 }

@@ -361,8 +361,9 @@
   <p class="lead">
     Beyond the dashboard's table view, the app offers dedicated visualizations
     for exploring your portfolio's history. This page is a living reference —
-    it currently covers the <b>Flow Diagram</b> and will grow as more chart
-    types are added (a “Coming soon” slot already exists in the app itself).
+    it currently covers the <b>Flow Diagram</b> and the <b>Holdings View</b>,
+    and will grow as more chart types are added (a “Coming soon” slot already
+    exists in the app itself).
   </p>
   <div class="back-links">
     <a class="back-link" href="index.html">← Back to Guide</a>
@@ -372,6 +373,7 @@
 
 <nav class="steps">
   <a href="#viz-flow"><span>01</span>Flow Diagram (Sankey)</a>
+  <a href="#viz-holdings"><span>02</span>Holdings View</a>
   <a class="soon"><span>·</span>More visualizations — coming soon</a>
 </nav>
 
@@ -448,6 +450,60 @@
     </div>
   </section>
 
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">VISUALIZATION 02</div>
+      <h2>Holdings View</h2>
+      <p>
+        Open it from the dashboard header via <b>“Visualization” → “Holdings View”</b>
+        (or directly at <span class="inline-code">/btc-tracking/holdings</span>). It breaks
+        your portfolio down <b>year by year</b> across three charts: what you bought and
+        sold, what that meant in realized and unrealized gain/loss, and how your total
+        BTC balance evolved.
+      </p>
+
+      <h3>Purchases &amp; sales chart</h3>
+      <p>
+        One bar pair per year: <b>purchases</b>, stacked by wallet/exchange (each
+        position gets its own shade of blue/turquoise, so you see both the yearly
+        total and where it went through), next to a separate <b>sales</b> bar (purple)
+        for the same year.
+      </p>
+
+      <h3>Realized &amp; unrealized gain/loss chart</h3>
+      <p>
+        A second chart, one bar group per year, with two series: <b>realized
+        gain/loss</b> (sale proceeds minus the weighted-average cost basis of the BTC
+        sold — i.e. an actual profit/loss figure, not just the raw sale amount) and
+        <b>unrealized gain/loss</b> (portfolio value at that year's end minus cost
+        basis at that point). Both are green when positive, red/orange when negative.
+        Unrealized gain/loss for the current, still-running year uses the live BTC
+        price; past years use the 31.12. reference price described below — if a past
+        year has none stored yet, its bar is simply missing until one is filled in.
+      </p>
+
+      <h3>BTC balance chart</h3>
+      <p>
+        A third chart shows the total <b>BTC balance</b> across your whole portfolio
+        as of 31.12. of each year (now, for the current year), in Bitcoin orange.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Reference prices for past years:</b> the app keeps an approximate BTC year-end (31.12.) price per currency for past years, seeded once in the background — this is what powers the unrealized gain/loss bars for past years above. A table below the charts lets you view and correct these values yourself, and fill in a year the background seed doesn't cover yet (e.g. a year that only just ended).</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/holdings.png" alt="Holdings view with yearly purchases, sales and gain/loss charts"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot coming soon<br><span class="path">images/holdings.png</span></div>
+        <figcaption>Yearly purchases (stacked by exchange) and sales/gain-loss charts <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section class="step single" style="border-bottom:none">
     <div class="step-text">
       <div class="step-num">ROADMAP</div>
@@ -460,6 +516,7 @@
       <div class="roadmap-card">
         <ul class="tight">
           <li class="done">Flow Diagram (Sankey) — buy/sell/transfer flow over time, with a filterable/searchable transaction panel</li>
+          <li class="done">Holdings View — yearly purchases by exchange, sales, realized and unrealized gain/loss</li>
           <li class="planned">Further visualizations — to be documented here as they ship</li>
         </ul>
       </div>

@@ -109,9 +109,9 @@
 		            <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
 		                <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
 		            </a></li>
-		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
-		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
-		            </span></li>
+		            <li><a class="dropdown-item" th:href="@{/btc-tracking/holdings}">
+		                <i class="bi bi-bar-chart-steps me-2"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
+		            </a></li>
 		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
 		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
 		            </span></li>
@@ -192,9 +192,9 @@
 	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
 	        <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
 	    </a>
-	    <button class="btn depot-btn-outline w-100" disabled style="opacity:.5">
-	        <i class="bi bi-hourglass-split me-1"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
-	    </button>
+	    <a th:href="@{/btc-tracking/holdings}" class="btn depot-btn-outline w-100">
+	        <i class="bi bi-bar-chart-steps me-1"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
+	    </a>
 	</div>
 </div>
 

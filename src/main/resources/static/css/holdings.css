@@ -1,0 +1,147 @@
+.holdings-layout-hint {
+    font-size: .68rem;
+    color: var(--text-muted);
+    margin: 0 .25rem .75rem;
+}
+
+/* ── Draggable grid ─────────────────────────────────────── */
+.holdings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.holdings-grid-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 1), 1fr);
+    gap: 1rem;
+    min-height: 46px;
+    border-radius: var(--radius);
+    transition: outline-color .12s;
+}
+
+.holdings-grid-row.drag-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+}
+
+.holdings-empty-row-label {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .68rem;
+}
+.holdings-grid-row.empty {
+    grid-template-columns: 1fr;
+}
+.holdings-grid-row.empty .holdings-empty-row-label { display: flex; }
+
+/* ── Chart / content tile ──────────────────────────────── */
+.holdings-chart-block {
+    min-width: 0; /* allow charts/tables to shrink inside a grid column */
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1rem 1rem;
+}
+
+.holdings-chart-block.dragging { opacity: .4; }
+
+.holdings-chart-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: .6rem;
+}
+.holdings-chart-title-text { flex: 1 1 auto; min-width: 0; }
+
+.holdings-drag-handle { cursor: grab; color: var(--text-muted); flex: 0 0 auto; }
+
+.holdings-block-actions {
+    display: flex;
+    gap: .15rem;
+    flex: 0 0 auto;
+}
+.holdings-block-move-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+    font-size: .7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+.holdings-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Reference-price table ─────────────────────────────── */
+.holdings-refprices-hint {
+    font-size: .72rem;
+    color: var(--text-muted);
+    margin: 0 0 .75rem;
+}
+
+.holdings-refprices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .8rem;
+}
+.holdings-refprices-table th {
+    text-align: left;
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--border);
+}
+.holdings-refprices-table td {
+    padding: .3rem .5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+.holdings-refprices-table tr:last-child td { border-bottom: none; }
+
+.holdings-refprices-input {
+    width: 100%;
+    max-width: 160px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: .3rem .5rem;
+    font-size: .8rem;
+}
+.holdings-refprices-input.missing { border-color: var(--warn-duplicate, #b8860b); }
+.holdings-refprices-input::placeholder { color: var(--text-muted); }
+
+.holdings-refprices-save {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: .3rem .5rem;
+    cursor: pointer;
+    font-size: .78rem;
+}
+.holdings-refprices-save:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Responsive: single column, no drag on tablet/phone ── */
+@media (max-width: 991px) {
+    .holdings-grid-row,
+    .holdings-grid-row.empty { grid-template-columns: 1fr !important; }
+    .holdings-drag-handle { display: none; }
+}

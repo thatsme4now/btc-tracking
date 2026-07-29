@@ -25,7 +25,7 @@ class Launcher {
         var p = new Process();
         p.StartInfo.FileName        = java;
         p.StartInfo.Arguments       = $"-Xmx256m -Dfile.encoding=UTF-8 -jar \"{jar}\" --depot.db=h2file";
-        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.UseShellExecute = true;
         p.StartInfo.CreateNoWindow  = false;
         p.Start();
 
