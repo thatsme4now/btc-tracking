@@ -517,6 +517,21 @@ public class DepotRestController {
 	    }
 	}
     
+    @GetMapping("/current-price")
+    public ResponseEntity<Map<String, Object>> getCurrentPriceValue(
+            @RequestParam(required = false, name = "currency") String currency) {
+        String cur = currency != null ? currency.toUpperCase() : "EUR";
+        // Nur price/currency zurückgeben (kein priceDate) — Map.of() erlaubt keine
+        // null-Werte, und priceDate ist hier nicht garantiert nötig/gesetzt.
+        BigDecimal price = depotService.getCurrentPrice(cur)
+            .map(CurrentPrice::getPrice)
+            .orElse(BigDecimal.ZERO);
+        return ResponseEntity.ok(Map.of(
+            "price",    price,
+            "currency", cur
+        ));
+    }
+
     @PutMapping("/current-price")
     public ResponseEntity<Map<String, Object>> setCurrentPrice(
             @RequestBody CurrentPriceRequest req) {

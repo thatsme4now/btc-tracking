@@ -7,7 +7,9 @@
     <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}"/>
     <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
     <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/flatpickr.min.css}"/>
     <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/css/flow.css}"/>
     <link rel="stylesheet" th:href="@{/css/holdings.css}"/>
 </head>
 <body class="depot-body">
@@ -41,7 +43,7 @@
             </p>
 
             <div id="holdingsGrid" class="holdings-grid">
-                <div class="holdings-grid-row" data-row="0">
+                <div class="holdings-grid-row" id="holdings-row-0" data-row="0">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-buys">
                         <div class="holdings-chart-title">
@@ -68,7 +70,7 @@
                     </div>
                 </div>
 
-                <div class="holdings-grid-row" data-row="1">
+                <div class="holdings-grid-row" id="holdings-row-1" data-row="1">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-balance">
                         <div class="holdings-chart-title">
@@ -107,9 +109,37 @@
                     </div>
                 </div>
 
-                <div class="holdings-grid-row" data-row="2"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
-                <div class="holdings-grid-row" data-row="3"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
-                <div class="holdings-grid-row" data-row="4"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row holdings-fixed-row" id="holdings-row-buypercent" data-row="2">
+                    <div class="holdings-row-handle-bar">
+                        <i class="bi bi-grip-horizontal holdings-row-drag-handle"></i>
+                        <span class="holdings-row-handle-label" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf</span>
+                        <span class="holdings-row-actions">
+                            <button type="button" class="holdings-row-move-btn" onclick="moveHoldingsRowByButton('holdings-row-buypercent', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="holdings-row-move-btn" onclick="moveHoldingsRowByButton('holdings-row-buypercent', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                        </span>
+                    </div>
+                    <div class="holdings-chart-block holdings-buypercent-block" id="holdings-block-buypercent">
+                        <div class="holdings-chart-title">
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf</span>
+                        </div>
+                        <div id="holdingsBuyPercentChart"></div>
+                    </div>
+                    <div class="holdings-chart-block" id="holdings-block-buydetail">
+                        <div class="holdings-chart-title">
+                            <span class="holdings-chart-title-text" data-i18n="holdings.buyDetail.title">Kauf-Details</span>
+                        </div>
+                        <div id="holdingsBuyDetailEmpty" class="flow-tx-empty" data-i18n="holdings.buyDetail.empty">Klicke auf einen Balken für Details.</div>
+                        <div id="holdingsBuyDetailContent" class="d-none holdings-buydetail-scroll">
+                            <div id="holdingsBuyDetailCard"></div>
+                            <div id="holdingsBuyDetailSellsWrap" class="d-none">
+                                <div class="holdings-buydetail-sells-title" data-i18n="holdings.buyDetail.sells">Zugehörige Verkäufe</div>
+                                <div id="holdingsBuyDetailSells" class="flow-tx-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="holdings-grid-row" id="holdings-row-3" data-row="3"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" id="holdings-row-4" data-row="4"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
             </div>
         </div>
     </div>
@@ -117,14 +147,25 @@
 
 <div id="statusToast" class="depot-toast d-none"></div>
 
+<!-- Edit Transaction Modal (shared fragment, same dialog as the main dashboard) -->
+<div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
+
 <script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/vendor/js/apexcharts.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-de.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-th.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
+<!-- load order: i18n → currency → theme → tx-form → holdings -->
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/tx-form.js}"></script>
 <script th:src="@{/js/holdings.js}"></script>
 <script>
-    I18N.ready.then(() => { I18N.applyI18n(); initHoldings(); });
+    I18N.ready.then(() => { I18N.applyI18n(); initFlatpickr(); initHoldings(); });
 </script>
 </body>
 </html>

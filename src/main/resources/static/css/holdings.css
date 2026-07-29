@@ -139,9 +139,100 @@
 }
 .holdings-refprices-save:hover { color: var(--accent); border-color: var(--accent); }
 
+/* ── Fixed row: Gewinn/Verlust je Kauf + Detail-Karte ─────
+   Diese Reihe ist bewusst NICHT Teil des freien Block-Drag-Systems (die 2
+   Kacheln gehören fest zusammen, siehe Klick-auf-Balken → Detail-Karte).
+   Stattdessen bekommt die ganze REIHE einen eigenen Drag-Handle, mit dem sie
+   als Einheit die Position mit einer anderen Reihe tauschen kann. updateHoldingsRowCols()
+   überspringt .holdings-fixed-row explizit, daher gilt hier ein fest verdrahtetes
+   3-Spalten-Raster (Chart nimmt 2, Detail-Karte 1) statt der automatischen
+   Block-Anzahl-Berechnung. */
+.holdings-fixed-row {
+    grid-template-columns: repeat(3, 1fr);
+}
+/* row-drag-over kann auf JEDER Reihe landen (Drop-Ziel beim Ziehen der festen
+   Reihe), nicht nur auf .holdings-fixed-row selbst — daher generisch gehalten. */
+.holdings-grid-row.row-drag-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+}
+.holdings-fixed-row.dragging { opacity: .4; }
+
+.holdings-row-handle-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: .1rem .1rem .3rem;
+}
+.holdings-row-handle-label { flex: 1 1 auto; min-width: 0; }
+.holdings-row-drag-handle { cursor: grab; color: var(--text-muted); flex: 0 0 auto; }
+
+.holdings-row-actions {
+    display: flex;
+    gap: .15rem;
+    flex: 0 0 auto;
+}
+.holdings-row-move-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+    font-size: .7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+.holdings-row-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.holdings-buypercent-block { grid-column: span 2; }
+
+/* Ausgewählter Balken im Gewinn/Verlust-je-Kauf-Chart (Klick oder ←/→-Nav.) */
+.holdings-bar-selected rect,
+.holdings-bar-selected path {
+    stroke: var(--accent) !important;
+    stroke-width: 2px !important;
+}
+
+/* ── Kauf-Detail-Karte (Kachel B) ──────────────────────────
+   Reused .flow-tx-card/.flow-tx-field/.flow-tx-list styles from flow.css. */
+.holdings-buydetail-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: .15rem;
+}
+.holdings-buydetail-sells-title {
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    margin: .85rem 0 .4rem;
+    padding-top: .6rem;
+    border-top: 1px solid var(--border);
+}
+.flow-tx-card-badge.state-partial  { color: var(--warn-duplicate, #b8860b); }
+.flow-tx-card-badge.state-realized { color: var(--text-muted); }
+.holdings-buydetail-sell-note {
+    font-size: .64rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 /* ── Responsive: single column, no drag on tablet/phone ── */
 @media (max-width: 991px) {
     .holdings-grid-row,
     .holdings-grid-row.empty { grid-template-columns: 1fr !important; }
     .holdings-drag-handle { display: none; }
+    .holdings-row-drag-handle { display: none; }
+    .holdings-buypercent-block { grid-column: auto; }
 }
