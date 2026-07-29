@@ -315,6 +315,19 @@ body.light {
 .depot-toast.error   { border-left: 3px solid var(--neg); }
 .depot-toast.warning { border-left: 3px solid var(--accent); }
 
+/* ── Transaction row change pulse (Edit/Duplicate) ────────── */
+/* box-shadow (nicht background) genutzt, damit die Animation auch über den
+   !important-Hintergründen von .warning/.warning-duplicate/.solo-transfer
+   sichtbar ist, ohne diese farblich zu überschreiben. */
+@keyframes txRowPulse {
+    0%   { box-shadow: inset 0 0 0 9999px rgba(29, 158, 117, 0); }
+    15%  { box-shadow: inset 0 0 0 9999px rgba(29, 158, 117, .35); }
+    100% { box-shadow: inset 0 0 0 9999px rgba(29, 158, 117, 0); }
+}
+tr.tx-row-pulse > td {
+    animation: txRowPulse 1.4s ease-out;
+}
+
 /* ── Button spinner ──────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
 .depot-spinner {
@@ -426,14 +439,37 @@ table.dataTable thead th.dt-orderable-desc {
     cursor: pointer;
 }
 
-.dataTables_wrapper {
+/* Hinweis: Die vendored DataTables-Version ist 2.x — diese verwendet andere
+   Klassennamen als das früher übliche DataTables 1.x (dataTables_wrapper/
+   dataTables_filter/dataTables_length/…). Reale Struktur (siehe DOM):
+   .dt-container > .dt-layout-row > .dt-layout-cell > .dt-search / .dt-length,
+   Paginierung über .dt-paging .dt-paging-button. Alle Selektoren unten sind
+   entsprechend auf die DT2-Klassen angepasst. */
+.dt-container {
     color: var(--text-muted) !important;
     font-family: var(--font) !important;
     font-size: 0.72rem !important;
 }
 
-.dataTables_wrapper .dataTables_filter input,
-.dataTables_wrapper .dataTables_length select {
+/* #posTable_wrapper/#txTable_wrapper (= dieselben Elemente wie .dt-container,
+   DataTables vergibt beides auf denselben Knoten) sind selbst schon eigene
+   Scroll-Container (max-height + overflow-y:auto, siehe weiter unten) — das
+   eigentliche "Scrollen innerhalb der Tabelle", von dem die Suche bisher
+   verschwand. top:0 reicht daher aus, die Navbar spielt hier keine Rolle,
+   da nicht die Seite, sondern diese Box selbst scrollt. Die Spaltenüberschriften
+   (thead) bleiben bewusst NICHT sticky — kleinerer, risikoärmerer Eingriff. */
+.dt-container .dt-length,
+.dt-container .dt-search {
+    position:  sticky;
+    top:       0;
+    z-index:   5;
+    background: var(--bg-card);
+    padding-top:    0.4rem;
+    padding-bottom: 0.4rem;
+}
+
+.dt-container .dt-search .dt-input,
+.dt-container .dt-length .dt-input {
     background:    var(--bg) !important;
     border:        1px solid var(--border) !important;
     color:         var(--text) !important;
@@ -444,13 +480,13 @@ table.dataTable thead th.dt-orderable-desc {
     margin:        0 0.25rem !important;
 }
 
-.dataTables_wrapper .dataTables_filter label,
-.dataTables_wrapper .dataTables_length label,
-.dataTables_wrapper .dataTables_info {
+.dt-container .dt-search label,
+.dt-container .dt-length label,
+.dt-container .dt-info {
     color: var(--text-muted) !important;
 }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button {
+.dt-container .dt-paging .dt-paging-button {
     background:    transparent !important;
     border:        1px solid var(--border) !important;
     color:         var(--text-muted) !important;
@@ -462,21 +498,21 @@ table.dataTable thead th.dt-orderable-desc {
     font-size:     0.72rem !important;
 }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+.dt-container .dt-paging .dt-paging-button:hover {
     background:   var(--bg-row) !important;
     border-color: var(--text-muted) !important;
     color:        var(--text) !important;
 }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button.current,
-.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+.dt-container .dt-paging .dt-paging-button.current,
+.dt-container .dt-paging .dt-paging-button.current:hover {
     background:   var(--accent-dim) !important;
     border-color: var(--accent) !important;
     color:        var(--accent) !important;
 }
 
-.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
-.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+.dt-container .dt-paging .dt-paging-button.disabled,
+.dt-container .dt-paging .dt-paging-button.disabled:hover {
     opacity: 0.3 !important;
     cursor: not-allowed !important;
 }
@@ -530,7 +566,7 @@ body.density-spacious {
 .depot-btn-primary,
 .depot-btn-outline        { font-size: var(--density-btn); }
 .btc-price-badge          { font-size: var(--density-btn); }
-.dataTables_wrapper       { font-size: var(--density-btn) !important; }
+.dt-container             { font-size: var(--density-btn) !important; }
 
 .sortable-section.dragging {
     opacity: .4;

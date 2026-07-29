@@ -1,25 +1,8 @@
-// ── Theme Toggle ──────────────────────────────────────────
-(function initTheme() {
-    const saved = localStorage.getItem('depot-theme') || 'dark';
-    applyTheme(saved);
-})();
-
-function toggleTheme() {
-    const current = document.body.classList.contains('light') ? 'light' : 'dark';
-    const next    = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem('depot-theme', next);
-}
-
-function applyTheme(theme) {
-    document.body.classList.toggle('light', theme === 'light');
-    const icon = document.getElementById('themeIcon');
-    if (icon) {
-        icon.className = theme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    }
-}
-
 'use strict';
+// Theme (Dark/Light) init/toggle/apply now lives in theme.js (shared with flow.html/holdings.html).
+// Hinweis Sticky-Suche (siehe depot.css): #posTable_wrapper/#txTable_wrapper sind
+// bereits eigene Scroll-Container (max-height + overflow-y:auto), daher genügt dort
+// top:0 für die sticky Such-/Length-Zeile — kein Navbar-Höhen-Offset per JS nötig.
 
 const CHART_COLORS = [
     '#F7931A','#1D9E75','#378ADD','#534AB7','#D85A30',
@@ -580,28 +563,9 @@ async function loadTransactions() {
 			const countEl = document.getElementById('transactionCountValue');
 			if (countEl) countEl.textContent = data.length;
         })
-        .catch(err => {select
-			// Legende aktualisieren
-			const legend = document.getElementById('txLegend');
-			if (legend) {
-			    legend.innerHTML = `
-			        <span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--warn)"></span>
-			            <span>${t('legend.warn.currency')}</span>
-			        </span>
-			        <span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
-			            <span>${t('legend.warn.duplicate')}</span>
-			        </span>
-					<span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
-			            <span>${t('legend.solo.transfer')}</span>
-			        </span>
-					<span class="tx-legend-item">
-		                <span class="tx-legend-dot" style="background:var(--last-import)"></span>
-		                <span>${t('legend.last.import')}</span>
-		            </span>`;
-			}
+        .catch(err => {
+            // Legende ist bereits statisch im HTML vorhanden (mit data-i18n) — hier nur
+            // die Fehlermeldung in der Tabelle anzeigen.
             document.getElementById('txTableBody').innerHTML =
                 `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
@@ -611,16 +575,96 @@ function truncateTwoDecimals(num) {
   return Math.trunc(num * 100 + 1e-8) / 100;
 }
 
+const TX_TYPE_COLORS = {
+    BUY:          'text-pos',
+    SELL:         'text-neg',
+    TRANSFER_IN:  'text-pos',
+    TRANSFER_OUT: 'text-neg'
+};
+
+/** Baut das HTML einer einzelnen Transaktionszeile (ohne sie irgendwo einzufügen). */
+function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
+    const color   = TX_TYPE_COLORS[tx.type] || '';
+    const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
+    const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
+
+    const isSolo = tx.transferId
+        && transferIdCounts[tx.transferId] === 1
+        && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
+
+    let earning;
+    let paid;
+    let posNeg = "";
+    if (tx.type == "BUY") {
+        if (tx.currency !== CURRENCY.current()) {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+        } else {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees);
+        }
+
+        let percentage = (100/paid * (paid + earning)) - 100;
+        earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
+
+        if (earning.startsWith("-")) {
+            posNeg = "text-neg";
+        } else {
+            posNeg = "text-pos";
+        }
+    } else {
+        earning="–";
+    }
+    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+	    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
+	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
+	               style="accent-color:var(--accent)"/>
+	    </td>
+	    <td class="text-center">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</td>
+	    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
+	    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
+	    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+	    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
+	    <td class="text-end depot-actions" style="white-space:nowrap">
+	        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
+	            <i class="bi bi-pencil"></i>
+	        </button>
+	        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
+	            <i class="bi bi-copy"></i>
+	        </button>
+	        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
+	            <i class="bi bi-trash"></i>
+	        </button>
+	    </td>
+	</tr>`;
+}
+
+/**
+ * Kopiert alle Attribute und den inneren Inhalt von newRowHtml auf den bestehenden
+ * rowNode, OHNE den DOM-Knoten selbst auszutauschen. Wichtig, damit DataTables
+ * (bei DOM-Datenquelle) die Zeile per row(node).invalidate() weiterhin korrekt
+ * zuordnen kann, statt sie als "verschwunden + neu" zu behandeln.
+ */
+function _replaceTxRowInPlace(rowNode, newRowHtml) {
+    const tmp = document.createElement('tbody');
+    tmp.innerHTML = newRowHtml;
+    const newNode = tmp.firstElementChild;
+    if (!newNode) return;
+    [...rowNode.attributes].forEach(a => rowNode.removeAttribute(a.name));
+    [...newNode.attributes].forEach(a => rowNode.setAttribute(a.name, a.value));
+    rowNode.innerHTML = newNode.innerHTML;
+}
+
+// Letzter gerenderter Stand pro Zeile (id → HTML), für den Diff bei Folge-Renders
+// nach einer Mutation (Edit/Duplizieren/Löschen) — siehe renderTxTable().
+let _txRowHtmlById = new Map();
+
 function renderTxTable(data) {
-    const TYPE_COLORS = {
-        BUY:          'text-pos',
-        SELL:         'text-neg',
-        TRANSFER_IN:  'text-pos',
-        TRANSFER_OUT: 'text-neg'
-    };
-	
 	const isCompact = getDeviceType() !== 'DESKTOP';
-	_lastTxIsCompact = isCompact;
 
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
@@ -630,90 +674,101 @@ function renderTxTable(data) {
         }
     });
 
-    const rows = data.map(tx => {
-        const color   = TYPE_COLORS[tx.type] || '';
-        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
-        const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-		
-		// NEU
-        const isSolo = tx.transferId
-            && transferIdCounts[tx.transferId] === 1
-            && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
-					
-		let earning;
-		let paid;
-		let posNeg = "";
-		if (tx.type == "BUY") {		
-			if(tx.currency !== CURRENCY.current()) {
-				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
-				paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
-				changes = (paid + earning) * tx.quantity;
-			} else {
-				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
-				paid = (tx.quantityFiat + tx.fees);
-				changes = (paid + earning) * tx.quantity;
-			}
-			
-			let percentage = (100/paid * (paid + earning)) - 100;
-			earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
+    const newHtmlById = new Map();
+    data.forEach(tx => newHtmlById.set(String(tx.id), _buildTxRowHtml(tx, transferIdCounts, isCompact)));
 
-			if (earning.startsWith("-")) {
-				posNeg = "text-neg";
-			} else {
-				posNeg = "text-pos";
-			}
-		} else {
-			earning="–";
-		}
-		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
-		    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
-		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
-		               style="accent-color:var(--accent)"/>
-		    </td>
-		    <td class="text-center">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</td>
-		    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
-		    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
-		    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
-		    <td class="text-end depot-actions" style="white-space:nowrap">
-		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
-		            <i class="bi bi-pencil"></i>
-		        </button>
-		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
-		            <i class="bi bi-copy"></i>
-		        </button>
-		        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
-		            <i class="bi bi-trash"></i>
-		        </button>
-		    </td>
-		</tr>`;
-    });
+    const existingTable = $.fn.DataTable.isDataTable('#txTable') ? $('#txTable').DataTable() : null;
 
-    if ($.fn.DataTable.isDataTable('#txTable')) {
-        $('#txTable').DataTable().destroy();
+    // Voller (Neu-)Aufbau nur beim allerersten Laden, wenn die Tabelle komplett leer
+    // ist/wird, oder wenn sich Kompakt-/Desktop-Modus geändert hat (andere Spalten-
+    // struktur). Sonst: inkrementelles Patchen einzelner Zeilen (siehe unten), damit
+    // Scrollposition, aktuelle Seite und aktiver Suchfilter erhalten bleiben.
+    const compactChanged = _lastTxIsCompact !== null && _lastTxIsCompact !== isCompact;
+    _lastTxIsCompact = isCompact;
+    const needsFullRebuild = !existingTable || data.length === 0 || compactChanged;
+
+    if (needsFullRebuild) {
+        if (existingTable) existingTable.destroy();
+
+        document.getElementById('txTableBody').innerHTML = data.length
+            ? [...newHtmlById.values()].join('')
+            : `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+        _markDuplicates();
+
+        $('#txTable').DataTable({
+            order:      [[2, 'desc']],
+            pageLength: 500,
+            lengthMenu: [25, 50, 100, 250, 500],
+            autoWidth:  false,
+            language: {
+                search:     t('dt.search'),
+                lengthMenu: t('dt.lengthMenu'),
+                info:       t('dt.info'),
+                paginate:   { previous: t('dt.previous'), next: t('dt.next') }
+            },
+            columnDefs: [{ orderable: false, targets: [0, 1, -1] }]
+        });
+        _txRowHtmlById = newHtmlById;
+        return;
     }
 
-    document.getElementById('txTableBody').innerHTML =
-        rows.length ? rows.join('') :
-        `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
-	_markDuplicates();
-	
-    $('#txTable').DataTable({
-        order:      [[2, 'desc']],
-        pageLength: 500,
-		lengthMenu: [25, 50, 100, 250, 500],
-		autoWidth:  false, 
-        language: {
-            search:     t('dt.search'),
-            lengthMenu: t('dt.lengthMenu'),
-            info:       t('dt.info'),
-            paginate:   { previous: t('dt.previous'), next: t('dt.next') }
-        },
-        columnDefs: [{ orderable: false, targets: [0, 1, -1] }]
+    // ── Inkrementelles Update ────────────────────────────────
+    // Wichtig: DataTables hängt bei aktiver Seitengröße/Suche NUR die gerade sichtbaren
+    // Zeilen ins DOM ein — alle anderen Zeilen existieren nur intern (nicht per
+    // document.querySelector auffindbar). Deshalb wird hier ausschließlich über die
+    // DataTables-Row-API mit einer Funktions-Selektor gesucht (Default-Modifier
+    // {page:'all', search:'none'} durchsucht wirklich ALLE Zeilen, unabhängig von
+    // aktueller Seite/Filter) — das war der Grund, warum der Puls-Effekt bisher nur
+    // "manchmal" auftrat (nämlich nur, wenn die betroffene Zeile zufällig auf der
+    // aktuell sichtbaren Seite lag und zum aktiven Suchfilter passte).
+    const table = existingTable;
+    const changedIds = [];
+
+    function _findTxRowNode(id) {
+        const rowApi = table.row((idx, rowData, node) => node && node.getAttribute('data-id') === id);
+        return rowApi.any() ? rowApi.node() : null;
+    }
+
+    for (const id of _txRowHtmlById.keys()) {
+        if (!newHtmlById.has(id)) {
+            const node = _findTxRowNode(id);
+            if (node) table.row(node).remove();
+        }
+    }
+
+    for (const [id, html] of newHtmlById) {
+        const oldHtml = _txRowHtmlById.get(id);
+        if (oldHtml === undefined) {
+            // Neue Zeile (Duplikat) — bekommt den Puls, da sie sonst leicht übersehen wird.
+            table.row.add($(html)); // Position/Seite regelt draw()
+            changedIds.push(id);
+        } else if (oldHtml !== html) {
+            // Bearbeitete Zeile — nur in-place patchen, bewusst OHNE Puls (siehe changedIds
+            // unten). Die Tabelle scrollt/paginiert dabei ohnehin nicht weg, der Nutzer bleibt
+            // an der relevanten Stelle, ein zusätzlicher visueller Hinweis ist hier nicht nötig.
+            const node = _findTxRowNode(id);
+            if (node) {
+                _replaceTxRowInPlace(node, html);
+                table.row(node).invalidate();
+            }
+        }
+    }
+
+    table.draw(false); // false = aktuelle Seite/Sortierung beibehalten statt auf Seite 1 zu springen
+    _markDuplicates();
+    _txRowHtmlById = newHtmlById;
+
+    // Kurzer grüner Fade-Pulse auf geänderten/duplizierten Zeilen (siehe .tx-row-pulse in depot.css).
+    // Knoten erst NACH draw() über die DataTables-API erneut auflösen (bei frisch
+    // hinzugefügten Zeilen ist der Knoten vor dem Draw ggf. noch nicht zuverlässig
+    // verfügbar). Läuft nur sichtbar ab, wenn die Zeile gerade auf der aktuellen Seite
+    // angezeigt wird — das ist beabsichtigt, eine Animation auf einer unsichtbaren
+    // Zeile wäre ohnehin nicht wahrnehmbar.
+    changedIds.forEach(id => {
+        const node = _findTxRowNode(id);
+        if (!node) return;
+        node.classList.add('tx-row-pulse');
+        setTimeout(() => node.classList.remove('tx-row-pulse'), 1500);
     });
 }
 

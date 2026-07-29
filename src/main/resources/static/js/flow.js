@@ -318,10 +318,35 @@ function _showNodeTooltip(event, d, tooltip) {
     _positionTooltip(event, tooltip);
 }
 
+/**
+ * Positioniert das Tooltip relativ zum Cursor und klappt es nach links bzw. oben um,
+ * falls es sonst rechts oder unten über den sichtbaren Viewport hinausragen würde
+ * (z.B. bei Nodes/Links ganz am rechten Rand des Sankey-Diagramms). Gilt für jede
+ * Fenstergröße, nicht nur Tablet/Phone-Breakpoints.
+ */
 function _positionTooltip(event, tooltip) {
     tooltip.style.display = 'block';
-    tooltip.style.left = (event.clientX + 14) + 'px';
-    tooltip.style.top  = (event.clientY + 14) + 'px';
+
+    const OFFSET = 14;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+
+    let left = event.clientX + OFFSET;
+    if (left + tw > vw) {
+        left = event.clientX - OFFSET - tw;
+    }
+    left = Math.max(0, Math.min(left, vw - tw));
+
+    let top = event.clientY + OFFSET;
+    if (top + th > vh) {
+        top = event.clientY - OFFSET - th;
+    }
+    top = Math.max(0, Math.min(top, vh - th));
+
+    tooltip.style.left = left + 'px';
+    tooltip.style.top  = top + 'px';
 }
 
 function esc(str) {
