@@ -517,6 +517,49 @@ table.dataTable thead th.dt-orderable-desc {
     cursor: not-allowed !important;
 }
 
+/* Positions-/Transaktionstabelle: natives DataTables-Suchfeld bleibt trotz
+   sticky-Regel oben im internen Scroll-Container (#posTable_wrapper/
+   #txTable_wrapper) hängen und verschwindet beim Scrollen. Workaround NUR am
+   Desktop: natives Feld ausblenden, stattdessen ein eigenes Suchfeld oben in
+   der jeweiligen Toolbar (immer sichtbar, da außerhalb des scrollenden
+   Wrappers) — siehe onTxVisibleSearchInput()/onPosVisibleSearchInput() in
+   depot.js. Am Tablet/Phone (<=768px) ist .bulk-actions-inline ohnehin
+   ausgeblendet (siehe "Bulk Toolbar" weiter unten) bzw. der Platz zu knapp —
+   dort bleibt stattdessen das native Suchfeld sichtbar (kein Workaround). */
+@media (min-width: 769px) {
+    #txTable_wrapper .dt-search,
+    #posTable_wrapper .dt-search {
+        display: none;
+    }
+}
+@media (max-width: 768px) {
+    .dt-search-workaround { display: none !important; }
+}
+
+.tx-search-wrap,
+.pos-search-wrap {
+    position:    relative;
+    margin-left: auto; /* an den rechten Rand der Toolbar-Zeile schieben */
+}
+.tx-search-wrap input,
+.pos-search-wrap input { font-size: .74rem; padding-right: 1.9rem; min-width: 160px; }
+.tx-search-clear,
+.pos-search-clear {
+    position:  absolute;
+    right:     .35rem;
+    top:       50%;
+    transform: translateY(-50%);
+    background: none;
+    border:    none;
+    color:     var(--text-muted);
+    font-size: .78rem;
+    line-height: 1;
+    padding:   .25rem;
+    cursor:    pointer;
+}
+.tx-search-clear:hover,
+.pos-search-clear:hover { color: var(--text); }
+
 .depot-password-field {
     -webkit-text-security: disc;
     text-security:         disc;

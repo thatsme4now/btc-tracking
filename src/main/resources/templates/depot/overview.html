@@ -349,11 +349,20 @@
                             </div>
                             <div id="walletsSubBody">
 	                            <div class="table-responsive no-overflow">
-	                                <div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
+	                                <div id="posToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
 	                                     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
 	                                     <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
 	                                        <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
 	                                    </button>
+	                                    <div class="pos-search-wrap dt-search-workaround">
+	                                        <input type="text" id="posSearchVisible" class="form-control depot-input"
+	                                               data-i18n-placeholder="dt.search" placeholder="Suche…"
+	                                               oninput="onPosVisibleSearchInput(this.value)"/>
+	                                        <button type="button" id="posSearchVisibleClear" class="pos-search-clear d-none"
+	                                                onclick="clearPosVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
+	                                            <i class="bi bi-x-lg"></i>
+	                                        </button>
+	                                    </div>
 	                                </div>
 	                                <table class="table dataTable depot-table mb-0" id="posTable">
 	                                    <thead>
@@ -496,6 +505,15 @@
 			        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			        </button>
+			        <div class="tx-search-wrap dt-search-workaround">
+			            <input type="text" id="txSearchVisible" class="form-control depot-input"
+			                   data-i18n-placeholder="dt.search" placeholder="Suche…"
+			                   oninput="onTxVisibleSearchInput(this.value)"/>
+			            <button type="button" id="txSearchVisibleClear" class="tx-search-clear d-none"
+			                    onclick="clearTxVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
+			                <i class="bi bi-x-lg"></i>
+			            </button>
+			        </div>
 			    </div>
 			
 <!-- 			    <div class="dropdown bulk-actions-dropdown"> -->

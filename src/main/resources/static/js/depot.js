@@ -437,6 +437,11 @@ function filterExchangeTransaction(exchange) {
 
     const doSearch = () => {
         $('#txTable').DataTable().search('"' + exchange + '"').draw();
+        // Sichtbares Suchfeld in der Bulk-Toolbar mitziehen, sonst zeigt es einen
+        // veralteten (leeren) Stand, obwohl im Hintergrund schon gefiltert ist.
+        const visibleInput = document.getElementById('txSearchVisible');
+        if (visibleInput) visibleInput.value = exchange;
+        document.getElementById('txSearchVisibleClear')?.classList.toggle('d-none', !exchange);
     };
 
     if (!txLoaded) {
@@ -770,6 +775,52 @@ function renderTxTable(data) {
         node.classList.add('tx-row-pulse');
         setTimeout(() => node.classList.remove('tx-row-pulse'), 1500);
     });
+}
+
+// ── Sichtbares Suchfeld in der Bulk-Toolbar (Transaktionstabelle) ──────────
+// Das native DataTables-Suchfeld liegt INNERHALB von #txTable_wrapper, das
+// selbst scrollt (max-height + overflow-y:auto) — sticky hat dort nicht
+// zuverlässig funktioniert. Workaround: natives Feld per CSS ausgeblendet
+// (siehe #txTable_wrapper .dt-search in depot.css), stattdessen dieses Feld
+// hier oben in der Bulk-Actions-Toolbar, die IMMER sichtbar bleibt, weil sie
+// außerhalb von #txTable_wrapper liegt. Steuert die eigentliche DataTables-
+// Suche direkt über die API und hält das (verstecktes) native Feld nur der
+// Vollständigkeit halber im Wert synchron.
+function onTxVisibleSearchInput(value) {
+    const hiddenInput = document.querySelector('#txTable_wrapper .dt-search input');
+    if (hiddenInput) hiddenInput.value = value;
+
+    document.getElementById('txSearchVisibleClear')?.classList.toggle('d-none', !value);
+
+    if ($.fn.DataTable.isDataTable('#txTable')) {
+        $('#txTable').DataTable().search(value).draw();
+    }
+}
+
+function clearTxVisibleSearch() {
+    const input = document.getElementById('txSearchVisible');
+    if (input) input.value = '';
+    onTxVisibleSearchInput('');
+    input?.focus();
+}
+
+// Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
+function onPosVisibleSearchInput(value) {
+    const hiddenInput = document.querySelector('#posTable_wrapper .dt-search input');
+    if (hiddenInput) hiddenInput.value = value;
+
+    document.getElementById('posSearchVisibleClear')?.classList.toggle('d-none', !value);
+
+    if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().search(value).draw();
+    }
+}
+
+function clearPosVisibleSearch() {
+    const input = document.getElementById('posSearchVisible');
+    if (input) input.value = '';
+    onPosVisibleSearchInput('');
+    input?.focus();
 }
 
 // updateRelevantFields(), _loadPositionsDropdown(), openAddTx(), openEditTx()
