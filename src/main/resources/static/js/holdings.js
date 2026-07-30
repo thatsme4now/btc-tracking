@@ -38,10 +38,18 @@ const HOLDINGS_BALANCE_COLOR = '#F7931A'; // Bitcoin orange
 const HOLDINGS_POS_SHADES = { held: '#1d9e75', partial: '#5fbf9e', realized: '#6f8f83' };
 const HOLDINGS_NEG_SHADES = { held: '#d85a30', partial: '#e08f6c', realized: '#8f7367' };
 
-// Symmetrische Log-Skala fürs Gewinn/Verlust-je-Kauf-Chart: innerhalb ±100%
+// Symmetrische Log-Skala fürs Gewinn/Verlust-je-Kauf-Chart (%): innerhalb ±100%
 // bleibt linear, darüber wird moderat gestaucht (k=100), damit ein 2500%-Kauf
 // nicht mehr alle anderen Balken winzig aussehen lässt. Nur zur Darstellung —
 // Tooltip/Achsen-Beschriftung zeigen weiterhin den echten Prozentwert.
+// EIGENSTÄNDIGE Implementierung (bewusst NICHT mit dem €-Chart geteilt, siehe
+// _holdingsSymlogAmt/_holdingsBuildYTicksAmt weiter unten) — beide Charts
+// haben unterschiedliche Skalen-Logik (fester vs. automatisch hergeleiteter
+// Schwellenwert) und sollen unabhängig voneinander bleiben. Wichtig: nur EIN
+// Parameter, da diese Funktion direkt als percents.map(_holdingsSymlog)
+// aufgerufen wird — Array.map ruft den Callback mit (value, index, array)
+// auf, ein zusätzlicher Default-Parameter würde durch den map-Index
+// überschrieben und die Transformation pro Balken verfälschen.
 const HOLDINGS_SYMLOG_THRESHOLD = 100;
 const HOLDINGS_SYMLOG_SCALE      = 100;
 
@@ -67,6 +75,51 @@ function _holdingsBuildYTicks(maxAbsPercent) {
     return ticks;
 }
 
+// ── €-Chart: eigene, unabhängige Symlog-Implementierung ──────────────────
+// Anders als beim %-Chart gibt es hier keinen natürlichen Schwellenwert (kein
+// Äquivalent zu "100% = Verdopplung"), daher wird er aus den Daten hergeleitet
+// (_holdingsAmtThreshold). Bewusst als eigene Funktionen (nicht mit dem
+// %-Chart generalisiert), damit beide Charts unabhängig bleiben und sich
+// nicht gegenseitig über geteilten Code beeinflussen können.
+
+/** Automatischer Schwellenwert für den €-Chart: linearer Bereich deckt grob
+ *  den kleineren Teil (~1/8) der Gesamtspanne ab, gerundet auf eine "runde"
+ *  1/2/5-Stufe, damit die Achsen-Marken lesbar bleiben (z.B. 500 statt
+ *  486,32). Passt sich damit automatisch an Portfoliogröße und
+ *  Anzeigewährung an. */
+function _holdingsAmtThreshold(maxAbs) {
+    if (!(maxAbs > 0)) return 100;
+    const raw  = maxAbs / 8;
+    const exp  = Math.floor(Math.log10(raw));
+    const base = Math.pow(10, exp);
+    const f    = raw / base;
+    const nice = f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10;
+    return nice * base;
+}
+
+function _holdingsSymlogAmt(v, threshold) {
+    const av = Math.abs(v);
+    if (av <= threshold) return v;
+    const sign = v < 0 ? -1 : 1;
+    return sign * (threshold + threshold * Math.log(av / threshold));
+}
+
+/** Achsen-Marken für den €-Chart: Basis-Set ±threshold/±threshold/2/0, plus
+ *  so viele der logarithmischen Zwischenschritte (2.5x/5x/10x/25x/... des
+ *  Schwellenwerts) wie nötig, um den größten vorkommenden Wert noch abzudecken. */
+function _holdingsBuildYTicksAmt(maxAbs, threshold) {
+    const ticks = [-threshold, -threshold / 2, 0, threshold / 2, threshold];
+    if (maxAbs > threshold) {
+        const multipliers = [2.5, 5, 10, 25, 50, 100, 250, 500, 1000];
+        for (const m of multipliers) {
+            const v = threshold * m;
+            ticks.push(v);
+            if (v >= maxAbs) break;
+        }
+    }
+    return ticks;
+}
+
 function esc(str) {
     if (str == null) return '';
     return String(str)
@@ -76,9 +129,10 @@ function esc(str) {
         .replace(/>/g, '&gt;');
 }
 
-let _holdingsBuysChart    = null;
-let _holdingsPnlChart     = null;
-let _holdingsBalanceChart = null;
+let _holdingsBuysChart          = null;
+let _holdingsRealizedPnlChart   = null;
+let _holdingsUnrealizedPnlChart = null;
+let _holdingsBalanceChart       = null;
 
 async function initHoldings() {
     const loadingEl = document.getElementById('holdingsLoading');
@@ -100,7 +154,8 @@ async function initHoldings() {
 
         contentEl.classList.remove('d-none');
         renderBuysChart(data, currency);
-        renderPnlChart(data, currency);
+        renderRealizedPnlChart(data, currency);
+        renderUnrealizedPnlChart(data, currency);
         renderBalanceChart(data);
         loadRefPrices(currency);
         initHoldingsBuyPercent(currency);
@@ -129,6 +184,17 @@ function fmt(val, currency) {
 
 function fmtBtc(val) {
     return Number(val).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 }) + ' BTC';
+}
+
+/** Kompakte Variante von fmt() für Achsen-Beschriftungen (0 statt 2 Nachkommastellen) —
+ *  die Tick-Werte sind bereits "runde" Zahlen (siehe _holdingsAmtThreshold/_holdingsBuildYTicksAmt),
+ *  Nachkommastellen wären dort nur Rauschen und machen die Labels unnötig lang. */
+function _holdingsFmtCompact(val, currency) {
+    if (typeof CURRENCY !== 'undefined') {
+        const cur = CURRENCY.get(currency);
+        return Number(val).toLocaleString(cur.locale, { maximumFractionDigits: 0 }) + ' ' + cur.symbol;
+    }
+    return Number(val).toFixed(0);
 }
 
 /**
@@ -170,6 +236,11 @@ function renderBuysChart(data, currency) {
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
+            // intersect:false → Tooltip reagiert auf die ganze Spaltenbreite (auch
+            // oberhalb/unterhalb kleiner Balken), shared:true behält die kombinierte
+            // Anzeige aller Exchange/Wallet-Anteile + Verkäufe für dieses Jahr bei.
+            shared: true,
+            intersect: false,
             y: { formatter: (v) => fmt(v, currency) }
         }
     };
@@ -178,42 +249,63 @@ function renderBuysChart(data, currency) {
     _holdingsBuysChart.render();
 }
 
-/**
- * Realisierter G/V + Unrealisierter G/V, one bar group per year. Unrealized is
- * null for past years without a stored 31.12. reference price (see the
- * reference-price table below) — ApexCharts simply leaves a gap there.
- */
-function renderPnlChart(data, currency) {
+/** Realisierter G/V pro Jahr — eigene Kachel (früher Teil des kombinierten
+ *  Realisiert+Unrealisiert-Charts, auf Wunsch in 2 separate Kacheln aufgeteilt). */
+function renderRealizedPnlChart(data, currency) {
     const years    = data.map(d => d.year);
     const realized = data.map(d => Number(d.realizedPnl || 0));
+
+    if (_holdingsRealizedPnlChart) { _holdingsRealizedPnlChart.destroy(); _holdingsRealizedPnlChart = null; }
+
+    const realizedName = (typeof t === 'function') ? t('holdings.series.realized') : 'Realisierter G/V';
+
+    const options = {
+        ...HOLDINGS_APEX_DEFAULTS,
+        series: [{ name: realizedName, data: realized }],
+        chart: { ...HOLDINGS_APEX_DEFAULTS.chart, type: 'bar', height: 320 },
+        colors: [({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR],
+        plotOptions: { bar: { columnWidth: '55%' } },
+        xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
+        tooltip: {
+            ...HOLDINGS_APEX_DEFAULTS.tooltip,
+            shared: false,
+            intersect: false,
+            y: { formatter: (v) => fmt(v, currency) }
+        }
+    };
+
+    _holdingsRealizedPnlChart = new ApexCharts(document.getElementById('holdingsRealizedPnlChart'), options);
+    _holdingsRealizedPnlChart.render();
+}
+
+/** Unrealisierter G/V pro Jahr — eigene Kachel. Ist null für vergangene Jahre
+ *  ohne hinterlegten 31.12.-Referenzkurs (siehe Referenzkurs-Tabelle) —
+ *  ApexCharts lässt dort einfach eine Lücke. */
+function renderUnrealizedPnlChart(data, currency) {
+    const years      = data.map(d => d.year);
     const unrealized = data.map(d => (d.unrealizedPnl === null || d.unrealizedPnl === undefined) ? null : Number(d.unrealizedPnl));
 
-    if (_holdingsPnlChart) { _holdingsPnlChart.destroy(); _holdingsPnlChart = null; }
+    if (_holdingsUnrealizedPnlChart) { _holdingsUnrealizedPnlChart.destroy(); _holdingsUnrealizedPnlChart = null; }
 
-    const realizedName   = (typeof t === 'function') ? t('holdings.series.realized')   : 'Realisierter G/V';
     const unrealizedName = (typeof t === 'function') ? t('holdings.series.unrealized') : 'Unrealisierter G/V';
 
     const options = {
         ...HOLDINGS_APEX_DEFAULTS,
-        series: [
-            { name: realizedName, data: realized },
-            { name: unrealizedName, data: unrealized }
-        ],
-        chart: { ...HOLDINGS_APEX_DEFAULTS.chart, type: 'bar', height: 320, stacked: false },
-        colors: [
-            ({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR,
-            ({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR
-        ],
-        plotOptions: { bar: { columnWidth: '65%' } },
+        series: [{ name: unrealizedName, data: unrealized }],
+        chart: { ...HOLDINGS_APEX_DEFAULTS.chart, type: 'bar', height: 320 },
+        colors: [({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR],
+        plotOptions: { bar: { columnWidth: '55%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
+            shared: false,
+            intersect: false,
             y: { formatter: (v) => v === null ? '–' : fmt(v, currency) }
         }
     };
 
-    _holdingsPnlChart = new ApexCharts(document.getElementById('holdingsPnlChart'), options);
-    _holdingsPnlChart.render();
+    _holdingsUnrealizedPnlChart = new ApexCharts(document.getElementById('holdingsUnrealizedPnlChart'), options);
+    _holdingsUnrealizedPnlChart.render();
 }
 
 /** Total BTC held across the whole portfolio, as of 31.12. of each year (now, for the current year). */
@@ -235,6 +327,8 @@ function renderBalanceChart(data) {
         yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => Number(v).toFixed(4) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
+            shared: false,
+            intersect: false,
             y: { formatter: (v) => fmtBtc(v) }
         }
     };
@@ -251,6 +345,7 @@ function renderBalanceChart(data) {
 // Portfolio, unabhängig von Position/Exchange/Wallet — Transfers/Deposits/Withdraws
 // ändern an den G/V-Zahlen nichts und werden hier ignoriert.
 let _holdingsBuyPercentChart = null;
+let _holdingsBuyAbsChart     = null;
 let _holdingsBuyTxList       = [];   // alle BUY-Transaktionen, chronologisch
 let _holdingsBuyMeta         = new Map(); // id (string) -> { originalQty, remainingQty, state, sells: [{tx, qty}] }
 let _holdingsSelectedBuyId   = null;
@@ -280,6 +375,7 @@ async function initHoldingsBuyPercent(currency) {
         if (_holdingsSelectedIndex === null) _holdingsSelectedBuyId = null;
 
         renderBuyPercentChart(_holdingsBuyTxList, _holdingsCurrentPrice, currency);
+        renderBuyAbsChart(_holdingsBuyTxList, _holdingsCurrentPrice, currency);
         renderHoldingsBuyDetail(_holdingsSelectedBuyId, currency);
     } catch (err) {
         console.error('Buy-percent load failed', err);
@@ -411,15 +507,11 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
 
     const percents    = buys.map(tx => _holdingsBuyPercentEffective(tx, currentPrice).percentage);
     const transformed  = percents.map(_holdingsSymlog);
-    const seriesName   = (typeof t === 'function') ? t('holdings.chart.buyPercent') : 'Gewinn/Verlust je Kauf';
+    const seriesName   = (typeof t === 'function') ? t('holdings.chart.buyPercent') : 'Gewinn/Verlust je Kauf (Prozent)';
 
     // Jahreszahl nur am jeweils ersten Kauf eines Jahres, sonst leer — grobe
     // Zeitachse ohne dass sich hunderte Labels überlagern.
-    const categories = buys.map((tx, i) => {
-        const year = tx.date ? String(tx.date).substring(0, 4) : '';
-        const prevYear = i > 0 && buys[i - 1].date ? String(buys[i - 1].date).substring(0, 4) : null;
-        return (i === 0 || year !== prevYear) ? year : '';
-    });
+    const categories = _holdingsYearCategories(buys);
 
     const maxAbsPercent = Math.max(HOLDINGS_SYMLOG_THRESHOLD, ...percents.map(v => Math.abs(v)));
     const yTicks = _holdingsBuildYTicks(maxAbsPercent);
@@ -441,15 +533,6 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
         }
     }));
 
-    const colorForIndex = (dataPointIndex) => {
-        const tx = buys[dataPointIndex];
-        if (!tx) return HOLDINGS_POS_COLOR;
-        const meta  = _holdingsBuyMeta.get(String(tx.id));
-        const state = meta ? meta.state : 'held';
-        const value = percents[dataPointIndex];
-        return (value >= 0 ? HOLDINGS_POS_SHADES : HOLDINGS_NEG_SHADES)[state] || (value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR);
-    };
-
     const options = {
         ...HOLDINGS_APEX_DEFAULTS,
         series: [{ name: seriesName, data: transformed }],
@@ -465,9 +548,17 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
                 }
             }
         },
-        colors: [({ dataPointIndex }) => colorForIndex(dataPointIndex)],
+        colors: [({ dataPointIndex }) => _holdingsColorForIndex(buys, percents, dataPointIndex)],
         plotOptions: { bar: { columnWidth: '70%' } },
-        grid: { ...HOLDINGS_APEX_DEFAULTS.grid, yaxis: { lines: { show: false } } },
+        // yaxis.labels sind hier ausgeblendet (die Prozent-Beschriftung kommt
+        // stattdessen von den y-Annotations links außen, siehe yAnnotations).
+        // Ohne eigene y-Achsen-Labels reserviert ApexCharts KEINEN Platz links
+        // vom Plot-Bereich — die Annotation-Texte (bis zu "-2500%") ragen dann
+        // über den linken SVG-Rand hinaus und werden dort abgeschnitten (z.B.
+        // "-100%" → sichtbar nur "00%", "250%" → sichtbar nur "50%", was wie
+        // ein falscher Skalen-Wert aussieht, aber nur ein Clipping-Bug ist).
+        // padding.left schafft den fehlenden Rand.
+        grid: { ...HOLDINGS_APEX_DEFAULTS.grid, yaxis: { lines: { show: false } }, padding: { left: 46 } },
         annotations: { yaxis: yAnnotations },
         xaxis: {
             ...HOLDINGS_APEX_DEFAULTS.xaxis,
@@ -478,14 +569,12 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
         yaxis: { labels: { show: false } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
-            x: {
-                formatter: (_, opts) => {
-                    const tx = buys[opts.dataPointIndex];
-                    if (!tx) return '';
-                    const date = tx.date ? String(tx.date).substring(0, 10) : '';
-                    return `${date} — ${tx.positionLabel || ''}`;
-                }
-            },
+            // shared:false + intersect:false → Tooltip reagiert auf die ganze Spalten-
+            // Breite (oberhalb/unterhalb des Balkens), nicht nur exakt auf die (bei
+            // kleinen Werten manchmal winzige) sichtbare Balkenfläche.
+            shared: false,
+            intersect: false,
+            x: { formatter: (_, opts) => _holdingsTxTooltipX(buys, opts) },
             y: { formatter: (_, opts) => Number(percents[opts.dataPointIndex]).toFixed(2) + '%' }
         }
     };
@@ -494,17 +583,131 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
     _holdingsBuyPercentChart.render().then(() => _holdingsHighlightBar(_holdingsSelectedIndex));
 }
 
+/**
+ * Zweite Grafik (eigene feste Reihe): identische Balken/FIFO/Farb-Regeln und
+ * X-Achse wie renderBuyPercentChart, aber der ABSOLUTE Gewinn/Verlust je Kauf
+ * in der aktuell gewählten Währung. Ebenfalls symlog-skaliert wie der %-Chart —
+ * anders als bei Prozent gibt es hier aber keinen natürlichen Schwellenwert
+ * (kein Äquivalent zu "100% = Verdopplung"), daher wird er automatisch aus den
+ * Daten hergeleitet (_holdingsAmtThreshold) und passt sich so an Portfoliogröße
+ * und Anzeigewährung an. Teilt sich über die gemeinsame Auswahl
+ * (_holdingsSelectedIndex/selectHoldingsBuy) dieselbe Detail-Kachel wie der
+ * %-Chart, um sie nicht zu duplizieren.
+ */
+function renderBuyAbsChart(buys, currentPrice, currency) {
+    if (_holdingsBuyAbsChart) { _holdingsBuyAbsChart.destroy(); _holdingsBuyAbsChart = null; }
+
+    const amounts     = buys.map(tx => _holdingsBuyPercentEffective(tx, currentPrice).earningAbs);
+    const maxAbsAmount = Math.max(0, ...amounts.map(v => Math.abs(v)));
+    const threshold    = _holdingsAmtThreshold(maxAbsAmount);
+    const transformed  = amounts.map(v => _holdingsSymlogAmt(v, threshold));
+    const seriesName   = (typeof t === 'function') ? t('holdings.chart.buyAbs') : 'Gewinn/Verlust je Kauf (Betrag)';
+    const categories   = _holdingsYearCategories(buys);
+
+    const yTicks = _holdingsBuildYTicksAmt(Math.max(maxAbsAmount, threshold), threshold);
+    const yAnnotations = yTicks.map(tv => ({
+        y: _holdingsSymlogAmt(tv, threshold),
+        borderColor: tv === 0 ? '#3a3f4a' : '#252830',
+        label: {
+            text: _holdingsFmtCompact(tv, currency),
+            borderWidth: 0,
+            position: 'left',
+            textAnchor: 'end',
+            offsetX: -4,
+            style: {
+                background: 'transparent',
+                color: '#6b6f7a',
+                fontSize: '10px',
+                fontFamily: "'IBM Plex Mono', monospace"
+            }
+        }
+    }));
+
+    const options = {
+        ...HOLDINGS_APEX_DEFAULTS,
+        series: [{ name: seriesName, data: transformed }],
+        chart: {
+            ...HOLDINGS_APEX_DEFAULTS.chart,
+            type: 'bar',
+            height: 300,
+            events: {
+                click: (event, chartContext, config) => {
+                    if (config.dataPointIndex == null || config.dataPointIndex < 0) return;
+                    const tx = buys[config.dataPointIndex];
+                    if (tx) selectHoldingsBuy(tx.id);
+                }
+            }
+        },
+        colors: [({ dataPointIndex }) => _holdingsColorForIndex(buys, amounts, dataPointIndex)],
+        plotOptions: { bar: { columnWidth: '70%' } },
+        grid: { ...HOLDINGS_APEX_DEFAULTS.grid, yaxis: { lines: { show: false } }, padding: { left: 64 } },
+        annotations: { yaxis: yAnnotations },
+        xaxis: {
+            ...HOLDINGS_APEX_DEFAULTS.xaxis,
+            categories,
+            labels: { show: true, rotate: 0, style: { colors: '#6b6f7a', fontSize: '10px' } },
+            axisTicks: { show: false }
+        },
+        yaxis: { labels: { show: false } },
+        tooltip: {
+            ...HOLDINGS_APEX_DEFAULTS.tooltip,
+            shared: false,
+            intersect: false,
+            x: { formatter: (_, opts) => _holdingsTxTooltipX(buys, opts) },
+            y: { formatter: (_, opts) => fmt(amounts[opts.dataPointIndex], currency) }
+        }
+    };
+
+    _holdingsBuyAbsChart = new ApexCharts(document.getElementById('holdingsBuyAbsChart'), options);
+    _holdingsBuyAbsChart.render().then(() => _holdingsHighlightBar(_holdingsSelectedIndex));
+}
+
+/** Jahreszahl nur am jeweils ersten Kauf eines Jahres, sonst leer — von beiden
+ *  Gewinn/Verlust-je-Kauf-Charts (%, Betrag) gemeinsam genutzt. */
+function _holdingsYearCategories(buys) {
+    return buys.map((tx, i) => {
+        const year = tx.date ? String(tx.date).substring(0, 4) : '';
+        const prevYear = i > 0 && buys[i - 1].date ? String(buys[i - 1].date).substring(0, 4) : null;
+        return (i === 0 || year !== prevYear) ? year : '';
+    });
+}
+
+/** Balkenfarbe nach Vorzeichen + FIFO-Status — von beiden Gewinn/Verlust-je-Kauf-
+ *  Charts gemeinsam genutzt, jeweils mit ihrem eigenen Werte-Array (Prozent bzw.
+ *  absoluter Betrag) zur Vorzeichen-/Zustands-Bestimmung. */
+function _holdingsColorForIndex(buys, values, dataPointIndex) {
+    const tx = buys[dataPointIndex];
+    if (!tx) return HOLDINGS_POS_COLOR;
+    const meta  = _holdingsBuyMeta.get(String(tx.id));
+    const state = meta ? meta.state : 'held';
+    const value = values[dataPointIndex];
+    return (value >= 0 ? HOLDINGS_POS_SHADES : HOLDINGS_NEG_SHADES)[state] || (value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR);
+}
+
+/** Tooltip-X-Formatter (Datum + Position) — von beiden Charts gemeinsam genutzt. */
+function _holdingsTxTooltipX(buys, opts) {
+    const tx = buys[opts.dataPointIndex];
+    if (!tx) return '';
+    const date = tx.date ? String(tx.date).substring(0, 10) : '';
+    return `${date} — ${tx.positionLabel || ''}`;
+}
+
 /** Hebt genau den Balken mit dem übergebenen Datenindex optisch hervor (Border),
- *  ohne den Chart neu zu rendern — direkte SVG-Klassenmanipulation, da
- *  ApexCharts-Annotationen auf einer Kategorie-Achse mit mehrheitlich leeren
- *  (doppelten) Labels keine eindeutige Balken-Zuordnung mehr erlauben. */
+ *  in BEIDEN Gewinn/Verlust-je-Kauf-Charts gleichzeitig (synchronisierte Auswahl,
+ *  siehe selectHoldingsBuy) — ohne die Charts neu zu rendern (direkte SVG-
+ *  Klassenmanipulation, da ApexCharts-Annotationen auf einer Kategorie-Achse mit
+ *  mehrheitlich leeren (doppelten) Labels keine eindeutige Balken-Zuordnung mehr
+ *  erlauben). */
+const HOLDINGS_BUY_CHART_IDS = ['holdingsBuyPercentChart', 'holdingsBuyAbsChart'];
+
 function _holdingsHighlightBar(index) {
-    const container = document.getElementById('holdingsBuyPercentChart');
-    if (!container) return;
-    container.querySelectorAll('.apexcharts-bar-area').forEach(el => el.classList.remove('holdings-bar-selected'));
-    if (index == null || index < 0) return;
-    const bars = container.querySelectorAll('.apexcharts-bar-area');
-    if (bars[index]) bars[index].classList.add('holdings-bar-selected');
+    HOLDINGS_BUY_CHART_IDS.forEach(containerId => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const bars = container.querySelectorAll('.apexcharts-bar-area');
+        bars.forEach(el => el.classList.remove('holdings-bar-selected'));
+        if (index != null && index >= 0 && bars[index]) bars[index].classList.add('holdings-bar-selected');
+    });
 }
 
 function selectHoldingsBuy(id) {
@@ -775,37 +978,29 @@ async function saveRefPrice(year, currency, input) {
 // where native drag-and-drop isn't available and the grid collapses to a
 // single column via CSS anyway.
 
-const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v1';
+const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v4';
 const HOLDINGS_MAX_COLS   = 3;
+// 6 Reihen. Reihe 1: Bestand/G-V pro Jahr. Reihe 2: die beiden Gewinn/Verlust-
+// je-Kauf-Charts zusammen mit Kauf-Details (letztere ist "capped" auf 1 Slot,
+// siehe updateHoldingsRowCols). Reihe 3: Käufe & Verkäufe (füllt die 2 freien
+// Slots neben der ebenfalls "capped" Referenzkurse-Kachel).
 const HOLDINGS_DEFAULT_LAYOUT = [
-    ['holdings-block-buys', 'holdings-block-pnl'],
-    ['holdings-block-balance', 'holdings-block-refprices'],
-    [], [], []
+    ['holdings-block-balance', 'holdings-block-unrealized-pnl', 'holdings-block-realized-pnl'],
+    ['holdings-block-buyabs', 'holdings-block-buypercent', 'holdings-block-buydetail'],
+    ['holdings-block-buys', 'holdings-block-refprices'],
+    [],
+    [],
+    []
 ];
 
-// Reihenfolge der 5 Reihen selbst (unabhängig vom Block-Layout innerhalb einer
-// Reihe). Nötig, weil die feste Gewinn/Verlust-je-Kauf-Reihe als GANZES mit
-// jeder anderen Reihe die Position tauschen können soll (siehe wireHoldingsRowDragAndDrop),
-// ohne dass ihre 2 Kacheln einzeln in das normale Block-Drag-System einsteigen.
-const HOLDINGS_ROW_ORDER_KEY = 'holdings-row-order-v1';
-const HOLDINGS_DEFAULT_ROW_ORDER = [
-    'holdings-row-0', 'holdings-row-1', 'holdings-row-buypercent', 'holdings-row-3', 'holdings-row-4'
-];
-
-let _holdingsDragEl    = null;
-let _holdingsDragRowEl = null;
+let _holdingsDragEl = null;
 
 function initHoldingsLayout() {
     const grid = document.getElementById('holdingsGrid');
     if (!grid) return;
 
-    // Reihenfolge der Reihen zuerst wiederherstellen, DANACH das Block-Layout
-    // innerhalb der Reihen — sonst würde applyHoldingsLayout die falschen
-    // (noch nicht vertauschten) Reihen-Indizes befüllen.
-    applyHoldingsRowOrder(grid, _loadHoldingsRowOrder());
     applyHoldingsLayout(grid, _loadHoldingsLayout());
     wireHoldingsDragAndDrop(grid);
-    wireHoldingsRowDragAndDrop(grid);
     updateHoldingsRowCols(grid);
 
     const hint = document.getElementById('holdingsLayoutHint');
@@ -848,125 +1043,50 @@ function applyHoldingsLayout(grid, layout) {
 
 function updateHoldingsRowCols(grid) {
     grid.querySelectorAll('.holdings-grid-row').forEach(row => {
-        // Feste Reihe hat ihr eigenes fest verdrahtetes 3-Spalten-Raster (CSS
-        // .holdings-fixed-row) und wird hier bewusst nicht angetastet.
-        if (row.classList.contains('holdings-fixed-row')) return;
-        const count = row.querySelectorAll('.holdings-draggable').length;
-        row.style.setProperty('--cols', Math.max(count, 1));
+        const blocks = Array.from(row.querySelectorAll('.holdings-draggable'));
+        const count  = blocks.length;
+        // Steht eine "max. 1 Slot"-Kachel (Kauf-Details, Referenzkurse) in dieser
+        // Reihe, MUSS die Reihe immer echte 3 gleich breite Spalten haben, damit
+        // diese Kachel sauber genau 1 von 3 Spalten ausfüllt — statt (bei
+        // dynamischem --cols) eine viel zu große Zelle nur teilweise zu füllen.
+        // Andere Kacheln bleiben dynamisch (1/2/3 Spalten je nach Anzahl) und
+        // dürfen allein eine Reihe komplett ausfüllen.
+        const cappedBlocks = blocks.filter(b => b.classList.contains('holdings-block-capped'));
+        const hasCapped    = cappedBlocks.length > 0;
+
+        if (hasCapped) {
+            row.style.setProperty('--cols', HOLDINGS_MAX_COLS);
+            const freeBlocks = blocks.filter(b => !b.classList.contains('holdings-block-capped'));
+            cappedBlocks.forEach(b => b.style.setProperty('--span', 1));
+
+            // Die restlichen (nicht-gecappten) Blöcke teilen sich die übrigen
+            // Spalten gleichmäßig auf — z.B. 1 gecappte + 1 freie Kachel in
+            // einer 3er-Reihe → die freie Kachel bekommt --span:2, statt (ohne
+            // explizites Spanning) selbst nur 1 Spalte einzunehmen.
+            const remaining = Math.max(HOLDINGS_MAX_COLS - cappedBlocks.length, 0);
+            if (freeBlocks.length > 0) {
+                const base = Math.floor(remaining / freeBlocks.length);
+                let extra  = remaining - base * freeBlocks.length; // Rest den ersten Blöcken zuteilen
+                freeBlocks.forEach(b => {
+                    const span = Math.max(base + (extra > 0 ? 1 : 0), 1);
+                    if (extra > 0) extra--;
+                    b.style.setProperty('--span', span);
+                });
+            }
+        } else {
+            row.style.setProperty('--cols', Math.max(count, 1));
+            blocks.forEach(b => b.style.setProperty('--span', 1));
+        }
         row.classList.toggle('empty', count === 0);
     });
 }
 
 function resetHoldingsLayout() {
     localStorage.removeItem(HOLDINGS_LAYOUT_KEY);
-    localStorage.removeItem(HOLDINGS_ROW_ORDER_KEY);
     const grid = document.getElementById('holdingsGrid');
     if (!grid) return;
-    applyHoldingsRowOrder(grid, HOLDINGS_DEFAULT_ROW_ORDER);
     applyHoldingsLayout(grid, HOLDINGS_DEFAULT_LAYOUT);
     updateHoldingsRowCols(grid);
-}
-
-// ── Reihen-Reihenfolge (die feste Gewinn/Verlust-je-Kauf-Reihe als Ganzes) ──
-
-function _loadHoldingsRowOrder() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(HOLDINGS_ROW_ORDER_KEY));
-        if (Array.isArray(saved) && saved.length === HOLDINGS_DEFAULT_ROW_ORDER.length
-            && HOLDINGS_DEFAULT_ROW_ORDER.every(id => saved.includes(id))) {
-            return saved;
-        }
-    } catch (e) { /* ignore malformed storage */ }
-    return HOLDINGS_DEFAULT_ROW_ORDER;
-}
-
-function _saveHoldingsRowOrder(grid) {
-    const order = Array.from(grid.querySelectorAll('.holdings-grid-row')).map(r => r.id);
-    localStorage.setItem(HOLDINGS_ROW_ORDER_KEY, JSON.stringify(order));
-}
-
-/** Ordnet die 5 Reihen-Container gemäß der übergebenen id-Reihenfolge neu an. */
-function applyHoldingsRowOrder(grid, order) {
-    order.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) grid.appendChild(el); // wiederholtes appendChild = ans Ende schieben → finale Reihenfolge
-    });
-}
-
-/** Tauscht zwei Geschwister-Reihen-Container (unabhängig von ihrem Abstand). */
-function _swapHoldingsRows(grid, rowA, rowB) {
-    if (rowA === rowB) return;
-    const placeholder = document.createComment('holdings-row-swap');
-    grid.insertBefore(placeholder, rowA);
-    grid.insertBefore(rowA, rowB);
-    grid.insertBefore(rowB, placeholder);
-    grid.removeChild(placeholder);
-}
-
-function wireHoldingsRowDragAndDrop(grid) {
-    grid.querySelectorAll('.holdings-fixed-row').forEach(row => {
-        row.querySelectorAll('.holdings-row-drag-handle').forEach(handle => {
-            handle.addEventListener('mousedown', () => row.setAttribute('draggable', 'true'));
-        });
-
-        row.addEventListener('dragstart', (e) => {
-            _holdingsDragRowEl = row;
-            row.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        });
-
-        row.addEventListener('dragend', () => {
-            row.removeAttribute('draggable');
-            row.classList.remove('dragging');
-            _holdingsDragRowEl = null;
-            grid.querySelectorAll('.holdings-grid-row.row-drag-over').forEach(r => r.classList.remove('row-drag-over'));
-        });
-    });
-
-    grid.querySelectorAll('.holdings-grid-row').forEach(row => {
-        row.addEventListener('dragover', (e) => {
-            if (!_holdingsDragRowEl || _holdingsDragRowEl === row) return;
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            row.classList.add('row-drag-over');
-        });
-
-        row.addEventListener('dragleave', (e) => {
-            if (e.target === row) row.classList.remove('row-drag-over');
-        });
-
-        row.addEventListener('drop', (e) => {
-            if (!_holdingsDragRowEl || _holdingsDragRowEl === row) return;
-            e.preventDefault();
-            row.classList.remove('row-drag-over');
-            _swapHoldingsRows(grid, _holdingsDragRowEl, row);
-            updateHoldingsRowCols(grid);
-            _saveHoldingsRowOrder(grid);
-        });
-    });
-
-    document.addEventListener('mouseup', () => {
-        grid.querySelectorAll('.holdings-fixed-row[draggable="true"]').forEach(row => {
-            if (!row.classList.contains('dragging')) row.removeAttribute('draggable');
-        });
-    });
-}
-
-/** Vertauscht die ganze Reihe (per Button) mit der vorherigen/nächsten Reihe. */
-function moveHoldingsRowByButton(rowId, direction) {
-    const grid = document.getElementById('holdingsGrid');
-    if (!grid) return;
-    const row = document.getElementById(rowId);
-    if (!row) return;
-
-    const rows    = Array.from(grid.querySelectorAll('.holdings-grid-row'));
-    const idx     = rows.indexOf(row);
-    const swapIdx = idx + direction;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= rows.length) return;
-
-    _swapHoldingsRows(grid, row, rows[swapIdx]);
-    updateHoldingsRowCols(grid);
-    _saveHoldingsRowOrder(grid);
 }
 
 function wireHoldingsDragAndDrop(grid) {
@@ -994,14 +1114,6 @@ function wireHoldingsDragAndDrop(grid) {
     grid.querySelectorAll('.holdings-grid-row').forEach(row => {
         row.addEventListener('dragover', (e) => {
             if (!_holdingsDragEl) return;
-            // Die feste Gewinn/Verlust-je-Kauf-Reihe nimmt keine der frei
-            // verschiebbaren Blöcke auf — sie hat ihr eigenes, fest verdrahtetes
-            // 2:1-Spaltenraster für genau ihre 2 zusammengehörigen Kacheln.
-            if (row.classList.contains('holdings-fixed-row')) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'none';
-                return;
-            }
             e.preventDefault();
 
             const countExcludingDragged = row.querySelectorAll('.holdings-draggable').length

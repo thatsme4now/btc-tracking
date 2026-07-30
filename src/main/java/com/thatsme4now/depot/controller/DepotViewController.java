@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.thatsme4now.depot.dto.PositionDTO;
+import com.thatsme4now.depot.dto.YearlyHoldingsDTO;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.service.DepotService;
+import com.thatsme4now.depot.service.HoldingsYearlyService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class DepotViewController {
 
     private final DepotService depotService;
+    private final HoldingsYearlyService holdingsYearlyService;
 
     @GetMapping("/")
     public String root() {
@@ -62,12 +65,28 @@ public class DepotViewController {
             .map(PositionDTO::getQuantity)
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal realized = positions.stream()
-        		.map(PositionDTO::getRealized)
-        		.filter(v -> v != null)
-        		.reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal gainLoss = totalValue.subtract(invested).add(realized);
+        // Realized/Gain-Loss/Performance oben nutzen die PORTFOLIO-WEITE Berechnung aus
+        // HoldingsYearlyService (dieselbe, die auch die Bestandsansicht-Grafik speist) statt
+        // der PRO-POSITION-Summen — sonst weichen "Realized" hier und "Realisierter G/V" in
+        // der Grafik systematisch voneinander ab (u.a. weil zwischen Positionen transferierte
+        // und dann verkaufte Coins pro Position keine eigene Kostenbasis hätten, und weil die
+        // alte Formel hier nur den Brutto-Verkaufserlös statt des tatsächlichen Gewinns/Verlusts
+        // summierte). "Invested"/"Total Value" bleiben bewusst wie gehabt pro Position summiert.
+        List<YearlyHoldingsDTO> yearly = holdingsYearlyService.getYearlyHoldings(currency);
+
+        BigDecimal realized = yearly.stream()
+                .map(YearlyHoldingsDTO::getRealizedPnl)
+                .filter(v -> v != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal unrealized = yearly.stream()
+                .filter(YearlyHoldingsDTO::isCurrentYear)
+                .map(YearlyHoldingsDTO::getUnrealizedPnl)
+                .filter(v -> v != null)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal gainLoss = realized.add(unrealized);
         BigDecimal performancePct = invested.compareTo(BigDecimal.ZERO) > 0
             ? gainLoss.divide(invested, 4, RoundingMode.HALF_UP)
                       .multiply(BigDecimal.valueOf(100))

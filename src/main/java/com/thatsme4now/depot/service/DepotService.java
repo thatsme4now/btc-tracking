@@ -142,14 +142,18 @@ public class DepotService {
                 .map(Transaction::getQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        // Kaufgebühren zählen mit zur Kostenbasis (Fund 4) — konsistent zur G/V-Spalte der
+        // Haupttabelle und zum "Gewinn/Verlust je Kauf"-Chart (dort: quantityFiat + fees).
         BigDecimal totalBuyCost = txs.stream()
                 .filter(tx -> tx.getType() == TransactionType.BUY && tx.getPricePerBtc() != null)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
+                    BigDecimal fees = tx.getFees() != null ? tx.getFees() : BigDecimal.ZERO;
+                    BigDecimal cost = tx.getQuantity().multiply(tx.getPricePerBtc()).add(fees);
                     if (cp != null && cp.getCurrency().equals(tx.getCurrency())) {
-                    	return tx.getQuantity().multiply(tx.getPricePerBtc());
-                    } else {                    	
-                    	return tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
+                    	return cost;
+                    } else {
+                    	return cost.multiply(rate);
                     }
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -158,14 +162,22 @@ public class DepotService {
                 ? totalBuyCost.divide(totalBuyQty, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
+        // Hinweis: "realized" ist hier bewusst der Brutto-Verkaufserlös dieser Position
+        // (Kostenbasis wird NICHT abgezogen) — dient nur noch der Positions-Tabelle,
+        // NICHT mehr der Gesamt-Kachel "Realized" oben (die nutzt seit Fund 1/3 die
+        // portfolio-weite Gewinn/Verlust-Berechnung aus HoldingsYearlyService).
+        // quantityFiat ist bereits ein fertiger Gesamtbetrag (Menge × Preis) — bei
+        // Fremdwährung reicht die Umrechnung über den Wechselkurs, OHNE nochmal mit
+        // pricePerBtc zu multiplizieren (das quadrierte vorher fälschlich die Preis-Dimension).
         BigDecimal realized = txs.stream()
                 .filter(tx -> tx.getType() == TransactionType.SELL)
+                .filter(tx -> tx.getQuantityFiat() != null)
                 .map(tx -> {
                     BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
                     if (cp != null && cp.getCurrency().equals(tx.getCurrency())) {
                     	return tx.getQuantityFiat();
-                    } else {                    	
-                    	return tx.getQuantityFiat().multiply(tx.getPricePerBtc()).multiply(rate);
+                    } else {
+                    	return tx.getQuantityFiat().multiply(rate);
                     }
                 })
                 .filter(Objects::nonNull)

@@ -107,17 +107,21 @@ public class HoldingsYearlyService {
                         dto.setTotalSells(dto.getTotalSells().add(proceeds));
                         dto.setRealizedPnl(dto.getRealizedPnl().add(gain));
 
+                        // runningQty NICHT auf 0 klammern (Fund: BTC-Bestand-Chart wich von
+                        // der Hauptseiten-Metrik ab) — die Hauptseite (DepotService.toDTO)
+                        // summiert die Menge simpel & ungeklammert über alle Transaktionen.
+                        // Würde runningQty hier bei einem chronologischen Zwischen-Rutscher
+                        // unter 0 (z.B. weil ein TRANSFER_OUT/SELL vor dem zugehörigen
+                        // TRANSFER_IN datiert ist) auf 0 geklammert, würde dieser fehlende
+                        // Teil NIE nachgeholt und der Endstand wäre dauerhaft höher als der
+                        // echte, einfache Gesamtbestand — genau die gemeldete Abweichung.
                         runningQty  = runningQty.subtract(tx.getQuantity());
-                        if (runningQty.compareTo(BigDecimal.ZERO) < 0) runningQty = BigDecimal.ZERO;
                         runningCost = runningCost.subtract(costOfSold);
                         if (runningCost.compareTo(BigDecimal.ZERO) < 0) runningCost = BigDecimal.ZERO;
                     }
                 }
                 case TRANSFER_IN, DEPOSIT -> runningQty = runningQty.add(tx.getQuantity());
-                case TRANSFER_OUT, WITHDRAW -> {
-                    runningQty = runningQty.subtract(tx.getQuantity());
-                    if (runningQty.compareTo(BigDecimal.ZERO) < 0) runningQty = BigDecimal.ZERO;
-                }
+                case TRANSFER_OUT, WITHDRAW -> runningQty = runningQty.subtract(tx.getQuantity());
             }
 
             yearEndQty.put(year, runningQty);
@@ -174,23 +178,30 @@ public class HoldingsYearlyService {
      * if the transaction's own currency already matches, pricePerBtc is used directly
      * (it is stored in the transaction's own currency); otherwise the transaction's
      * manually-set exchangeRate (to the currency active when it was entered) is applied.
+     * Kaufgebühren zählen mit zur Kostenbasis (Fund 4) — konsistent zur G/V-Spalte der
+     * Haupttabelle und zum "Gewinn/Verlust je Kauf"-Chart.
      */
     private BigDecimal fiatValue(Transaction tx, String displayCurrency) {
         if (tx.getPricePerBtc() == null) return null;
         BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
+        BigDecimal fees = tx.getFees() != null ? tx.getFees() : BigDecimal.ZERO;
+        BigDecimal cost = tx.getQuantity().multiply(tx.getPricePerBtc()).add(fees);
         if (displayCurrency.equals(tx.getCurrency())) {
-            return tx.getQuantity().multiply(tx.getPricePerBtc());
+            return cost;
         }
-        return tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
+        return cost.multiply(rate);
     }
 
-    /** SELL proceeds in the given display currency — same convention as DepotService.toDTO's "realized". */
+    /** SELL proceeds in the given display currency — same convention as DepotService.toDTO's "realized".
+     *  quantityFiat is already a total fiat amount (quantity × price), so converting currency only
+     *  needs the exchange rate — NOT another multiplication by pricePerBtc (that previously squared
+     *  the price dimension and produced a wildly wrong number for any cross-currency SELL). */
     private BigDecimal sellProceeds(Transaction tx, String displayCurrency) {
         if (tx.getQuantityFiat() == null) return null;
         BigDecimal rate = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
         if (displayCurrency.equals(tx.getCurrency())) {
             return tx.getQuantityFiat();
         }
-        return tx.getQuantityFiat().multiply(tx.getPricePerBtc()).multiply(rate);
+        return tx.getQuantityFiat().multiply(rate);
     }
 }

@@ -57,16 +57,28 @@
                         <div id="holdingsBuysChart"></div>
                     </div>
 
-                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-pnl">
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-realized-pnl">
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
-                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.pnl">Realisierter &amp; Unrealisierter Gewinn/Verlust pro Jahr</span>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.realizedPnl">Realisierter Gewinn/Verlust pro Jahr</span>
                             <span class="holdings-block-actions">
-                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
-                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-realized-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-realized-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
                             </span>
                         </div>
-                        <div id="holdingsPnlChart"></div>
+                        <div id="holdingsRealizedPnlChart"></div>
+                    </div>
+
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-unrealized-pnl">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.unrealizedPnl">Unrealisierter Gewinn/Verlust pro Jahr</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-unrealized-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-unrealized-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsUnrealizedPnlChart"></div>
                     </div>
                 </div>
 
@@ -84,7 +96,7 @@
                         <div id="holdingsBalanceChart"></div>
                     </div>
 
-                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-refprices">
+                    <div class="holdings-chart-block holdings-draggable holdings-block-capped" id="holdings-block-refprices">
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.refPrices.title">Referenzkurse pro Jahr (31.12.)</span>
@@ -109,26 +121,46 @@
                     </div>
                 </div>
 
-                <div class="holdings-grid-row holdings-fixed-row" id="holdings-row-buypercent" data-row="2">
-                    <div class="holdings-row-handle-bar">
-                        <i class="bi bi-grip-horizontal holdings-row-drag-handle"></i>
-                        <span class="holdings-row-handle-label" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf</span>
-                        <span class="holdings-row-actions">
-                            <button type="button" class="holdings-row-move-btn" onclick="moveHoldingsRowByButton('holdings-row-buypercent', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
-                            <button type="button" class="holdings-row-move-btn" onclick="moveHoldingsRowByButton('holdings-row-buypercent', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
-                        </span>
-                    </div>
-                    <div class="holdings-chart-block holdings-buypercent-block" id="holdings-block-buypercent">
+                <div class="holdings-grid-row" id="holdings-row-buypercent" data-row="2">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-buypercent">
                         <div class="holdings-chart-title">
-                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf</span>
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf (Prozent)</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buypercent', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buypercent', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
                         </div>
                         <div id="holdingsBuyPercentChart"></div>
                     </div>
-                    <div class="holdings-chart-block" id="holdings-block-buydetail">
+                </div>
+                <div class="holdings-grid-row" id="holdings-row-buyabs" data-row="3">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-buyabs">
                         <div class="holdings-chart-title">
-                            <span class="holdings-chart-title-text" data-i18n="holdings.buyDetail.title">Kauf-Details</span>
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyAbs">Gewinn/Verlust je Kauf (Betrag)</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buyabs', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buyabs', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
                         </div>
-                        <div id="holdingsBuyDetailEmpty" class="flow-tx-empty" data-i18n="holdings.buyDetail.empty">Klicke auf einen Balken für Details.</div>
+                        <div id="holdingsBuyAbsChart"></div>
+                    </div>
+                </div>
+                <div class="holdings-grid-row" id="holdings-row-3" data-row="4">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable holdings-block-capped" id="holdings-block-buydetail">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.buyDetail.title">Kauf-Details</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buydetail', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buydetail', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsBuyDetailEmpty" class="flow-tx-empty" data-i18n="holdings.buyDetail.empty">Klicke in „Gewinn/Verlust je Kauf (Prozent)“ oder „Gewinn/Verlust je Kauf (Betrag)“ auf einen Balken für Details.</div>
                         <div id="holdingsBuyDetailContent" class="d-none holdings-buydetail-scroll">
                             <div id="holdingsBuyDetailCard"></div>
                             <div id="holdingsBuyDetailSellsWrap" class="d-none">
@@ -138,8 +170,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="holdings-grid-row" id="holdings-row-3" data-row="3"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
-                <div class="holdings-grid-row" id="holdings-row-4" data-row="4"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" id="holdings-row-4" data-row="5"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
             </div>
         </div>
     </div>
