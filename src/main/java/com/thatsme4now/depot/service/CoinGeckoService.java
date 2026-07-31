@@ -82,6 +82,10 @@ public class CoinGeckoService {
 
     private String fetchJson(String currency) {
         String url = String.format(OHLC_URL_TEMPLATE, currency.toLowerCase());
+        return fetchUrl(url);
+    }
+
+    private String fetchUrl(String url) {
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.GET, defaultHeaders(), String.class);
@@ -99,6 +103,12 @@ public class CoinGeckoService {
             throw e;
         }
     }
+
+    // NB: monthly-history backfill (2013 → today) used to live here via CoinGecko's
+    // market_chart/range endpoint, but CoinGecko's free/demo tier now rejects any
+    // request for data older than 365 days (HTTP 401, error_code 10012) — discovered
+    // in production. That backfill now lives in KrakenService instead (no API key,
+    // no time-range restriction). See MonthlyPriceService#backfill.
 
     private HttpEntity<Void> defaultHeaders() {
         HttpHeaders headers = new HttpHeaders();

@@ -26,17 +26,103 @@ let _flowCardHighlight = null; // { linkId, txId } | null — Card-Klick, hebt n
 let _flowTxSearchTerm = '';
 let _flowHoveredLinkId = null;
 
+// Eigenständiger, UNGEFILTERTER Fetch aller Transaktionen für die portfolio-weite
+// FIFO-Berechnung (Verkauf-Card-Zusatzinfos) — bewusst unabhängig vom (evtl. per
+// Datum/Position gefilterten) _flowGraphCache, da FIFO die komplette chronologische
+// Historie braucht, siehe _flowLoadFifo/_flowComputeFifo.
+let _flowSellMeta = new Map(); // sellId (string) -> [{ buyTx, qty, days }]
+
 async function initFlow() {
     if (typeof initFlatpickr === 'function') initFlatpickr();
     _wireFlowTxListEvents();
     await _loadFlowPositionOptions();
+    await _flowLoadFifo();
     await loadFlowGraph();
     _ensureFlowResizeObserver();
 }
 
 /** Hook called by tx-form.js (saveOrAddTx) after a transaction was saved. */
 function onTxSaved() {
-    loadFlowGraph();
+    _flowLoadFifo().then(loadFlowGraph);
+}
+
+/** Lädt/berechnet die FIFO-Lot-Zuordnung neu — vor dem ersten Render (initFlow)
+ *  und nach jeder Transaktionsänderung (onTxSaved), damit _renderFlowTxCard
+ *  synchron auf bereits aktuelle Daten zugreifen kann. */
+async function _flowLoadFifo() {
+    try {
+        const allTx = await fetch('/api/btc-tracking/transactions').then(r => r.json());
+        _flowSellMeta = _flowComputeFifo(allTx);
+    } catch (err) {
+        console.warn('FIFO load failed', err.message);
+        _flowSellMeta = new Map();
+    }
+}
+
+/**
+ * Eigenständige, globale (portfolio-weite) FIFO-Berechnung — bewusst NICHT mit
+ * yearly.js/holdings.js geteilt (siehe dortige Entscheidung zur unabhängigen
+ * Implementierung). Läuft einmal chronologisch über alle BUY/SELL und liefert
+ * pro Verkauf die verbrauchten Kauf-Lots (Menge, Kauf-Transaktion, Haltedauer).
+ */
+function _flowComputeFifo(allTx) {
+    const list = allTx
+        .filter(tx => tx.type === 'BUY' || tx.type === 'SELL')
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    const queue    = []; // { tx, remaining }
+    const sellMeta = new Map();
+
+    list.forEach(tx => {
+        if (tx.type === 'BUY') {
+            queue.push({ tx, remaining: Number(tx.quantity) || 0 });
+        } else if (tx.type === 'SELL') {
+            let toConsume = Number(tx.quantity) || 0;
+            const consumed = [];
+            while (toConsume > 1e-12 && queue.length) {
+                const lot  = queue[0];
+                const take = Math.min(lot.remaining, toConsume);
+                if (take > 1e-12) {
+                    consumed.push({ buyTx: lot.tx, qty: take, days: _flowDaysBetween(lot.tx.date, tx.date) });
+                }
+                lot.remaining -= take;
+                toConsume -= take;
+                if (lot.remaining <= 1e-12) queue.shift();
+            }
+            sellMeta.set(String(tx.id), consumed);
+        }
+    });
+
+    return sellMeta;
+}
+
+function _flowDaysBetween(dateA, dateB) {
+    const a = new Date(dateA);
+    const b = new Date(dateB);
+    return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+const FLOW_TAX_FREE_DAYS = 365; // DE Spekulationsfrist — rein informativ, keine Steuerberatung
+
+/** Gesamt-Kostenbasis eines Kaufs in der Anzeigewährung (inkl. Gebühren, währungskonvertiert). */
+function _flowBuyPaid(tx, displayCurrency) {
+    if (tx.pricePerBtc == null) return null;
+    const fees = tx.fees != null ? Number(tx.fees) : 0;
+    const cost = Number(tx.quantity) * Number(tx.pricePerBtc) + fees;
+    if (tx.currency === displayCurrency) return cost;
+    return cost * Number(tx.exchangeRate || 1);
+}
+
+/** tx.quantityFiat (bereits Gesamtbetrag) in die Anzeigewährung umgerechnet. */
+function _flowFiatInDisplayCurrency(tx, displayCurrency) {
+    if (tx.quantityFiat == null) return null;
+    if (tx.currency === displayCurrency) return Number(tx.quantityFiat);
+    return Number(tx.quantityFiat) * Number(tx.exchangeRate || 1);
+}
+
+function _flowFmt(val, currency) {
+    if (typeof CURRENCY !== 'undefined') return CURRENCY.format(val, currency);
+    return Number(val).toFixed(2);
 }
 
 async function _loadFlowPositionOptions() {
@@ -660,6 +746,66 @@ function _renderFlowTxCard(item) {
         ? `<div style="color:var(--text-muted);font-size:.62rem;letter-spacing:.03em;text-transform:uppercase;margin:-.2rem 0 .35rem">${esc(tx.positionType)}</div>`
         : '';
 
+    // Zusatzinfos nur bei Verkäufen: realisierter G/V + Aufschlüsselung, aus
+    // welchen historischen Käufen sich dieser Verkauf zusammensetzt (Menge,
+    // Kaufdatum, Haltedauer, Steuerfrei/-pflichtig-Badge ab 365 Tagen). Eigene,
+    // unabhängige FIFO-Berechnung (siehe _flowComputeFifo) — bewusst nicht mit
+    // der Kauf-Card geteilt, um diese nicht unübersichtlich zu machen.
+    let gvLine    = '';
+    let lotsBlock = '';
+    if (tx.type === 'SELL') {
+        const currency = (typeof CURRENCY !== 'undefined') ? CURRENCY.current() : 'EUR';
+        const consumed = _flowSellMeta.get(String(tx.id)) || [];
+
+        const proceeds = _flowFiatInDisplayCurrency(tx, currency) || 0;
+        let costOfSold = 0;
+        consumed.forEach(c => {
+            const paid = _flowBuyPaid(c.buyTx, currency);
+            if (paid == null) return;
+            costOfSold += (paid / Number(c.buyTx.quantity)) * c.qty;
+        });
+        const gain   = proceeds - costOfSold;
+        const posNeg = gain >= 0 ? 'text-pos' : 'text-neg';
+        gvLine = _flowFieldRow(
+            t('holdings.buyDetail.gvAbs'),
+            `<span class="${posNeg}">${gain >= 0 ? '+' : ''}${_flowFmt(gain, currency)}</span>`
+        );
+
+        const sellQty = Number(tx.quantity) || 1;
+        const lotsHtml = consumed.map(c => {
+            const taxFree  = c.days >= FLOW_TAX_FREE_DAYS;
+            const taxBadge = `<span class="yearly-tax-badge ${taxFree ? 'tax-free' : 'tax-liable'}">${
+                esc(t(taxFree ? 'yearly.tax.free' : 'yearly.tax.liable'))
+            }</span>`;
+            const buyDate   = c.buyTx.date ? String(c.buyTx.date).substring(0, 10) : '–';
+            const daysLabel = t('yearly.tiles.daysHeld', { DAYS: c.days });
+
+            const paid = _flowBuyPaid(c.buyTx, currency);
+            let lotGainHtml = '';
+            if (paid != null) {
+                const unitCost    = paid / Number(c.buyTx.quantity);
+                const lotCost     = unitCost * c.qty;
+                const lotProceeds = proceeds * (c.qty / sellQty);
+                const lotGain     = lotProceeds - lotCost;
+                const lotPosNeg   = lotGain >= 0 ? 'text-pos' : 'text-neg';
+                lotGainHtml = `<span class="yearly-lot-gain ${lotPosNeg}">${lotGain >= 0 ? '+' : ''}${_flowFmt(lotGain, currency)}</span>`;
+            }
+
+            return `<div class="yearly-lot-row">
+                <span class="yearly-lot-qty">${_flowFmt8(c.qty)}</span>
+                <span class="yearly-lot-date">${esc(buyDate)}</span>
+                <span class="yearly-lot-days">${esc(daysLabel)}</span>
+                ${lotGainHtml}
+                ${taxBadge}
+            </div>`;
+        }).join('');
+
+        lotsBlock = consumed.length
+            ? `<div class="yearly-lots-title">${esc(t('yearly.tiles.lotsTitle'))}</div>
+               <div class="yearly-lots-list">${lotsHtml}</div>`
+            : '';
+    }
+
     const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
 
     return `<div class="flow-tx-card${dupClass}" data-link-id="${esc(item.linkId || '')}" data-tx-id="${esc(tx.id)}">
@@ -677,7 +823,10 @@ function _renderFlowTxCard(item) {
         ${_flowFieldRow(t('table.col.date'), date)}
         ${_flowFieldRow(t('table.col.type'), esc(tx.type))}
         ${_flowFieldRow(t('table.col.btc'), _flowFmt8(tx.quantity))}
-        ${priceLine}${totalLine}${feesLine}${exRateLine}${transferLine}${commentLine}
+        ${priceLine}${totalLine}${feesLine}${exRateLine}${transferLine}
+        ${gvLine}
+        ${commentLine}
+        ${lotsBlock}
     </div>`;
 }
 

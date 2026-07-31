@@ -112,9 +112,9 @@
 		            <li><a class="dropdown-item" th:href="@{/btc-tracking/holdings}">
 		                <i class="bi bi-bar-chart-steps me-2"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
 		            </a></li>
-		            <li><span class="dropdown-item" style="opacity:.5;cursor:default">
-		                <i class="bi bi-hourglass-split me-2"></i><span data-i18n="nav.btn.comingSoon">Bald verfügbar</span>
-		            </span></li>
+		            <li><a class="dropdown-item" th:href="@{/btc-tracking/yearly}">
+		                <i class="bi bi-calendar3 me-2"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
+		            </a></li>
 		        </ul>
 		    </div>
 		</div>
@@ -194,6 +194,9 @@
 	    </a>
 	    <a th:href="@{/btc-tracking/holdings}" class="btn depot-btn-outline w-100">
 	        <i class="bi bi-bar-chart-steps me-1"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
+	    </a>
+	    <a th:href="@{/btc-tracking/yearly}" class="btn depot-btn-outline w-100">
+	        <i class="bi bi-calendar3 me-1"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
 	    </a>
 	</div>
 </div>
@@ -504,6 +507,9 @@
 			        </button>
 			        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
+			        </button>
+			        <button type="button" id="txSoloFilterBtn" class="btn btn-xs depot-btn-outline" onclick="toggleTxSoloFilter()">
+			            <i class="bi bi-filter-circle me-1"></i><span data-i18n="table.filter.soloOnly"></span>
 			        </button>
 			        <div class="tx-search-wrap dt-search-workaround">
 			            <input type="text" id="txSearchVisible" class="form-control depot-input"
@@ -1008,7 +1014,42 @@
 	        </div>
 	    </div>
 	</div>
-	
+
+	<!-- Refresh Options Modal: aktueller Kurs / fehlende Monatspreise, einzeln oder zusammen -->
+	<div class="modal fade" id="refreshOptionsModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-arrow-clockwise me-2"></i>
+	                    <span data-i18n="modal.refreshOptions.title">Kurse laden</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <div class="form-check mb-2">
+	                    <input class="form-check-input" type="checkbox" id="refreshOptCurrentPrice" checked>
+	                    <label class="form-check-label" for="refreshOptCurrentPrice" style="font-size:.8rem;color:var(--text)" data-i18n="modal.refreshOptions.currentPrice">
+	                        Aktuellen Kurs aktualisieren
+	                    </label>
+	                </div>
+	                <div class="form-check">
+	                    <input class="form-check-input" type="checkbox" id="refreshOptMonthly" checked>
+	                    <label class="form-check-label" for="refreshOptMonthly" style="font-size:.8rem;color:var(--text)" data-i18n="modal.refreshOptions.monthly">
+	                        Fehlende Monatspreise laden
+	                    </label>
+	                </div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="confirmRefreshOptions()">
+	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.refreshOptions.confirm">Laden</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+
 	<!-- Position Modal (Add / Edit) -->
 	<div class="modal fade" id="positionModal" tabindex="-1">
 	    <div class="modal-dialog modal-sm">

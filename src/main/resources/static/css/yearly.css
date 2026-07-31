@@ -1,0 +1,320 @@
+/* ── Jahresansicht ──────────────────────────────────────── */
+
+.yearly-year-select {
+    width: auto;
+    min-width: 140px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: .78rem;
+}
+
+/* ── Draggable grid (eigenständig, analog zu holdings.css, aber mit
+   maximal 2 statt 3 Slots pro Reihe — siehe yearly.js updateYearlyRowCols) ── */
+.yearly-layout-hint {
+    font-size: .68rem;
+    color: var(--text-muted);
+    margin: 0 .25rem .75rem;
+}
+
+.yearly-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.yearly-grid-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 1), 1fr);
+    gap: 1rem;
+    min-height: 46px;
+    border-radius: var(--radius);
+    transition: outline-color .12s;
+}
+
+.yearly-grid-row.drag-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+}
+
+.yearly-empty-row-label {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .68rem;
+}
+.yearly-grid-row.empty { grid-template-columns: 1fr; }
+.yearly-grid-row.empty .yearly-empty-row-label { display: flex; }
+
+.yearly-chart-block {
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .85rem 1rem 1rem;
+}
+.yearly-chart-block.dragging { opacity: .4; }
+.yearly-draggable { grid-column: span var(--span, 1); }
+
+.yearly-chart-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: .6rem;
+}
+.yearly-chart-title-text { flex: 1 1 auto; min-width: 0; }
+.yearly-chart-title-count {
+    flex: 0 0 auto;
+    font-size: .68rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.yearly-drag-handle { cursor: grab; color: var(--text-muted); flex: 0 0 auto; }
+
+/* Käufe/Verkäufe-Sichtbarkeitsfilter der Kauf/Verkauf-Kachel — 2 unabhängige
+   Toggle-Buttons, Standard beide an. Aktiver Zustand nutzt dieselbe grün/rot-
+   Konvention wie die Kauf/Verkauf-Badges (type-buy/type-sell in flow.css). */
+.yearly-tiles-filter {
+    display: flex;
+    gap: .25rem;
+    flex: 0 0 auto;
+}
+.yearly-tiles-filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: .15rem .45rem;
+    cursor: pointer;
+    opacity: .5;
+    transition: opacity .12s, border-color .12s, color .12s;
+}
+.yearly-tiles-filter-btn:hover { opacity: .8; }
+.yearly-tiles-filter-btn.is-active { opacity: 1; }
+.yearly-tiles-filter-btn.buy.is-active  { border-color: var(--pos); color: var(--pos); }
+.yearly-tiles-filter-btn.sell.is-active { border-color: var(--neg); color: var(--neg); }
+
+/* Alle/Paare/Solo-Filter der Transfers-Kachel — anders als der Käufe/Verkäufe-
+   Filter oben KEIN unabhängiges Doppel-Toggle, sondern 3 sich gegenseitig
+   ausschließende Optionen (Radio-artig, siehe yearlyToggleTransfersFilter).
+   Aktiver Zustand nutzt die Akzentfarbe statt grün/rot, da es hier keine
+   Kauf/Verkauf-Konvention gibt. */
+.yearly-transfers-filter {
+    display: flex;
+    gap: .25rem;
+    flex: 0 0 auto;
+}
+.yearly-transfers-filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: .15rem .45rem;
+    cursor: pointer;
+    opacity: .5;
+    transition: opacity .12s, border-color .12s, color .12s;
+}
+.yearly-transfers-filter-btn:hover { opacity: .8; }
+.yearly-transfers-filter-btn.is-active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+
+.yearly-block-actions {
+    display: flex;
+    gap: .15rem;
+    flex: 0 0 auto;
+}
+.yearly-block-move-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+    font-size: .7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+.yearly-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Kauf/Verkauf-Kacheln ──────────────────────────────────
+   Reusen .flow-tx-card aus flow.css als Basis, angeordnet als
+   responsives Grid statt einer schmalen vertikalen Liste. */
+.yearly-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: .75rem;
+    padding: .25rem 1rem 1rem;
+}
+
+.yearly-tile { cursor: default; }
+.yearly-tile:hover { border-color: var(--border); }
+
+/* Status-Badges (gehalten/teilweise/komplett realisiert) — eigenständig
+   definiert, da holdings.css auf dieser Seite nicht geladen wird. */
+.flow-tx-card-badge.state-partial  { color: var(--warn-duplicate, #b8860b); }
+.flow-tx-card-badge.state-realized { color: var(--text-muted); }
+
+/* ── Verkauf-Kachel: FIFO-Lot-Aufschlüsselung ─────────────── */
+.yearly-lots-title {
+    font-size: .64rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    margin: .6rem 0 .3rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--border);
+}
+
+.yearly-lots-list {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.yearly-lot-row {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .66rem;
+    color: var(--text);
+    flex-wrap: wrap;
+}
+.yearly-lot-qty  { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); flex: 0 0 auto; }
+.yearly-lot-date { flex: 0 0 auto; }
+.yearly-lot-days { color: var(--text-muted); flex: 1 1 auto; }
+.yearly-lot-gain { font-family: 'IBM Plex Mono', monospace; flex: 0 0 auto; }
+
+.yearly-tax-badge {
+    font-size: .58rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: .05rem .35rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+.yearly-tax-badge.tax-free   { background: rgba(29, 158, 117, .18); color: var(--pos); }
+.yearly-tax-badge.tax-liable { background: rgba(216, 90, 48, .18); color: var(--neg); }
+
+/* ── Transfer-Kachel: Solo-Transfer-Hinweis (keine Gegenbuchung gefunden) ── */
+.yearly-transfer-solo {
+    font-size: .66rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: .3rem;
+    padding-top: .4rem;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Manueller Monatskurs-Dialog ───────────────────────────── */
+.yearly-price-modal-hint {
+    font-size: .7rem;
+    color: var(--text-muted);
+    margin-bottom: .75rem;
+}
+
+.yearly-price-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+}
+
+.yearly-price-year-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.yearly-price-year-toggle {
+    width: 100%;
+    text-align: left;
+    background: var(--bg);
+    border: none;
+    color: var(--text);
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .5rem .75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.yearly-price-year-toggle i { transition: transform .15s; }
+.yearly-price-year-toggle[aria-expanded="true"] i { transform: rotate(-180deg); }
+
+.yearly-price-rows {
+    padding: .4rem .75rem .6rem;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+
+.yearly-price-row {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr auto;
+    align-items: center;
+    gap: .5rem;
+}
+
+.yearly-price-month {
+    font-size: .7rem;
+    color: var(--text-muted);
+}
+
+.yearly-price-current {
+    font-size: .68rem;
+    color: var(--text-muted);
+    font-style: italic;
+    grid-column: 2 / span 2;
+}
+
+.yearly-price-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: .3rem .5rem;
+    font-size: .74rem;
+    width: 100%;
+}
+.yearly-price-input.missing { border-color: var(--warn-duplicate, #b8860b); }
+
+.yearly-price-save {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: .3rem .5rem;
+    cursor: pointer;
+    font-size: .78rem;
+}
+.yearly-price-save:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .yearly-tile-grid { grid-template-columns: 1fr; }
+    .yearly-price-row { grid-template-columns: 2.6rem 1fr auto; }
+}
+
+@media (max-width: 991px) {
+    .yearly-grid-row,
+    .yearly-grid-row.empty { grid-template-columns: 1fr !important; }
+    .yearly-drag-handle { display: none; }
+}

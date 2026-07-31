@@ -32,6 +32,8 @@ import com.thatsme4now.depot.service.DepotService;
 import com.thatsme4now.depot.service.FlowService;
 import com.thatsme4now.depot.service.HistoricalPriceService;
 import com.thatsme4now.depot.service.HoldingsYearlyService;
+import com.thatsme4now.depot.service.MonthlyOverviewService;
+import com.thatsme4now.depot.service.MonthlyPriceService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,6 +51,8 @@ public class DepotRestController {
     private final FlowService flowService;
     private final HoldingsYearlyService holdingsYearlyService;
     private final HistoricalPriceService historicalPriceService;
+    private final MonthlyPriceService monthlyPriceService;
+    private final MonthlyOverviewService monthlyOverviewService;
 
     @GetMapping("/holdings/yearly")
     public List<com.thatsme4now.depot.dto.YearlyHoldingsDTO> getYearlyHoldings(
@@ -83,6 +87,65 @@ public class DepotRestController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/monthly-prices")
+    public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPrices(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyPriceService.getMonthly(cur);
+    }
+
+    /** Reine Kurs-Historie (alle in monthly_price vorhandenen Monate + laufender Live-Kurs) für
+     *  den Bitcoin-Kurs-Chart der Jahresansicht-Gesamtansicht — siehe MonthlyPriceService#getPriceHistory. */
+    @GetMapping("/monthly-prices/history")
+    public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPriceHistory(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyPriceService.getPriceHistory(cur);
+    }
+
+    @PutMapping("/monthly-prices")
+    public ResponseEntity<Map<String, Object>> upsertMonthlyPrice(@RequestBody MonthlyPriceUpdateRequest req) {
+        try {
+            com.thatsme4now.depot.dto.MonthlyPriceDTO dto =
+                    monthlyPriceService.upsert(req.getYear(), req.getMonth(), req.getCurrency(), req.getPrice());
+            return ResponseEntity.ok(Map.of(
+                    "year", dto.getYear(),
+                    "month", dto.getMonth(),
+                    "currency", dto.getCurrency(),
+                    "price", dto.getPrice()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/monthly-prices/backfill")
+    public ResponseEntity<Map<String, Object>> backfillMonthlyPrices() {
+        try {
+            int inserted = monthlyPriceService.backfill();
+            return ResponseEntity.ok(Map.of("totalNew", inserted));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/yearly-overview")
+    public com.thatsme4now.depot.dto.YearlyOverviewDTO getYearlyOverview(
+            @RequestParam(required = false, name = "year") Integer year,
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyOverviewService.getOverview(year, cur);
     }
 
     @GetMapping("/flow")
@@ -819,6 +882,14 @@ public class DepotRestController {
     @lombok.Data
     public static class HistoricalPriceUpdateRequest {
         private Integer year;
+        private String currency;
+        private java.math.BigDecimal price;
+    }
+
+    @lombok.Data
+    public static class MonthlyPriceUpdateRequest {
+        private Integer year;
+        private Integer month;
         private String currency;
         private java.math.BigDecimal price;
     }

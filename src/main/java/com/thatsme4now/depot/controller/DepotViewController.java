@@ -44,6 +44,11 @@ public class DepotViewController {
         return "depot/holdings";
     }
 
+    @GetMapping("/btc-tracking/yearly")
+    public String yearly() {
+        return "depot/yearly";
+    }
+
     @GetMapping("/btc-tracking")
     public String overview(Model model, HttpServletRequest request) {
         // Read currency from cookie (set by JS when user changes setting)

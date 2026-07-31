@@ -804,6 +804,28 @@ function clearTxVisibleSearch() {
     input?.focus();
 }
 
+// ── Filter "Nur Solo-Transfers" ────────────────────────────
+// Solo-Transfers sind bereits per .solo-transfer-Klasse auf der Zeile markiert
+// (siehe _buildTxRowHtml/transferIdCounts oben — genau 1x vorkommende
+// transferId). Dieser Filter blendet einfach alle anderen Zeilen aus, per
+// DataTables custom search plugin — kombiniert sich automatisch (UND-
+// verknüpft) mit dem freien Suchfeld oben, da DataTables alle registrierten
+// Suchfunktionen nacheinander anwendet.
+let _txSoloFilterActive = false;
+
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
+    if (settings.nTable.id !== 'txTable' || !_txSoloFilterActive) return true;
+    const table = $('#txTable').DataTable();
+    const node = table.row(dataIndex).node();
+    return !!node && node.classList.contains('solo-transfer');
+});
+
+function toggleTxSoloFilter() {
+    _txSoloFilterActive = !_txSoloFilterActive;
+    document.getElementById('txSoloFilterBtn')?.classList.toggle('is-active', _txSoloFilterActive);
+    if ($.fn.DataTable.isDataTable('#txTable')) $('#txTable').DataTable().draw();
+}
+
 // Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
 function onPosVisibleSearchInput(value) {
     const hiddenInput = document.querySelector('#posTable_wrapper .dt-search input');
@@ -1404,6 +1426,10 @@ function savePosition() {
 }
 
 // ── Refresh Prices ────────────────────────────────────────
+// Clicking "Kurs aktualisieren" opens a small selection modal (aktueller
+// Kurs / fehlende Monatspreise, beides standardmäßig angehakt) instead of
+// refreshing directly — see refreshOptionsModal in overview.html. The
+// offline gate still runs first, exactly as before.
 function refreshPrices() {
     if (!OFFLINE.isOnline()) {
         const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
@@ -1411,24 +1437,54 @@ function refreshPrices() {
         modal.show();
         return;
     }
-    _doRefreshPrices();
+    openRefreshOptionsModal();
 }
 
 function confirmOfflineRefresh() {
     bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
-    _doRefreshPrices();
+    openRefreshOptionsModal();
 }
 
-function _doRefreshPrices() {
+function openRefreshOptionsModal() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('refreshOptionsModal'))
+        || new bootstrap.Modal(document.getElementById('refreshOptionsModal'));
+    modal.show();
+}
+
+function confirmRefreshOptions() {
+    const wantPrice   = document.getElementById('refreshOptCurrentPrice').checked;
+    const wantMonthly = document.getElementById('refreshOptMonthly').checked;
+    bootstrap.Modal.getInstance(document.getElementById('refreshOptionsModal'))?.hide();
+    if (!wantPrice && !wantMonthly) return;
+    _doRefresh(wantPrice, wantMonthly);
+}
+
+function _doRefresh(wantPrice, wantMonthly) {
     const btn = document.getElementById('btnRefresh');
     btn.disabled = true;
     btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
 
-    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            const n = data.totalNew || 0;
-            showToast('✓ ' + n + ' ' + t('toast.refreshSuccess'), 'success');
+    const tasks = [];
+    if (wantPrice) {
+        tasks.push(fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
+            .then(r => r.json()).then(data => ({ type: 'price', data })));
+    }
+    if (wantMonthly) {
+        tasks.push(fetch('/api/btc-tracking/monthly-prices/backfill', { method: 'POST' })
+            .then(r => r.json()).then(data => ({ type: 'monthly', data })));
+    }
+
+    Promise.all(tasks)
+        .then(results => {
+            const errored = results.find(r => r.data.error);
+            if (errored) throw new Error(errored.data.error);
+
+            const parts = [];
+            results.forEach(r => {
+                const n = r.data.totalNew || 0;
+                parts.push(n + ' ' + (r.type === 'price' ? t('toast.refreshSuccess') : t('yearly.toast.pricesLoaded')));
+            });
+            showToast('✓ ' + parts.join(', '), 'success');
             setTimeout(() => window.location.reload(), 1800);
         })
         .catch(err => {

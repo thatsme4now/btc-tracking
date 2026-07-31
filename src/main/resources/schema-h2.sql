@@ -74,3 +74,21 @@ CREATE TABLE IF NOT EXISTS historical_price (
 );
 
 CREATE INDEX IF NOT EXISTS idx_hp_year ON historical_price(price_year);
+
+-- Monthly (Ultimo, i.e. last day of month) reference prices per currency,
+-- used by the "Jahresansicht" visualization. Seeded once from the bundled
+-- src/main/resources/data/monthly-btc-prices.csv resource (see
+-- MonthlyPriceSeeder), and/or backfilled live via CoinGecko (see
+-- MonthlyPriceService.backfill) — never overwritten once a row exists,
+-- whether seeded, backfilled, or manually corrected by the user.
+CREATE TABLE IF NOT EXISTS monthly_price (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ticker      VARCHAR(10)    NOT NULL DEFAULT 'BTC',
+    price_year  INT            NOT NULL,
+    price_month INT            NOT NULL,
+    currency    VARCHAR(10)    NOT NULL,
+    price       DECIMAL(18,2)  NOT NULL,
+    CONSTRAINT uq_mp_ticker_year_month_currency UNIQUE (ticker, price_year, price_month, currency)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mp_year_month ON monthly_price(price_year, price_month);

@@ -181,6 +181,7 @@ body.light {
     align-items:     center;
 }
 .depot-btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+.depot-btn-outline.is-active { border-color: var(--accent); color: var(--accent); }
 
 .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.72rem; }
 
