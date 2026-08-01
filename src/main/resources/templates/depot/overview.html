@@ -18,223 +18,50 @@
 </head>
 <body class="depot-body">
 
-<!-- ── Navbar ── -->
-<nav class="navbar depot-navbar">
-	<div class="container-fluid px-4">
-        <span class="navbar-brand depot-brand">
-            <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
-        </span>
-	</div>
-    <div class="container-fluid px-4">
-	    <div class="d-flex align-items-left gap-3">
-	    <!-- Hamburger: nur Tablet/Handy -->
-	    <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
-	            type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
-	            aria-controls="navbarActionsOffcanvas" title="Menu">
-	        <i class="bi bi-list"></i>
-	    </button>
-	        <!-- Live BTC price badge -->
-	        <span class="btc-price-badge" th:if="${btcPrice != null}"
-	              onclick="openPriceEdit()"
-	              style="cursor:pointer"
-	              id="btcPriceBadge">
-	            BTC
-	            <span class="text-pos" id="btcPriceDisplay"
-	                  th:text="${#numbers.formatDecimal(btcPrice, 1, 'POINT', 2, 'COMMA') + ' ' + currency}">
-	            </span>
-	            <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
-	        </span>
-	        <span id="btcPriceEditor" class="d-none align-items-center gap-1">
-	            <input type="number" id="btcPriceInput"
-	                   class="form-control depot-input"
-	                   style="width:140px;font-size:.75rem;padding:.25rem .5rem"
-	                   step="1" min="1"
-	                   onkeydown="if(event.key==='Enter') savePriceEdit()"/>
-	            <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
-	                <i class="bi bi-check-lg"></i>
-	            </button>
-	            <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
-	                <i class="bi bi-x-lg"></i>
-	            </button>
-	        </span>
-	        <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
-	            <i class="bi bi-arrow-clockwise me-1"></i><span class="refresh-text" data-i18n="nav.btn.refresh">Refresh</span>
-	        </button>
-	    </div>
-	
-	    <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
-		    <div class="dropdown">
-		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
-		                data-bs-toggle="dropdown" aria-expanded="false">
-		            <i class="bi bi-lightning-charge me-1"></i><span data-i18n="nav.btn.actions">Aktionen</span>
-		        </button>
-		        <ul class="dropdown-menu depot-dropdown-menu">
-		            <li><button class="dropdown-item" onclick="openAddTx()">
-		                <i class="bi bi-plus-circle me-2"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-		            </button></li>
-		            <li><button class="dropdown-item" onclick="removeAll()">
-		                <i class="bi bi-trash me-2"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-		            </button></li>
-		            <li><hr class="dropdown-divider"></li>
-		            <li>
-		                <label class="dropdown-item mb-0" style="cursor:pointer">
-		                    <i class="bi bi-upload me-2"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-		                    <input type="file" id="csvFileInput" accept=".csv,.enc"
-		                           style="display:none" onchange="importCsv(this)"/>
-		                </label>
-		            </li>
-		            <li><button class="dropdown-item" onclick="openExportModal()">
-		                <i class="bi bi-download me-2"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-		            </button></li>
-		            <li><hr class="dropdown-divider"></li>
-		            <li><button class="dropdown-item" onclick="openDbExportModal()">
-		                <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-		            </button></li>
-		            <li>
-		                <label class="dropdown-item mb-0" style="cursor:pointer">
-		                    <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-		                    <input type="file" id="dbImportFileInput" accept=".json,.enc"
-		                           style="display:none" onchange="onDbImportFileSelected(this)"/>
-		                </label>
-		            </li>
-		        </ul>
-		    </div>
-		
-		    <div class="dropdown">
-		        <button class="btn depot-btn-outline dropdown-toggle" type="button"
-		                data-bs-toggle="dropdown" aria-expanded="false">
-		            <i class="bi bi-bar-chart-line me-1"></i><span data-i18n="nav.btn.visualization">Visualisierung</span>
-		        </button>
-		        <ul class="dropdown-menu depot-dropdown-menu">
-		            <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
-		                <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
-		            </a></li>
-		            <li><a class="dropdown-item" th:href="@{/btc-tracking/holdings}">
-		                <i class="bi bi-bar-chart-steps me-2"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
-		            </a></li>
-		            <li><a class="dropdown-item" th:href="@{/btc-tracking/yearly}">
-		                <i class="bi bi-calendar3 me-2"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
-		            </a></li>
-		        </ul>
-		    </div>
-		</div>
-
-	    <div class="ms-2 d-flex align-items-right gap-3">
-	        <button class="btn depot-btn-icon px-2" id="btnAppLock"
-			        onclick="AppLock.onIconClick()" data-i18n-title="applock.icon.lock.title" title="Lock app">
-			    <i class="bi bi-unlock-fill" id="appLockIcon"></i>
-			</button>
-	        <button class="btn depot-btn-icon px-2" id="btnLightning"
-	                onclick="sendSomeSats()" title="Send some sats!">
-	            <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
-	        </button>
-	        <button class="btn depot-btn-offline px-2" id="btnOffline"
-	                onclick="OFFLINE.toggle()" title="Online mode">
-	            <i class="bi bi-wifi" id="offlineIcon"></i>
-	        </button>
-	        <button class="btn depot-btn-icon px-2" onclick="toggleTheme()" id="btnTheme"
-	                data-i18n-title="nav.btn.settings" title="Toggle light/dark mode">
-	            <i class="bi bi-moon-fill" id="themeIcon"></i>
-	        </button>
-	        <button class="btn depot-btn-icon px-2" onclick="cycleDensity()" id="btnDensity"
-	                data-i18n-title="nav.btn.density" title="Text size">
-	            <i class="bi bi-type" id="densityIcon"></i>
-	        </button>
-	        <button class="btn depot-btn-icon px-2" onclick="openSettings()"
-	                data-i18n-title="nav.btn.settings" title="Settings">
-	            <i class="bi bi-gear-fill"></i>
-	        </button>
-	
-	        
-	        <button class="btn depot-btn-icon px-2" onclick="openHelp()"
-	                data-i18n-title="nav.btn.help" title="Help">
-	            <i class="bi bi-question-circle"></i>
-	        </button>
-	     
-	        
-	        
-	        
-	    </div>
-	</div>
-</nav>
-
-<div class="offcanvas offcanvas-end depot-offcanvas" tabindex="-1" id="navbarActionsOffcanvas">
-    <div class="offcanvas-header" style="border-bottom:1px solid var(--border)">
-        <span class="depot-card-header mb-0" data-i18n="nav.btn.actions">Aktionen</span>
-        <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body d-flex flex-column gap-2">
-	    <div class="depot-card-header mb-1" data-i18n="nav.btn.actions">Aktionen</div>
-	    <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
-	        <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
-	    </button>
-	    <button class="btn depot-btn-outline w-100" onclick="removeAll()">
-	        <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Remove all</span>
-	    </button>
-	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-	        <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
-	        <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
-	               style="display:none" onchange="importCsv(this)"/>
-	    </label>
-	    <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
-	        <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
-	    </button>
-	    <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
-	        <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
-	    </button>
-	    <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-	        <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
-	        <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
-	               style="display:none" onchange="onDbImportFileSelected(this)"/>
-	    </label>
-	
-	    <div class="depot-card-header mb-1 mt-2" data-i18n="nav.btn.visualization">Visualisierung</div>
-	    <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
-	        <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
-	    </a>
-	    <a th:href="@{/btc-tracking/holdings}" class="btn depot-btn-outline w-100">
-	        <i class="bi bi-bar-chart-steps me-1"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
-	    </a>
-	    <a th:href="@{/btc-tracking/yearly}" class="btn depot-btn-outline w-100">
-	        <i class="bi bi-calendar3 me-1"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
-	    </a>
-	</div>
-</div>
+<!-- ── Navbar (shared fragment, alle 4 Seiten) ── -->
+<div th:replace="~{depot/fragments/navbar :: navbar(true)}"></div>
 
 <main class="container-fluid px-4 py-4">
 
     <div id="statusToast" class="depot-toast d-none"></div>
 
     <!-- No price available for selected currency -->
-    <div id="sortableSectionsContainer">
     <div id="noPriceBanner" class="depot-card mb-3 d-none"
          style="border-left:3px solid var(--neg);padding:.75rem 1.25rem">
         <i class="bi bi-exclamation-triangle me-2" style="color:var(--neg)"></i>
         <span id="noPriceBannerText" style="font-size:.8rem"></span>
     </div>
 
-    <!-- Metric Cards -->
-	<div class="depot-card mb-4 sortable-section" data-section-id="metrics">
-        <div class="depot-card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <span style="display:flex;align-items:center;gap:.5rem">
-                <i class="bi bi-grip-vertical drag-handle" style="cursor:grab;color:var(--text-muted)"></i>
-                <span data-i18n="metrics.title">Kennzahlen</span>
-            </span>
-            <span class="d-flex align-items-center gap-2">
-			    <span class="sortable-mobile-controls d-flex gap-1">
-			        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation();moveSectionUp(this)" title="Nach oben">
-			            <i class="bi bi-chevron-up"></i>
-			        </button>
-			        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation();moveSectionDown(this)" title="Nach unten">
-			            <i class="bi bi-chevron-down"></i>
-			        </button>
-			    </span>
-			    <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('metricsCardBody', this)">
-			        <i class="bi bi-dash-lg"></i>
-			    </button>
-			</span>
-        </div>
-        <div id="metricsCardBody">
+    <div class="overview-layout-toolbar d-flex justify-content-end align-items-center flex-wrap gap-2 mb-2">
+        <p class="overview-layout-hint d-none me-auto mb-0" id="overviewLayoutHint" data-i18n="overview.layout.hint">
+            Ziehe die Kacheln am Griff, um sie neu anzuordnen — bis zu 2 pro Reihe. Auf dem Handy nutze stattdessen die Pfeil-Buttons.
+        </p>
+        <button id="overviewResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetOverviewLayout()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
+        </button>
+    </div>
+
+    <div id="overviewGrid" class="overview-grid">
+        <div class="overview-grid-row" id="overview-row-0" data-row="0">
+            <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+            <div class="depot-card overview-draggable" id="overview-block-metrics">
+                <div class="depot-card-header d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-2">
+                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
+                        <span data-i18n="metrics.title">Kennzahlen</span>
+                    </span>
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="overview-block-actions">
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-metrics', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-metrics', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                        </span>
+                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('metricsCardBody', this)">
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
+                    </span>
+                </div>
+                <div id="metricsCardBody">
 	        <div class="row g-3 metrics-row">
 		        <div class="col-4">
 		            <div class="depot-card depot-card-metric">
@@ -307,50 +134,32 @@
 		            </div>
 		        </div>
 		    </div>
-		</div>
-	</div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Positions Table + Donut -->
-   <!-- Positions Table + Donut -->
-    <div class="row g-3 mb-3 sortable-section" data-section-id="positions">
-        <div class="col-12">
-            <div class="depot-card p-0">
-                <div class="depot-card-header d-flex justify-content-between align-items-center"
-                     style="padding:1rem 1.25rem;margin-bottom:0">
+        <div class="overview-grid-row" id="overview-row-1" data-row="1">
+            <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+            <div class="depot-card overview-draggable" id="overview-block-wallets">
+                <div class="depot-card-header d-flex justify-content-between align-items-center">
                     <span class="d-flex align-items-center gap-2">
-                        <i class="bi bi-grip-vertical drag-handle" style="cursor:grab;color:var(--text-muted)"></i>
-                        <span data-i18n="section.positions.title">Positionen &amp; Allokation</span>
+                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
+                        <span data-i18n="table.wallets">Wallets &amp; Exchanges</span>
+                        <span class="text-muted ms-2" style="font-size:.75rem"
+                              data-i18n="table.wallets.hint">— click a row to show price chart</span>
                     </span>
                     <span class="d-flex align-items-center gap-2">
-                        <span class="sortable-mobile-controls d-flex gap-1">
-                            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionUp(this)" title="Nach oben">
-                                <i class="bi bi-chevron-up"></i>
-                            </button>
-                            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionDown(this)" title="Nach unten">
-                                <i class="bi bi-chevron-down"></i>
-                            </button>
+                        <span class="overview-block-actions">
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
                         </span>
-                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('positionsCardBody', this)">
+                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('walletsCardBody', this)">
                             <i class="bi bi-dash-lg"></i>
                         </button>
                     </span>
                 </div>
-
-                <div id="positionsCardBody">
-                <div class="row g-0">
-                    <div class="col-lg-8 positions-col-split">
-                        <div style="padding:1rem 1.25rem">
-                            <div class="mb-2 d-flex justify-content-between align-items-center">
-                                <span style="font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)">
-                                    <span data-i18n="table.wallets">Wallets &amp; Exchanges</span>
-                                    <span class="text-muted ms-2" style="font-size:.75rem"
-                                          data-i18n="table.wallets.hint">— click a row to show price chart</span>
-                                </span>
-                                <button class="btn btn-xs depot-btn-icon mobile-only-toggle" onclick="toggleCard('walletsSubBody', this)">
-                                    <i class="bi bi-dash-lg"></i>
-                                </button>
-                            </div>
-                            <div id="walletsSubBody">
+                <div id="walletsCardBody">
 	                            <div class="table-responsive no-overflow">
 	                                <div id="posToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
 	                                     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
@@ -433,53 +242,51 @@
 	                                    </tbody>
 	                                </table>
 	                            </div>
-                        	</div>
-                    	</div>
-                    </div>
-
-                    <div class="col-lg-4">
-                        <div style="padding:1rem 1.25rem">
-                            <div class="mb-2 d-flex justify-content-between align-items-center">
-                                <span style="font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)"
-                                      data-i18n="chart.allocation">Allocation by Wallet / Exchange</span>
-                                <button class="btn btn-xs depot-btn-icon mobile-only-toggle" onclick="toggleCard('donutSubBody', this)">
-                                    <i class="bi bi-dash-lg"></i>
-                                </button>
-                            </div>
-                            <div id="donutSubBody">
-                                <div id="donutChart"></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+            </div>
+
+            <div class="depot-card overview-draggable" id="overview-block-allocation">
+                <div class="depot-card-header d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-2">
+                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
+                        <span data-i18n="chart.allocation">Allocation by Wallet / Exchange</span>
+                    </span>
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="overview-block-actions">
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-allocation', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-allocation', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                        </span>
+                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('donutCardBody', this)">
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
+                    </span>
+                </div>
+                <div id="donutCardBody">
+                    <div id="donutChart"></div>
                 </div>
             </div>
         </div>
-    </div>
 
+        <div class="overview-grid-row" id="overview-row-2" data-row="2">
+            <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
 
-    <!-- Transactions Panel -->
-    <div id="transactionsPanel" class="depot-card mb-3 sortable-section" data-section-id="transactions">
-        <div class="depot-card-header d-flex justify-content-between align-items-center">
-	        <span style="display:flex;align-items:center;gap:.5rem">
-	            <i class="bi bi-grip-vertical drag-handle" style="cursor:grab;color:var(--text-muted)"></i>
-	            <span data-i18n="table.allTransactions">All Transactions</span>
-	        </span>
-	        <div class="d-flex align-items-center gap-2">
-		        <span class="sortable-mobile-controls d-flex gap-1">
-		            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionUp(this)" title="Nach oben">
-		                <i class="bi bi-chevron-up"></i>
-		            </button>
-		            <button class="btn btn-xs depot-btn-icon" onclick="moveSectionDown(this)" title="Nach unten">
-		                <i class="bi bi-chevron-down"></i>
-		            </button>
-		        </span>
-		        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
-		            <i id="txToggleIcon" class="bi bi-dash-lg"></i>
-		        </button>
-		    </div>
-	    </div>
-	    <div id="txCardBody">
+            <div id="transactionsPanel" class="depot-card overview-draggable">
+                <div class="depot-card-header d-flex justify-content-between align-items-center">
+                    <span style="display:flex;align-items:center;gap:.5rem">
+                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
+                        <span data-i18n="table.allTransactions">All Transactions</span>
+                    </span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="overview-block-actions">
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                        </span>
+                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
+                            <i id="txToggleIcon" class="bi bi-dash-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="txCardBody">
 	        <div class="table-responsive">
 	        	<!-- Bulk Action Toolbar -->
 				<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
@@ -582,9 +389,15 @@
 	                </tbody>
 	            </table>
 	        </div>
-		</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overview-grid-row" id="overview-row-3" data-row="3">
+            <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+        </div>
     </div>
-    </div>
+
 
 	<div class="modal fade" id="dbExportModal" tabindex="-1">
 	  <div class="modal-dialog modal-sm">
@@ -874,274 +687,7 @@
         </div>
     </div>
 
- 	<!-- Settings Modal -->
-    <div class="modal fade" id="sendsomesatsModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-lightning-charge-fill me-2" style="color:#dcba09"></i>
-	                    <span data-i18n="sats.modal.title">Send some Sats</span>
-	                </span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body text-center">
-	                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="sats.modal.text">
-	                    If you find this app useful, feel free to send a few sats!
-	                </p>
-	                <img src="/sats.png" alt="Lightning QR"
-	                     style="width:180px;height:180px;border-radius:var(--radius);margin-bottom:1rem;border:1px solid var(--border)"/>
-	                <div class="d-flex align-items-center gap-2 justify-content-center">
-	                    <code style="font-size:.68rem;color:var(--accent);word-break:break-all" id="satsAddress">turbolush199@walletofsatoshi.com</code>
-	                    <button class="btn btn-xs depot-btn-icon" onclick="copySatsAddress()" id="btnCopySats" title="Copy">
-	                        <i class="bi bi-copy"></i>
-	                    </button>
-	                </div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-    <!-- Settings Modal -->
-    <div class="modal fade" id="settingsModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-                <div class="modal-header" style="border-bottom:1px solid var(--border)">
-                    <span class="depot-card-header mb-0">
-                        <i class="bi bi-gear-fill me-2"></i><span data-i18n="modal.settings.title">Settings</span>
-                    </span>
-                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <label class="depot-label mb-2" data-i18n="modal.settings.language">Language</label>
-                    <div id="langOptions" class="d-flex flex-column gap-2 mb-4">
-                        <!-- rendered by JS -->
-                    </div>
-                    <label class="depot-label mb-2" data-i18n="modal.settings.currency">Display Currency</label>
-                    <div id="currencyOptions" class="d-flex flex-column gap-2">
-                        <!-- rendered by JS -->
-                    </div>
-                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.font">Font</label>
-					<div id="fontOptions" class="d-flex flex-column gap-2">
-					    <!-- rendered by JS -->
-					</div>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid var(--border)">
-                    <button class="btn depot-btn-primary" onclick="saveSettings()" data-i18n="modal.settings.btn.save">Save</button>
-                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Bulk Move Modal -->
-	<div class="modal fade" id="bulkMoveModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="modal.change.exchange.wallet"></span></span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <label class="depot-label mb-1" data-i18n="table.wallets">Target Position</label>
-	                <select id="bulkMoveSelect" class="form-select depot-input mb-2"
-	                        onchange="document.getElementById('bulkMoveNewRow').classList.toggle('d-none', this.value !== '__new__')">
-	                    <option value="">— Select —</option>
-	                </select>
-	                <div class="d-none" id="bulkMoveNewRow">
-	                    <input type="text" id="bulkMoveNew" class="form-control depot-input"
-	                           placeholder="New position name" maxlength="100"/>
-	                </div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="confirmBulkMove()" data-i18n="modal.settings.btn.save">
-	                    <i class="bi bi-check-lg me-1"></i>Move
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-	
-	<!-- Bulk ExRate Modal -->
-	<div class="modal fade" id="bulkExRateModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <label class="depot-label mb-1" data-i18n="modal.field.exchangeRate">Exchange Rate</label>
-	                <input type="number" id="bulkExRateInput" class="form-control depot-input"
-	                       step="0.000001" placeholder="1.000000"/>
-	                <div class="form-text text-muted" style="font-size:.7rem" data-i18n="modal.field.exchangeRate.hint"></div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="confirmBulkExRate()" data-i18n="modal.save">
-	                    <i class="bi bi-check-lg me-1"></i>Apply
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-	
-	<!-- Offline Confirm Modal -->
-	<div class="modal fade" id="offlineConfirmModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
-	                    <span data-i18n="modal.offline.title">Offline Mode</span>
-	                </span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
-	                    Offline mode is active. Fetch current price from internet anyway?
-	                </p>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="confirmOfflineRefresh()">
-	                    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-
-	<!-- Position Modal (Add / Edit) -->
-	<div class="modal fade" id="positionModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-pencil-square me-2"></i>
-	                    <span id="positionModalTitle" data-i18n="form.position.titleNew">New Wallet / Exchange</span>
-	                </span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <input type="hidden" id="positionId"/>
-	                <div class="mb-3">
-	                    <label class="depot-label">
-	                        <span data-i18n="form.position.label">Label</span>
-	                        <span class="text-muted" data-i18n="form.position.label.hint"> (e.g. Binance, Ledger, Kraken)</span>
-	                    </label>
-	                    <input type="text" id="positionLabel"
-	                           class="form-control depot-input"
-	                           data-i18n-placeholder="form.position.label.placeholder"
-	                           placeholder="Ledger Hardware Wallet"
-	                           maxlength="100"/>
-	                </div>
-	                <div class="mb-1">
-	                    <label class="depot-label" data-i18n="modal.field.type">Type</label>
-	                    <select id="positionType" class="form-select depot-input">
-	                        <option value="EXCHANGE" data-i18n="form.position.type.exchange">Exchange</option>
-	                        <option value="WALLET" data-i18n="form.position.type.wallet">Wallet</option>
-	                    </select>
-	                </div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="savePosition()">
-	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-	<!-- Generic Confirm Modal -->
-	<div class="modal fade" id="confirmModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0" id="confirmModalTitle"></span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <p style="font-size:.8rem;color:var(--text);margin:0" id="confirmModalBody"></p>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" id="confirmModalOk">
-	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">OK</span>
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-	
-	<!-- App gesperrt (nicht schließbar) -->
-	<div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-lock-fill me-2" style="color:var(--neg)"></i>
-	                    <span data-i18n="applock.lockedModal.title">App locked</span>
-	                </span>
-	            </div>
-	            <div class="modal-body">
-	                <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem"
-	                   data-i18n="applock.lockedModal.hint">Data is encrypted. Enter password to unlock.</p>
-	                <label class="depot-label" data-i18n="applock.lockedModal.password">Password</label>
-	                <input type="text" id="unlockPassword"
-	                       class="form-control depot-input depot-password-field"
-	                       autocomplete="off" spellcheck="false"
-	                       onkeydown="if(event.key==='Enter') AppLock.doUnlock()"/>
-	                <div id="unlockError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="AppLock.doUnlock()">
-	                    <i class="bi bi-unlock-fill me-1"></i><span data-i18n="applock.lockedModal.btn">Unlock</span>
-	                </button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-
-	<!-- App sperren -->
-	<div class="modal fade" id="appLockSetModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-lock-fill me-2"></i><span data-i18n="applock.setModal.title">Lock app</span>
-	                </span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem"
-	                   data-i18n="applock.setModal.hint"></p>
-	                <div class="mb-3">
-	                    <label class="depot-label" data-i18n="applock.setModal.password">Password</label>
-	                    <input type="text" id="lockPassword"
-	                           class="form-control depot-input depot-password-field"
-	                           autocomplete="off" spellcheck="false"/>
-	                </div>
-	                <div class="mb-1">
-	                    <label class="depot-label" data-i18n="applock.setModal.passwordConfirm">Confirm password</label>
-	                    <input type="text" id="lockPasswordConfirm"
-	                           class="form-control depot-input depot-password-field"
-	                           autocomplete="off" spellcheck="false"
-	                           onkeydown="if(event.key==='Enter') AppLock.doLock()"/>
-	                </div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="AppLock.doLock()">
-	                    <i class="bi bi-lock-fill me-1"></i><span data-i18n="applock.setModal.btn">Lock</span>
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
+<div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
 </main>
 
 <script th:inline="javascript">
@@ -1169,12 +715,13 @@
 <script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
 <script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
 <script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
-<!-- load order: i18n → currency → offline → depot -->
+<!-- load order: i18n → currency → theme → offline → applock → navbar → tx-form → depot -->
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/theme.js}"></script>
 <script th:src="@{/js/offline.js}"></script>
 <script th:src="@{/js/applock.js}"></script>
+<script th:src="@{/js/navbar.js}"></script>
 <script th:src="@{/js/tx-form.js}"></script>
 <script th:src="@{/js/depot.js}"></script>
 </body>

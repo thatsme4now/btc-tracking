@@ -612,39 +612,94 @@ body.density-spacious {
 .btc-price-badge          { font-size: var(--density-btn); }
 .dt-container             { font-size: var(--density-btn) !important; }
 
-.sortable-section.dragging {
-    opacity: .4;
+/* ── Hauptseite: Draggable Grid ─────────────────────────────
+   Eigenständige, unabhängige Implementierung — analog zu yearly.css/
+   holdings.css (gleiches Grundmuster: --cols/--span-CSS-Variablen,
+   die per JS pro Reihe gesetzt werden), aber eigener Namensraum und
+   eigene Regeln: 4 Reihen, max. 2 Slots pro Reihe (siehe depot.js
+   updateOverviewRowCols/OVERVIEW_MAX_COLS). Ersetzt das frühere
+   einfache Auf/Ab-Sortieren einer flachen Liste (.sortable-section/
+   .drag-handle/.sortable-mobile-controls). */
+.overview-layout-hint {
+    font-size: .68rem;
+    color: var(--text-muted);
 }
-.drag-handle {
+
+.overview-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.overview-grid-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 1), 1fr);
+    gap: 1rem;
+    min-height: 46px;
+    border-radius: var(--radius);
+    transition: outline-color .12s;
+}
+
+.overview-grid-row.drag-over {
+    outline: 2px dashed var(--accent);
+    outline-offset: 4px;
+}
+
+.overview-empty-row-label {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .68rem;
+}
+.overview-grid-row.empty { grid-template-columns: 1fr; }
+.overview-grid-row.empty .overview-empty-row-label { display: flex; }
+
+.overview-draggable { grid-column: span var(--span, 1); min-width: 0; }
+.overview-draggable.dragging { opacity: .4; }
+
+.overview-drag-handle {
     cursor: grab;
     font-size: .85rem;
+    color: var(--text-muted);
+    flex: 0 0 auto;
 }
-.drag-handle:active {
-    cursor: grabbing;
-}
+.overview-drag-handle:active { cursor: grabbing; }
 
-/* Mobile: Up/Down-Buttons statt Drag-Handle */
-.sortable-mobile-controls { display: none; }
-
-.positions-col-split {
-    border-right: 1px solid var(--border);
+.overview-block-actions {
+    display: none;
+    gap: .15rem;
+    flex: 0 0 auto;
 }
+.overview-block-move-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    width: 22px;
+    height: 22px;
+    line-height: 1;
+    font-size: .7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+.overview-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 @media (max-width: 991px) {
-    .positions-col-split {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-    }
-}
-
-.mobile-only-toggle { display: none; }
-
-@media (max-width: 991px) {
-    .mobile-only-toggle { display: inline-flex !important; }
+    .overview-grid-row,
+    .overview-grid-row.empty { grid-template-columns: 1fr !important; }
 }
 
 @media (max-width: 768px) {
-    .sortable-mobile-controls { display: flex !important; }
-    .sortable-section .drag-handle { display: none; }
+    .overview-block-actions { display: flex !important; }
+    .overview-draggable .overview-drag-handle { display: none; }
 }
 
 /* ── Responsive Transaktionstabelle ──────────────────────── */

@@ -18,54 +18,12 @@ const APEX_DEFAULTS = {
     },
     grid: { borderColor: '#252830' }
 };
-// ── Density Toggle ────────────────────────────────────────
-const DENSITY_CYCLE = ['default', 'comfortable'];
-const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
-const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
-const FONTS = [
-    { key: 'ibm',   label: 'IBM Plex Mono', family: "'IBM Plex Mono', 'Courier New', monospace" },
-    { key: 'inter', label: 'Inter',          family: "'Inter', sans-serif" },
-    { key: 'roboto',label: 'Roboto',         family: "'Roboto', sans-serif" },
-];
-
-(function initFont() {
-    const saved = localStorage.getItem('depot-font') || 'ibm';
-    applyFont(saved);
-})();
-
-function applyFont(key) {
-    const font = FONTS.find(f => f.key === key) || FONTS[0];
-    document.documentElement.style.setProperty('--font', font.family);
-    localStorage.setItem('depot-font', key);
-}
-
-(function initDensity() {
-    const saved = localStorage.getItem('depot-density') || 'default';
-    applyDensity(saved);
-})();
-
-
-function cycleDensity() {
-    const current = localStorage.getItem('depot-density') || 'default';
-    const next    = DENSITY_CYCLE[(DENSITY_CYCLE.indexOf(current) + 1) % DENSITY_CYCLE.length];
-    applyDensity(next);
-    localStorage.setItem('depot-density', next);
-}
-
-function applyDensity(density) {
-    document.body.classList.remove('density-comfortable', 'density-spacious');
-    if (density !== 'default') {
-        document.body.classList.add('density-' + density);
-    }
-    const icon = document.getElementById('densityIcon');
-    if (icon) icon.className = DENSITY_ICONS[density] || 'bi-type';
-    const btn = document.getElementById('btnDensity');
-    if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
-}
+// ── Font + Density Toggle: jetzt in theme.js (siehe dort) ──
+// Auf allen 4 Seiten geladen statt nur hier, damit die Einstellung überall wirkt.
 
 // ── Card Collapse State (persisted like Theme) ────────────
 const CARD_STORAGE_KEY = 'depot-card-collapsed';
-const CARD_IDS = ['positionsCardBody', 'txCardBody', 'metricsCardBody', 'walletsSubBody', 'donutSubBody'];
+const CARD_IDS = ['metricsCardBody', 'walletsCardBody', 'donutCardBody', 'txCardBody'];
 
 function _getCardState() {
     try {
@@ -81,24 +39,11 @@ function _setCardState(id, collapsed) {
     localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
 }
 
-// Diese Sub-Cards existieren nur als eigenständig klappbare Bereiche im Mobile-Viewport.
-// Im Desktop-Viewport werden sie immer angezeigt, unabhängig vom gespeicherten Zustand.
-const MOBILE_ONLY_CARD_IDS = ['walletsSubBody', 'donutSubBody'];
-const MOBILE_BREAKPOINT = 991;
-
-function _isMobileViewport() {
-    return window.innerWidth <= MOBILE_BREAKPOINT;
-}
-
 function _applyCardState(id) {
     const body = document.getElementById(id);
     if (!body) return;
 
-    const isMobileOnlyCard = MOBILE_ONLY_CARD_IDS.includes(id);
-    const collapsed = (isMobileOnlyCard && !_isMobileViewport())
-        ? false
-        : !!_getCardState()[id];
-
+    const collapsed = !!_getCardState()[id];
     body.classList.toggle('d-none', collapsed);
 
     const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
@@ -108,114 +53,209 @@ function _applyCardState(id) {
 
 (function initCardStates() {
     CARD_IDS.forEach(_applyCardState);
-
-    let _resizeTimeout = null;
-    window.addEventListener('resize', () => {
-        clearTimeout(_resizeTimeout);
-        _resizeTimeout = setTimeout(() => {
-            MOBILE_ONLY_CARD_IDS.forEach(_applyCardState);
-        }, 150);
-    });
 })();
 
 // ── Flatpickr Date Pickers / Add-Edit-Transaction modal ───
 // Moved to tx-form.js (shared with the Flow Diagram page): FLATPICKR_LOCALES,
 // _fpAdd/_fpEdit/_fpTransferIn, _fpLocale(), initFlatpickr().
 
-// ── Section Reordering (Native Drag&Drop Desktop, Up/Down Buttons Mobile) ─
-const SECTION_ORDER_KEY = 'depot-section-order';
-const DEFAULT_SECTION_ORDER = ['metrics', 'positions', 'transactions'];
+// ── Kachel-Grid (Drag&Drop Desktop, Pfeil-Buttons Mobile) ──
+// Eigenständige, unabhängige Implementierung — ersetzt das frühere einfache
+// Auf/Ab-Sortieren einer flachen Liste (SECTION_ORDER_KEY) durch ein echtes
+// Grid: 4 Reihen, max. 2 Slots pro Reihe, analog zum Muster auf Jahresansicht/
+// Bestandsansicht (siehe yearly.js/holdings.js), aber eigener Namensraum/Key
+// (bewusst nicht geteilt).
+const OVERVIEW_LAYOUT_KEY = 'overview-layout-v1';
+const OVERVIEW_MAX_COLS   = 2;
+// 4 Reihen. Reihe 1: Kennzahlen (füllt allein). Reihe 2: Wallets & Börsen +
+// Aufteilung nach Wallet/Börse nebeneinander. Reihe 3: Alle Transaktionen
+// (füllt allein). Reihe 4: leer, für künftige Kacheln reserviert.
+const OVERVIEW_DEFAULT_LAYOUT = [
+    ['overview-block-metrics'],
+    ['overview-block-wallets', 'overview-block-allocation'],
+    ['transactionsPanel'],
+    []
+];
 
-function _getSectionOrder() {
+let _overviewDragEl = null;
+
+function initOverviewLayout() {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+
+    applyOverviewLayout(grid, _loadOverviewLayout());
+    wireOverviewDragAndDrop(grid);
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+
+    const hint = document.getElementById('overviewLayoutHint');
+    if (hint) hint.classList.remove('d-none');
+    const resetBtn = document.getElementById('overviewResetLayoutBtn');
+    if (resetBtn) resetBtn.classList.remove('d-none');
+}
+
+function _loadOverviewLayout() {
     try {
-        const saved = JSON.parse(localStorage.getItem(SECTION_ORDER_KEY));
-        if (Array.isArray(saved) && saved.length === DEFAULT_SECTION_ORDER.length
-            && DEFAULT_SECTION_ORDER.every(id => saved.includes(id))) {
-            return saved;
+        const saved = JSON.parse(localStorage.getItem(OVERVIEW_LAYOUT_KEY));
+        if (Array.isArray(saved)) {
+            const savedIds   = saved.flat();
+            const defaultIds = OVERVIEW_DEFAULT_LAYOUT.flat();
+            if (savedIds.length === defaultIds.length && defaultIds.every(id => savedIds.includes(id))) {
+                return saved;
+            }
         }
-    } catch (e) {}
-    return DEFAULT_SECTION_ORDER;
+    } catch (e) { /* ignore malformed storage */ }
+    return OVERVIEW_DEFAULT_LAYOUT;
 }
 
-function _setSectionOrder(order) {
-    localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(order));
+function _saveOverviewLayout(grid) {
+    const rows = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(row => Array.from(row.querySelectorAll('.overview-draggable')).map(el => el.id));
+    localStorage.setItem(OVERVIEW_LAYOUT_KEY, JSON.stringify(layout));
 }
 
-function _persistCurrentOrder(container) {
-    const newOrder = [...container.querySelectorAll('.sortable-section')]
-        .map(el => el.dataset.sectionId);
-    _setSectionOrder(newOrder);
-}
-
-function initSectionOrder() {
-    const container = document.getElementById('sortableSectionsContainer');
-    if (!container) return;
-
-    _getSectionOrder().forEach(id => {
-        const el = container.querySelector(`.sortable-section[data-section-id="${id}"]`);
-        if (el) container.appendChild(el);
+function applyOverviewLayout(grid, layout) {
+    const rows = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    layout.forEach((rowIds, i) => {
+        const row = rows[i];
+        if (!row) return;
+        rowIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) row.appendChild(el);
+        });
     });
+}
 
-    let dragEl = null;
+function updateOverviewRowCols(grid) {
+    grid.querySelectorAll('.overview-grid-row').forEach(row => {
+        const blocks = Array.from(row.querySelectorAll('.overview-draggable'));
+        const count = blocks.length;
+        row.style.setProperty('--cols', Math.max(count, 1));
+        blocks.forEach(b => b.style.setProperty('--span', 1));
+        row.classList.toggle('empty', count === 0);
+    });
+}
 
-    container.querySelectorAll('.sortable-section').forEach(section => {
-        section.querySelectorAll('.drag-handle').forEach(handle => {
-            handle.addEventListener('mousedown', () => section.setAttribute('draggable', 'true'));
+/**
+ * Nach updateOverviewRowCols() geänderte --cols/--span-Werte ändern die tatsächliche
+ * Container-Breite des Donut-Charts per CSS — ApexCharts misst seine SVG-Breite aber
+ * nur beim (Neu-)Rendern bzw. bei einem window "resize"-Event, nicht bei reinen
+ * CSS-Grid-Änderungen (siehe derselbe, bereits einmal auf der Jahresansicht behobene
+ * Bug-Fall in yearly.js). Vorsorglich hier ebenfalls nach jeder Layout-Änderung ein
+ * synthetisches resize-Event auslösen.
+ */
+function _overviewTriggerChartResize() {
+    window.dispatchEvent(new Event('resize'));
+}
+
+function resetOverviewLayout() {
+    localStorage.removeItem(OVERVIEW_LAYOUT_KEY);
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+    applyOverviewLayout(grid, OVERVIEW_DEFAULT_LAYOUT);
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+}
+
+function wireOverviewDragAndDrop(grid) {
+    grid.querySelectorAll('.overview-draggable').forEach(el => {
+        el.querySelectorAll('.overview-drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', () => el.setAttribute('draggable', 'true'));
         });
 
-        section.addEventListener('dragstart', (e) => {
-            dragEl = section;
-            section.classList.add('dragging');
+        el.addEventListener('dragstart', (e) => {
+            _overviewDragEl = el;
+            el.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
 
-        section.addEventListener('dragover', (e) => {
+        el.addEventListener('dragend', () => {
+            el.removeAttribute('draggable');
+            el.classList.remove('dragging');
+            _overviewDragEl = null;
+            grid.querySelectorAll('.overview-grid-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+            updateOverviewRowCols(grid);
+            _overviewTriggerChartResize();
+            _saveOverviewLayout(grid);
+        });
+    });
+
+    grid.querySelectorAll('.overview-grid-row').forEach(row => {
+        row.addEventListener('dragover', (e) => {
+            if (!_overviewDragEl) return;
             e.preventDefault();
-            if (!dragEl || dragEl === section) return;
-            const rect  = section.getBoundingClientRect();
-            const after = (e.clientY - rect.top) > rect.height / 2;
-            container.insertBefore(dragEl, after ? section.nextSibling : section);
+
+            const countExcludingDragged = Array.from(row.querySelectorAll('.overview-draggable'))
+                .filter(b => b !== _overviewDragEl).length;
+            if (countExcludingDragged >= OVERVIEW_MAX_COLS) {
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+            e.dataTransfer.dropEffect = 'move';
+            row.classList.add('drag-over');
+
+            const after = _getOverviewDragAfterElement(row, e.clientX);
+            if (after == null) row.appendChild(_overviewDragEl);
+            else row.insertBefore(_overviewDragEl, after);
+            updateOverviewRowCols(grid);
         });
 
-        section.addEventListener('drop', (e) => e.preventDefault());
-
-        section.addEventListener('dragend', () => {
-            section.removeAttribute('draggable');
-            section.classList.remove('dragging');
-            dragEl = null;
-            _persistCurrentOrder(container);
+        row.addEventListener('dragleave', (e) => {
+            if (e.target === row) row.classList.remove('drag-over');
         });
+
+        row.addEventListener('drop', (e) => e.preventDefault());
     });
 
     document.addEventListener('mouseup', () => {
-        container.querySelectorAll('.sortable-section[draggable="true"]').forEach(s => {
-            if (!s.classList.contains('dragging')) s.removeAttribute('draggable');
+        grid.querySelectorAll('.overview-draggable[draggable="true"]').forEach(el => {
+            if (!el.classList.contains('dragging')) el.removeAttribute('draggable');
         });
     });
 }
 
-// Mobile: Up/Down Buttons
-function moveSectionUp(btn) {
-    const section = btn.closest('.sortable-section');
-    const container = document.getElementById('sortableSectionsContainer');
-    const prev = section.previousElementSibling;
-    if (prev && prev.classList.contains('sortable-section')) {
-        container.insertBefore(section, prev);
-        _persistCurrentOrder(container);
-    }
+function _getOverviewDragAfterElement(row, x) {
+    const els = [...row.querySelectorAll('.overview-draggable:not(.dragging)')];
+    return els.reduce((closest, child) => {
+        const box    = child.getBoundingClientRect();
+        const offset = x - box.left - box.width / 2;
+        if (offset < 0 && offset > closest.offset) return { offset, element: child };
+        return closest;
+    }, { offset: -Infinity, element: null }).element;
 }
 
-function moveSectionDown(btn) {
-    const section = btn.closest('.sortable-section');
-    const container = document.getElementById('sortableSectionsContainer');
-    const next = section.nextElementSibling;
-    if (next && next.classList.contains('sortable-section')) {
-        container.insertBefore(next, section);
-        _persistCurrentOrder(container);
-    }
+/** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
+ *  links nach rechts) — für Mobile/Touch, wo natives Drag & Drop fehlt bzw.
+ *  über die Pfeil-Buttons in .overview-block-actions angesteuert wird. */
+function moveOverviewBlock(id, direction) {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+
+    const rows     = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const rowSizes = rows.map(r => r.querySelectorAll('.overview-draggable').length);
+    const flat     = rows.flatMap(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
+
+    const idx     = flat.indexOf(id);
+    const swapIdx = idx + direction;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= flat.length) return;
+
+    [flat[idx], flat[swapIdx]] = [flat[swapIdx], flat[idx]];
+
+    let pos = 0;
+    rows.forEach((row, i) => {
+        flat.slice(pos, pos + rowSizes[i]).forEach(blockId => {
+            const el = document.getElementById(blockId);
+            if (el) row.appendChild(el);
+        });
+        pos += rowSizes[i];
+    });
+
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _saveOverviewLayout(grid);
 }
 
-document.addEventListener('DOMContentLoaded', initSectionOrder);
+document.addEventListener('DOMContentLoaded', initOverviewLayout);
 
 
 // ── Exchange Dropdown / Add-Edit-Transaction helpers ──────
@@ -268,103 +308,8 @@ I18N.ready.then(() => {
 
 });
 
-function openHelp() {
-	if (I18N.currentLang() == "de") {
-		window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
-	} else {		
-		window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
-	}
-}
-
-// ── Settings Modal ────────────────────────────────────────
-let settingsModal = null;
-
-function openSettings() {
-    const langContainer = document.getElementById('langOptions');
-    const supported     = I18N.supported();
-    const currentLang   = I18N.currentLang();
-
-    langContainer.innerHTML = Object.entries(supported).map(([code, label]) => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="langChoice" value="${code}"
-                   ${code === currentLang ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;color:var(--text)">${label}</span>
-        </label>
-    `).join('');
-
-    const curContainer = document.getElementById('currencyOptions');
-    const currentCur   = CURRENCY.current();
-
-    curContainer.innerHTML = CURRENCY.all().map(c => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="curChoice" value="${c.code}"
-                   ${c.code === currentCur ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;color:var(--text)">
-                ${c.code} <span style="color:var(--text-muted)">${c.symbol}</span>
-            </span>
-        </label>
-    `).join('');
-
-    const fontContainer = document.getElementById('fontOptions');
-    const currentFont   = localStorage.getItem('depot-font') || 'ibm';
-
-    fontContainer.innerHTML = FONTS.map(f => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="fontChoice" value="${f.key}"
-                   ${f.key === currentFont ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;font-family:${f.family};color:var(--text)">${f.label}</span>
-        </label>
-    `).join('');
-
-    if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
-    settingsModal.show();
-}
-
-function sendSomeSats() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('sendsomesatsModal'))
-        || new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
-    modal.show();
-}
-
-function copySatsAddress() {
-    const addr = document.getElementById('satsAddress').textContent;
-    navigator.clipboard.writeText(addr).then(() => {
-        const btn = document.getElementById('btnCopySats');
-        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
-        setTimeout(() => btn.innerHTML = '<i class="bi bi-copy"></i>', 1500);
-    });
-}
-
-function saveSettings() {
-    const selLang = document.querySelector('input[name="langChoice"]:checked');
-    const selCur  = document.querySelector('input[name="curChoice"]:checked');
-    const selFont = document.querySelector('input[name="fontChoice"]:checked');
-
-    const langChanged = selLang && selLang.value !== I18N.currentLang();
-    const curChanged  = selCur  && selCur.value  !== CURRENCY.current();
-
-    if (selFont) applyFont(selFont.value);
-
-    const applyLang = selLang
-        ? I18N.setLanguage(selLang.value)
-        : Promise.resolve();
-
-    applyLang.then(() => {
-		initFlatpickr();
-		if (curChanged) {
-            CURRENCY.setCurrency(selCur.value);
-            settingsModal.hide();
-            showToast('✓ ' + t('toast.currencyChanged', { currency: selCur.value }), 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            settingsModal.hide();
-            if (langChanged && txLoaded) loadTransactions();
-        }
-    });
-}
+// ── Hilfe / Settings-Modal / Sats-Modal / Preis-Badge / Refresh: jetzt in
+// navbar.js (siehe dort) — auf allen 4 Seiten geladen statt nur hier.
 
 // ── Allocation Donut ──────────────────────────────────────
 let donutInstance = null;
@@ -426,6 +371,13 @@ function initDonut() {
 
     donutInstance = new ApexCharts(document.getElementById('donutChart'), options);
     donutInstance.render();
+
+    // Vorsorglich: initOverviewLayout() (DOMContentLoaded) läuft normalerweise
+    // vor diesem I18N.ready-Callback und hat die Grid-Spalten bereits final
+    // gesetzt — aber falls sich die Reihenfolge künftig doch einmal ändert,
+    // stellt dieses resize-Event sicher, dass der Donut seine tatsächliche
+    // Container-Breite korrekt einliest (siehe _overviewTriggerChartResize).
+    window.dispatchEvent(new Event('resize'));
 }
 
 function filterExchangeTransaction(exchange) {
@@ -1331,48 +1283,7 @@ function savePosition() {
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-// ── Refresh Prices ────────────────────────────────────────
-// Lädt ausschließlich den aktuellen Kurs — das Nachladen fehlender
-// Monatspreise (Backfill) passiert bewusst nicht mehr hier, sondern
-// ausschließlich über den eigenen "Preise laden"-Button auf der
-// Jahresansicht-Seite (yearlyLoadPrices() in yearly.js). Vorher gab es hier
-// einen Auswahl-Dialog (refreshOptionsModal) für beides zusammen/einzeln —
-// entfernt, da doppelt zur Jahresansicht. Der Offline-Gate läuft weiterhin
-// zuerst, exakt wie vorher.
-function refreshPrices() {
-    if (!OFFLINE.isOnline()) {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
-            || new bootstrap.Modal(document.getElementById('offlineConfirmModal'));
-        modal.show();
-        return;
-    }
-    _doRefresh();
-}
-
-function confirmOfflineRefresh() {
-    bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
-    _doRefresh();
-}
-
-function _doRefresh() {
-    const btn = document.getElementById('btnRefresh');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
-
-    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            const n = data.totalNew || 0;
-            showToast('✓ ' + n + ' ' + t('toast.refreshSuccess'), 'success');
-            setTimeout(() => window.location.reload(), 1800);
-        })
-        .catch(err => {
-            showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>${t('nav.btn.refresh')}`;
-        });
-}
+// ── Refresh Prices / BTC Price inline edit: jetzt in navbar.js (siehe dort) ──
 
 // ── Toast ─────────────────────────────────────────────────
 // showToast() now lives in tx-form.js (shared with the Flow Diagram page).
@@ -1381,55 +1292,6 @@ function _doRefresh() {
 function formatEur(val) {
     // kept for compatibility – delegates to CURRENCY.format()
     return CURRENCY.format(val);
-}
-
-// ── BTC Price inline edit ─────────────────────────────────
-function openPriceEdit() {
-    const badge  = document.getElementById('btcPriceBadge');
-    const editor = document.getElementById('btcPriceEditor');
-    // Read current display value → strip formatting
-    const raw = document.getElementById('btcPriceDisplay')
-        .textContent.slice(0, -4).replace(/[^\d,]/g, '').replace(',', '.');
-
-    document.getElementById('btcPriceInput').value = parseFloat(raw) || '';
-    badge.classList.add('d-none');
-    editor.classList.remove('d-none');
-    editor.classList.add('d-flex');
-    document.getElementById('btcPriceInput').focus();
-}
-
-function closePriceEdit() {
-    document.getElementById('btcPriceBadge').classList.remove('d-none');
-    const editor = document.getElementById('btcPriceEditor');
-    editor.classList.add('d-none');
-    editor.classList.remove('d-flex');
-}
-
-function savePriceEdit() {
-    const price = parseFloat(document.getElementById('btcPriceInput').value);
-    if (!price || price <= 0) {
-        showToast('✗ ' + t('toast.error') + ': invalid price', 'error');
-        return;
-    }
-	
-    fetch('/api/btc-tracking/current-price', {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ price, currency: CURRENCY.current() })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
-        // Update badge display without full reload
-        const fmt = Number(data.price).toLocaleString('de-DE', {
-            minimumFractionDigits: 2, maximumFractionDigits: 2
-        }) + ' €';
-        document.getElementById('btcPriceDisplay').textContent = fmt;
-        closePriceEdit();
-        showToast('✓ BTC price updated', 'success');
-		setTimeout(() => window.location.reload(), 1000);
-    })
-    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 function _importEnc(file) {

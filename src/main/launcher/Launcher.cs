@@ -29,6 +29,6 @@ class Launcher {
         p.StartInfo.CreateNoWindow  = false;
         p.Start();
 
-        Thread.Sleep(5000);
+        Thread.Sleep(10000);
     }
 }
