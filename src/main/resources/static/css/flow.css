@@ -144,6 +144,16 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0; /* erlaubt dem Flex-Item, unter seine Inhaltsbreite zu schrumpfen —
+                     sonst weitet ein langer Wert (z.B. Kommentar) die ganze Karte
+                     unnötig auf, statt abgeschnitten zu werden. */
+}
+/* Kommentar-Feld: linksbündig statt rechtsbündig wie die übrigen Werte (siehe
+   _yearlyTruncateComment()/_yearlyFieldRow in yearly.js) — Text soll direkt
+   neben dem Label beginnen, nicht am rechten Rand. */
+.flow-tx-field-value.align-left {
+    text-align: left;
+    margin-right: auto;
 }
 
 .flow-tx-card.warning-duplicate { border-color: var(--warn-duplicate, #b8860b); }

@@ -278,7 +278,18 @@ I18N.ready.then(() => {
     }
 
 	initFlatpickr();
-	loadTransactions();
+	// Tabellen-/Kartenansicht (Transaktionen + Wallets) nach dem Laden erneut
+	// anwenden: initOverviewLayout() lief bereits bei DOMContentLoaded, ggf.
+	// bevor der Viewport (window.innerWidth) am Handy zuverlässig feststand —
+	// führte dazu, dass am Handy nach einem frischen Reload fälschlich die
+	// Tabelle (statt der Kartenansicht) stehen blieb, bis irgendeine Aktion
+	// (z.B. Filtern) zufällig einen weiteren Umschalt-Aufruf auslöste. Nach dem
+	// Laden ist der Viewport garantiert stabil, hier daher sicherheitshalber
+	// erneut prüfen/umschalten.
+	loadTransactions().then(() => {
+	    _overviewApplyTxViewMode();
+	    _overviewApplyPosViewMode();
+	});
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().destroy();
@@ -710,6 +721,14 @@ function renderOverviewTxCards() {
             return tx ? _buildTxCardHtml(tx, row) : '';
         })
         .join('');
+
+    // Safari/WebKit-Reflow-Fix: Wird dieser Container im selben Zug erst von
+    // d-none auf sichtbar geschaltet UND befüllt (genau der Fall beim allerersten
+    // Rendern nach dem Laden auf dem Handy), berechnet WebKit das Flex-Layout der
+    // neu eingefügten Karten manchmal nicht sofort korrekt — Labels erscheinen,
+    // Werte bleiben bis zur nächsten Layout-Änderung (z.B. Klick) leer/unsichtbar.
+    // Erzwungenes Reflow durch Lesen von offsetHeight behebt das zuverlässig.
+    void container.offsetHeight;
 }
 
 const OVERVIEW_TX_BADGE_MAP = {
@@ -768,8 +787,14 @@ function _buildTxCardHtml(tx, row) {
     const transferLine = tx.transferId
         ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
         : '';
+    // Kommentar kann beliebig lang sein — rechtsbündig (wie die übrigen Felder)
+    // hat er die Kachel unnötig in die Breite gezogen, da eine lange Zeile ohne
+    // Umbruch den Flex-Container aufweitet. Daher: fest auf 20 Zeichen kürzen
+    // (mit …, voller Text im title-Tooltip) UND linksbündig statt rechtsbündig
+    // darstellen (siehe .overview-tx-field-value.align-left in depot.css).
+    const commentText = tx.comment && tx.comment.length > 20 ? tx.comment.substring(0, 20) + '…' : tx.comment;
     const commentLine = tx.comment
-        ? _overviewTxFieldRow(t('modal.field.comment'), esc(tx.comment), tx.comment)
+        ? _overviewTxFieldRow(t('modal.field.comment'), esc(commentText), tx.comment, true)
         : '';
 
     const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
@@ -804,10 +829,10 @@ function _buildTxCardHtml(tx, row) {
     </div>`;
 }
 
-function _overviewTxFieldRow(label, value, title) {
+function _overviewTxFieldRow(label, value, title, alignLeft) {
     return `<div class="overview-tx-field">
         <span class="overview-tx-field-label">${esc(label)}</span>
-        <span class="overview-tx-field-value"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
+        <span class="overview-tx-field-value${alignLeft ? ' align-left' : ''}"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
     </div>`;
 }
 

@@ -52,6 +52,21 @@
 
 .holdings-chart-block.dragging { opacity: .4; }
 
+/* ApexCharts positioniert sein Tooltip standardmäßig direkt neben dem
+   gehoverten/angeklickten Balken (per JS berechnetes inline left/top), ohne
+   Kollisionserkennung mit dem Kachelrand — bei Balken nahe am rechten Rand
+   ragt es dann über die Kachel hinaus. Zwei JS-Ansätze (tooltip.fixed, dann
+   ein MutationObserver-Fix) hatten beide eigene Probleme (falsche Position
+   beim ersten Klick bzw. eine Endlosschleife durch Selbst-Beobachtung).
+   Stattdessen rein per CSS mit !important fest an den rechten Rand der
+   Chart-Zeichenfläche (.apexcharts-canvas, das ApexCharts selbst bereits
+   position:relative setzt) verankert — keine JS-Berechnung, kein Timing-
+   Problem, kein Loop-Risiko, da hier nichts beobachtet/reagiert wird. */
+.holdings-chart-block .apexcharts-tooltip {
+    left: auto !important;
+    right: 0 !important;
+}
+
 /* Kacheln, die IMMER nur 1 Slot breit sein sollen (Kauf-Details, Referenzkurse):
    sobald eine solche Kachel in einer Reihe steht, erzwingt updateHoldingsRowCols()
    (holdings.js) dort echte 3 gleich breite Spalten (--cols:3) statt der sonst

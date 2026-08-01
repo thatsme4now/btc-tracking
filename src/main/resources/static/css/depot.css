@@ -517,21 +517,20 @@ table.dataTable thead th.dt-orderable-desc {
 
 /* Positions-/Transaktionstabelle: natives DataTables-Suchfeld bleibt trotz
    sticky-Regel oben im internen Scroll-Container (#posTable_wrapper/
-   #txTable_wrapper) hängen und verschwindet beim Scrollen. Workaround NUR am
-   Desktop: natives Feld ausblenden, stattdessen ein eigenes Suchfeld oben in
-   der jeweiligen Toolbar (immer sichtbar, da außerhalb des scrollenden
-   Wrappers) — siehe onTxVisibleSearchInput()/onPosVisibleSearchInput() in
-   depot.js. Am Tablet/Phone (<=768px) ist .bulk-actions-inline ohnehin
-   ausgeblendet (siehe "Bulk Toolbar" weiter unten) bzw. der Platz zu knapp —
-   dort bleibt stattdessen das native Suchfeld sichtbar (kein Workaround). */
-@media (min-width: 769px) {
-    #txTable_wrapper .dt-search,
-    #posTable_wrapper .dt-search {
-        display: none;
-    }
-}
-@media (max-width: 768px) {
-    .dt-search-workaround { display: none !important; }
+   #txTable_wrapper) hängen und verschwindet beim Scrollen. Workaround: natives
+   Feld IMMER ausblenden, stattdessen ein eigenes Suchfeld oben in der
+   jeweiligen Toolbar (immer sichtbar, da außerhalb des scrollenden Wrappers)
+   — siehe onTxVisibleSearchInput()/onPosVisibleSearchInput() in depot.js.
+   Früher war das nur ein Desktop-Workaround (am Tablet/Phone blieb das native
+   Feld sichtbar) — das ging aber davon aus, dass die Tabelle am Tablet/Phone
+   sichtbar bleibt. Tatsächlich wird dort per JS auf die Kartenansicht
+   umgeschaltet (#txTableWrap/#posTableWrap bekommen d-none), wodurch das
+   native Suchfeld (das INNERHALB dieses Wrappers liegt) mitverschwindet —
+   Ergebnis: keine Suche mehr verfügbar. Daher jetzt einheitlich auf allen
+   Breakpoints: natives Feld aus, eigenes Feld an. */
+#txTable_wrapper .dt-search,
+#posTable_wrapper .dt-search {
+    display: none;
 }
 
 .tx-search-wrap,
@@ -809,6 +808,16 @@ body.density-spacious {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0; /* erlaubt dem Flex-Item, unter seine Inhaltsbreite zu schrumpfen —
+                     sonst weitet ein langer Wert (z.B. Kommentar) den ganzen Kachel-
+                     Container unnötig auf, statt abgeschnitten zu werden. */
+}
+/* Kommentar-Feld: linksbündig statt rechtsbündig wie die übrigen Werte (siehe
+   renderOverviewTxCards()/_overviewTxFieldRow in depot.js) — Text soll direkt
+   neben dem Label beginnen, nicht am rechten Rand. */
+.overview-tx-field-value.align-left {
+    text-align: left;
+    margin-right: auto;
 }
 
 .overview-tx-cards-empty {

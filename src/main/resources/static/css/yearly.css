@@ -311,6 +311,20 @@
 @media (max-width: 768px) {
     .yearly-tile-grid { grid-template-columns: 1fr; }
     .yearly-price-row { grid-template-columns: 2.6rem 1fr auto; }
+
+    /* Käufe/Verkäufe- und Transfers-Kachel: Titel + Filter-Buttons + Pfeile
+       ragten auf dem Handy zusammen mit dem Zähler ("128 Käufe · 10 Verkäufe")
+       über den Kachelrand hinaus, da alles in einer Zeile stehen musste.
+       Fix: Titelzeile darf umbrechen, der Zähler wird per flex-basis:100% +
+       order auf eine eigene, zweite Zeile unterhalb von Titel/Filter/Pfeilen
+       gezwungen — kein zusätzliches HTML/JS nötig. */
+    .yearly-chart-title { flex-wrap: wrap; row-gap: .3rem; }
+    .yearly-chart-title-count {
+        order: 10;
+        flex-basis: 100%;
+        white-space: normal;
+        padding-left: calc(1rem + .4rem); /* rückt unter den Titeltext ein, nicht unter das Drag-Handle */
+    }
 }
 
 @media (max-width: 991px) {

@@ -671,7 +671,8 @@ public class DepotRestController {
             .map(p -> Map.<String, Object>of(
                 "id", p.getId(),
                 "label", p.getLabel(),
-                "totalValue", p.getTotalValue() != null ? p.getTotalValue() : BigDecimal.ZERO))
+                "totalValue", p.getTotalValue() != null ? p.getTotalValue() : BigDecimal.ZERO,
+                "quantityInSats", p.getQuantityInSats() != null ? p.getQuantityInSats() : BigDecimal.ZERO))
             .collect(Collectors.toList());
     }
 

@@ -241,8 +241,14 @@ async function loadHoldingsAllocation(currency) {
 }
 
 function initHoldingsDonut(positions, currency) {
-    const labels = (positions || []).map(p => p.label);
-    const values = (positions || []).map(p => Number(p.totalValue));
+    // Nur Positionen mit tatsächlichem Bestand in der Legende/im Donut zeigen —
+    // Positionen mit quantityInSats <= 0 (z.B. komplett verkauft/abgezogen)
+    // würden sonst als 0-Segment in der Legende auftauchen, ohne sichtbaren
+    // Anteil im Ring. Gleicher Filter-Gedanke wie beim "Leere ausblenden"-
+    // Toggle der Positionsliste (siehe depot.js togglePosEmptyFilter).
+    const activePositions = (positions || []).filter(p => Number(p.quantityInSats) > 0);
+    const labels = activePositions.map(p => p.label);
+    const values = activePositions.map(p => Number(p.totalValue));
 
     if (!labels.length) return;
     if (holdingsDonutInstance) { holdingsDonutInstance.destroy(); holdingsDonutInstance = null; }

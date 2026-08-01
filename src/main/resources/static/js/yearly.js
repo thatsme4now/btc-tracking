@@ -587,7 +587,7 @@ function _yearlyRenderBuyTile(tx, meta, currency) {
         ? _yearlyFieldRow((typeof t === 'function') ? t('table.col.fees') : 'Gebühren', _yearlyFormatFiat(tx.fees, tx.feesCurrency || tx.currency))
         : '';
     const commentLine = tx.comment
-        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(tx.comment), tx.comment)
+        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(_yearlyTruncateComment(tx.comment)), tx.comment, true)
         : '';
 
     const gvPercentLine = _yearlyFieldRow(
@@ -634,7 +634,7 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
         ? _yearlyFieldRow((typeof t === 'function') ? t('table.col.fees') : 'Gebühren', _yearlyFormatFiat(tx.fees, tx.feesCurrency || tx.currency))
         : '';
     const commentLine = tx.comment
-        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(tx.comment), tx.comment)
+        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(_yearlyTruncateComment(tx.comment)), tx.comment, true)
         : '';
 
     // Realisierter G/V dieses Verkaufs: Erlös minus gewichteter Kostenbasis der
@@ -834,7 +834,7 @@ function _yearlyRenderTransferTile(tx) {
         : `<div class="yearly-transfer-solo">${esc((typeof t === 'function') ? t('legend.solo.transfer') : 'Solo-Transfer (Ein-/Auszahlung ohne Gegenbuchung)')}</div>`;
 
     const commentLine = tx.comment
-        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(tx.comment), tx.comment)
+        ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(_yearlyTruncateComment(tx.comment)), tx.comment, true)
         : '';
 
     const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
@@ -888,10 +888,17 @@ function _yearlyFmt8(val) {
     return Number(val).toLocaleString('de-DE', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
 }
 
-function _yearlyFieldRow(label, value, title) {
+/** Kommentar kann beliebig lang sein — ungekürzt hat er die Karte unnötig in
+ *  die Breite gezogen (gleiches Problem/gleicher Fix wie in depot.js). Auf 20
+ *  Zeichen kürzen (voller Text bleibt im title-Tooltip erhalten). */
+function _yearlyTruncateComment(comment) {
+    return comment && comment.length > 20 ? comment.substring(0, 20) + '…' : comment;
+}
+
+function _yearlyFieldRow(label, value, title, alignLeft) {
     return `<div class="flow-tx-field">
         <span class="flow-tx-field-label">${esc(label)}</span>
-        <span class="flow-tx-field-value"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
+        <span class="flow-tx-field-value${alignLeft ? ' align-left' : ''}"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
     </div>`;
 }
 
