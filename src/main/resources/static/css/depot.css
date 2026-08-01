@@ -344,7 +344,7 @@ tr.tx-row-pulse > td {
 }
 
 /* ── Chart containers ────────────────────────────────────── */
-#donutChart, #historyChart { min-height: 260px; }
+#donutChart { min-height: 260px; }
 
 /* ── DataTables overrides ────────────────────────────────── */
 table.dataTable,

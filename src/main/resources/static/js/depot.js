@@ -428,9 +428,6 @@ function initDonut() {
     donutInstance.render();
 }
 
-// ── BTC Price History Chart ───────────────────────────────
-let historyChart = null;
-
 function filterExchangeTransaction(exchange) {
     const panel = document.getElementById('transactionsPanel');
     panel.classList.remove('d-none');
@@ -460,102 +457,11 @@ function filterExchangeTransaction(exchange) {
 	}
 }
 
-function showHistory() {
-    const panel = document.getElementById('historyPanel');
-    panel.classList.remove('d-none');
-
-    if (historyChart) return;
-
-    document.getElementById('historyChart').innerHTML =
-        `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.loading')}</div>`;
-
-    fetch('/api/btc-tracking/history')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.length) {
-                document.getElementById('historyChart').innerHTML =
-                    `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.empty')}</div>`;
-                return;
-            }
-
-            const series    = data.map(d => [new Date(d.date).getTime(), Number(d.close)]);
-            const first     = series[0][1];
-            const last      = series[series.length - 1][1];
-            const lineColor = last >= first ? '#1D9E75' : '#D85A30';
-
-            const options = {
-                ...APEX_DEFAULTS,
-                series: [{ name: 'BTC/EUR', data: series }],
-                chart: {
-                    ...APEX_DEFAULTS.chart,
-                    type:    'area',
-                    height:  240,
-                    zoom:    { enabled: true },
-                    toolbar: { show: true, tools: { download: false } }
-                },
-                colors: [lineColor],
-                fill: {
-                    type:     'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom:    0.25,
-                        opacityTo:      0.02,
-                        stops:          [0, 100]
-                    }
-                },
-                stroke:   { curve: 'smooth', width: 2 },
-                xaxis: {
-                    type:   'datetime',
-                    labels: { style: { colors: '#6b6f7a', fontFamily: "'IBM Plex Mono', monospace" } },
-                    axisBorder: { color: '#252830' },
-                    axisTicks:  { color: '#252830' }
-                },
-                yaxis: {
-                    labels: {
-                        style:     { colors: '#6b6f7a', fontFamily: "'IBM Plex Mono', monospace" },
-                        formatter: (v) => formatEur(v)
-                    }
-                },
-                tooltip: {
-                    ...APEX_DEFAULTS.tooltip,
-                    x: { format: 'dd.MM.yyyy' },
-                    y: { formatter: (v) => formatEur(v) }
-                },
-                dataLabels: { enabled: false },
-                markers:    { size: 0 }
-            };
-
-            historyChart = new ApexCharts(document.getElementById('historyChart'), options);
-            historyChart.render();
-        })
-        .catch(err => {
-            document.getElementById('historyChart').innerHTML =
-                `<div style="color:#d85a30;padding:1rem;font-size:.8rem">${t('toast.error')}: ${err.message}</div>`;
-        });
-}
-
-function closeHistory() {
-    document.getElementById('historyPanel').classList.add('d-none');
-    if (historyChart) { historyChart.destroy(); historyChart = null; }
-}
-
 // ── Transactions Panel ────────────────────────────────────
 let txLoaded = false;
 let _lastTxData = null; // letzte geladenen Rohdaten, für Re-Render bei Viewport-/Compact-Wechsel
 let _lastTxIsCompact = null;
 // txModal / txModalAdd (bootstrap.Modal instances) now live in tx-form.js
-
-function toggleTransactions() {
-    const panel   = document.getElementById('transactionsPanel');
-    const chevron = document.getElementById('txChevron');
-    const hidden  = panel.classList.contains('d-none');
-
-    panel.classList.toggle('d-none', !hidden);
-    chevron.className = hidden ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
-    chevron.style.fontSize = '.6rem';
-
-    if (hidden && !txLoaded) loadTransactions();
-}
 
 async function loadTransactions() {
 	
@@ -1426,10 +1332,13 @@ function savePosition() {
 }
 
 // ── Refresh Prices ────────────────────────────────────────
-// Clicking "Kurs aktualisieren" opens a small selection modal (aktueller
-// Kurs / fehlende Monatspreise, beides standardmäßig angehakt) instead of
-// refreshing directly — see refreshOptionsModal in overview.html. The
-// offline gate still runs first, exactly as before.
+// Lädt ausschließlich den aktuellen Kurs — das Nachladen fehlender
+// Monatspreise (Backfill) passiert bewusst nicht mehr hier, sondern
+// ausschließlich über den eigenen "Preise laden"-Button auf der
+// Jahresansicht-Seite (yearlyLoadPrices() in yearly.js). Vorher gab es hier
+// einen Auswahl-Dialog (refreshOptionsModal) für beides zusammen/einzeln —
+// entfernt, da doppelt zur Jahresansicht. Der Offline-Gate läuft weiterhin
+// zuerst, exakt wie vorher.
 function refreshPrices() {
     if (!OFFLINE.isOnline()) {
         const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
@@ -1437,54 +1346,25 @@ function refreshPrices() {
         modal.show();
         return;
     }
-    openRefreshOptionsModal();
+    _doRefresh();
 }
 
 function confirmOfflineRefresh() {
     bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
-    openRefreshOptionsModal();
+    _doRefresh();
 }
 
-function openRefreshOptionsModal() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('refreshOptionsModal'))
-        || new bootstrap.Modal(document.getElementById('refreshOptionsModal'));
-    modal.show();
-}
-
-function confirmRefreshOptions() {
-    const wantPrice   = document.getElementById('refreshOptCurrentPrice').checked;
-    const wantMonthly = document.getElementById('refreshOptMonthly').checked;
-    bootstrap.Modal.getInstance(document.getElementById('refreshOptionsModal'))?.hide();
-    if (!wantPrice && !wantMonthly) return;
-    _doRefresh(wantPrice, wantMonthly);
-}
-
-function _doRefresh(wantPrice, wantMonthly) {
+function _doRefresh() {
     const btn = document.getElementById('btnRefresh');
     btn.disabled = true;
     btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
 
-    const tasks = [];
-    if (wantPrice) {
-        tasks.push(fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
-            .then(r => r.json()).then(data => ({ type: 'price', data })));
-    }
-    if (wantMonthly) {
-        tasks.push(fetch('/api/btc-tracking/monthly-prices/backfill', { method: 'POST' })
-            .then(r => r.json()).then(data => ({ type: 'monthly', data })));
-    }
-
-    Promise.all(tasks)
-        .then(results => {
-            const errored = results.find(r => r.data.error);
-            if (errored) throw new Error(errored.data.error);
-
-            const parts = [];
-            results.forEach(r => {
-                const n = r.data.totalNew || 0;
-                parts.push(n + ' ' + (r.type === 'price' ? t('toast.refreshSuccess') : t('yearly.toast.pricesLoaded')));
-            });
-            showToast('✓ ' + parts.join(', '), 'success');
+    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            const n = data.totalNew || 0;
+            showToast('✓ ' + n + ' ' + t('toast.refreshSuccess'), 'success');
             setTimeout(() => window.location.reload(), 1800);
         })
         .catch(err => {
@@ -1501,11 +1381,6 @@ function _doRefresh(wantPrice, wantMonthly) {
 function formatEur(val) {
     // kept for compatibility – delegates to CURRENCY.format()
     return CURRENCY.format(val);
-}
-
-function formatSats(btc) {
-    if (btc == null || isNaN(btc)) return '–';
-    return Math.round(Number(btc) * 1e8).toLocaleString('de-DE') + ' sats';
 }
 
 // ── BTC Price inline edit ─────────────────────────────────

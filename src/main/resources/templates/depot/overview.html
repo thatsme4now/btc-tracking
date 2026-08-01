@@ -1015,41 +1015,6 @@
 	    </div>
 	</div>
 
-	<!-- Refresh Options Modal: aktueller Kurs / fehlende Monatspreise, einzeln oder zusammen -->
-	<div class="modal fade" id="refreshOptionsModal" tabindex="-1">
-	    <div class="modal-dialog modal-sm">
-	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-	                <span class="depot-card-header mb-0">
-	                    <i class="bi bi-arrow-clockwise me-2"></i>
-	                    <span data-i18n="modal.refreshOptions.title">Kurse laden</span>
-	                </span>
-	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-	            </div>
-	            <div class="modal-body">
-	                <div class="form-check mb-2">
-	                    <input class="form-check-input" type="checkbox" id="refreshOptCurrentPrice" checked>
-	                    <label class="form-check-label" for="refreshOptCurrentPrice" style="font-size:.8rem;color:var(--text)" data-i18n="modal.refreshOptions.currentPrice">
-	                        Aktuellen Kurs aktualisieren
-	                    </label>
-	                </div>
-	                <div class="form-check">
-	                    <input class="form-check-input" type="checkbox" id="refreshOptMonthly" checked>
-	                    <label class="form-check-label" for="refreshOptMonthly" style="font-size:.8rem;color:var(--text)" data-i18n="modal.refreshOptions.monthly">
-	                        Fehlende Monatspreise laden
-	                    </label>
-	                </div>
-	            </div>
-	            <div class="modal-footer" style="border-top:1px solid var(--border)">
-	                <button class="btn depot-btn-primary" onclick="confirmRefreshOptions()">
-	                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.refreshOptions.confirm">Laden</span>
-	                </button>
-	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-	            </div>
-	        </div>
-	    </div>
-	</div>
-
 	<!-- Position Modal (Add / Edit) -->
 	<div class="modal fade" id="positionModal" tabindex="-1">
 	    <div class="modal-dialog modal-sm">

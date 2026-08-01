@@ -43,8 +43,6 @@
   "table.action.delete": "Eliminar",
   "chart.allocation": "Distribución por cartera / exchange",
   "chart.history": "Bitcoin (BTC/EUR) · Historial de precios 1 año",
-  "chart.history.loading": "Cargando datos de precio BTC…",
-  "chart.history.empty": "Sin datos – actualiza los precios primero.",
   "chart.total": "TOTAL",
   "modal.addTx.title": "Añadir transacción",
   "modal.editTx.title": "Editar transacción",

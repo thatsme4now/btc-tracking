@@ -43,8 +43,6 @@
   "table.action.delete": "ลบ",
   "chart.allocation": "การจัดสรรตามกระเป๋า / ตลาด",
   "chart.history": "Bitcoin (BTC/EUR) · ประวัติราคา 1 ปี",
-  "chart.history.loading": "กำลังโหลดข้อมูลราคา BTC…",
-  "chart.history.empty": "ไม่มีข้อมูล – โปรดรีเฟรชราคาก่อน",
   "chart.total": "รวม",
   "modal.addTx.title": "เพิ่มธุรกรรม",
   "modal.editTx.title": "แก้ไขธุรกรรม",

@@ -3,9 +3,7 @@ package com.thatsme4now.depot.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thatsme4now.depot.entity.CurrentPrice;
-import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.repository.CurrentPriceRepository;
-import com.thatsme4now.depot.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -15,15 +13,12 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CoinGeckoService {
 
-    private final PriceHistoryRepository priceHistoryRepo;
     private final CurrentPriceRepository currentPriceRepo;
 
     private final ObjectMapper  mapper       = new ObjectMapper();

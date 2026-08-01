@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import com.thatsme4now.depot.dto.YearlyHoldingsDTO;
 import com.thatsme4now.depot.entity.Transaction;
-import com.thatsme4now.depot.entity.TransactionType;
 import com.thatsme4now.depot.repository.HistoricalPriceRepository;
 import com.thatsme4now.depot.repository.TransactionRepository;
 
