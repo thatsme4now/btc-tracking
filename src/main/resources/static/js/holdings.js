@@ -32,6 +32,14 @@ const HOLDINGS_POS_COLOR     = '#1d9e75'; // green (matches --pos)
 const HOLDINGS_NEG_COLOR     = '#d85a30'; // red/orange (matches --neg)
 const HOLDINGS_BALANCE_COLOR = '#F7931A'; // Bitcoin orange
 
+// Eigenständige Kopie der Farbpalette für den Allocation-Donut (von der
+// Übersicht hierher verschoben) — bewusst nicht mit depot.js' CHART_COLORS
+// geteilt, siehe "eigenständige Implementierung"-Konvention weiter oben.
+const HOLDINGS_ALLOCATION_PALETTE = [
+    '#F7931A', '#1D9E75', '#378ADD', '#534AB7', '#D85A30',
+    '#BA7517', '#185FA5', '#0F6E56', '#3C3489', '#993C1D'
+];
+
 // Per-buy G/V-Balken: 3 Helligkeitsstufen je nach FIFO-Realisiert-Status
 // (voll gehalten = kräftig, teilweise realisiert = mittel, komplett realisiert
 // = gedämpft), damit man den Status auch ohne Klick auf einen Balken erahnen kann.
@@ -159,6 +167,8 @@ async function initHoldings() {
         renderBalanceChart(data);
         loadRefPrices(currency);
         initHoldingsBuyPercent(currency);
+        loadHoldingsMetrics(currency);
+        loadHoldingsAllocation(currency);
 
     } catch (err) {
         loadingEl.classList.add('d-none');
@@ -166,6 +176,127 @@ async function initHoldings() {
         emptyEl.textContent = 'Error: ' + err.message;
         console.error('Holdings load failed', err);
     }
+}
+
+// ── Kennzahlen (von der Übersicht hierher verschoben) ──────────────────────
+// Eigener Fetch statt Thymeleaf-Modellattribute, da diese Seite ihre Inhalte
+// generell per JS lädt (siehe initHoldings) — der Endpoint liefert dieselbe
+// geteilte Berechnung, die zuvor die Übersicht inline berechnet hat (siehe
+// HoldingsYearlyService.computePortfolioMetrics, Grund: Drift-Vermeidung
+// zwischen beiden Seiten).
+async function loadHoldingsMetrics(currency) {
+    try {
+        const res = await fetch(`/api/btc-tracking/metrics?currency=${encodeURIComponent(currency)}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const m = await res.json();
+        renderHoldingsMetrics(m, currency);
+    } catch (err) {
+        console.error('Holdings metrics load failed', err);
+    }
+}
+
+function renderHoldingsMetrics(m, currency) {
+    const cur = (typeof CURRENCY !== 'undefined') ? CURRENCY.get(currency) : { locale: 'de-DE', symbol: '€' };
+
+    document.getElementById('holdingsMetricTotalBtc').textContent =
+        Number(m.totalBtc).toLocaleString(cur.locale, { minimumFractionDigits: 8, maximumFractionDigits: 8 });
+    document.getElementById('holdingsMetricTotalValue').textContent = fmt(m.totalValue, currency);
+    document.getElementById('holdingsMetricTotalSats').textContent =
+        Number(m.totalSats).toLocaleString(cur.locale, { maximumFractionDigits: 0 });
+    document.getElementById('holdingsMetricInvested').textContent = fmt(m.invested, currency);
+    document.getElementById('holdingsMetricRealized').textContent = fmt(m.realized, currency);
+    document.getElementById('holdingsMetricTransactions').textContent = m.transactionCount;
+
+    const gainLossEl = document.getElementById('holdingsMetricGainLoss');
+    const gainLoss = Number(m.gainLoss);
+    gainLossEl.textContent = (gainLoss >= 0 ? '+' : '') + fmt(m.gainLoss, currency);
+    gainLossEl.classList.toggle('text-pos', gainLoss >= 0);
+    gainLossEl.classList.toggle('text-neg', gainLoss < 0);
+
+    const perfEl = document.getElementById('holdingsMetricPerformance');
+    const perf = Number(m.performancePct);
+    perfEl.textContent = (perf >= 0 ? '+' : '') +
+        perf.toLocaleString(cur.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %';
+    perfEl.classList.toggle('text-pos', perf >= 0);
+    perfEl.classList.toggle('text-neg', perf < 0);
+}
+
+// ── Allocation-Donut (von der Übersicht hierher verschoben) ───────────────
+// Eigenständige Kopie von initDonut() (depot.js), siehe "eigenständige
+// Implementierung"-Konvention — Datenquelle hier ist ein Fetch von
+// /api/btc-tracking/positions statt Thymeleaf-Modellattribute, da Positionen
+// auf dieser Seite (anders als auf der Übersicht) nie serverseitig gerendert
+// werden.
+let holdingsDonutInstance = null;
+
+async function loadHoldingsAllocation(currency) {
+    try {
+        const res = await fetch('/api/btc-tracking/positions');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const positions = await res.json();
+        initHoldingsDonut(positions, currency);
+    } catch (err) {
+        console.error('Holdings allocation load failed', err);
+    }
+}
+
+function initHoldingsDonut(positions, currency) {
+    const labels = (positions || []).map(p => p.label);
+    const values = (positions || []).map(p => Number(p.totalValue));
+
+    if (!labels.length) return;
+    if (holdingsDonutInstance) { holdingsDonutInstance.destroy(); holdingsDonutInstance = null; }
+
+    const options = {
+        ...HOLDINGS_APEX_DEFAULTS,
+        series: values,
+        labels: labels,
+        chart: {
+            ...HOLDINGS_APEX_DEFAULTS.chart,
+            type:   'donut',
+            height: window.innerHeight / 3
+        },
+        colors: HOLDINGS_ALLOCATION_PALETTE,
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '80%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show:      true,
+                            label:     t('chart.total'),
+                            color:     '#6b6f7a',
+                            fontSize:  '30px',
+                            formatter: (w) => {
+                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                return CURRENCY.format(total, currency);
+                            }
+                        },
+                        value: {
+                            color:     '#ddd9d0',
+                            fontSize:  '30px',
+                            formatter: (val) => CURRENCY.format(Number(val), currency)
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            ...HOLDINGS_APEX_DEFAULTS.legend,
+            position: 'bottom'
+        },
+        dataLabels: { enabled: false },
+        stroke:     { width: 0 }
+    };
+
+    holdingsDonutInstance = new ApexCharts(document.getElementById('holdingsDonutChart'), options);
+    holdingsDonutInstance.render();
+
+    // Gleicher Fix wie in depot.js' initDonut(): erzwingt eine korrekte
+    // Breiten-Neuberechnung, falls initHoldingsLayout() (DOMContentLoaded)
+    // die Grid-Spalten bereits vor diesem async-Callback final gesetzt hat.
+    window.dispatchEvent(new Event('resize'));
 }
 
 // Hook, den tx-form.js (saveOrAddTx) nach erfolgreichem Speichern eines Kaufs/
@@ -978,16 +1109,19 @@ async function saveRefPrice(year, currency, input) {
 // where native drag-and-drop isn't available and the grid collapses to a
 // single column via CSS anyway.
 
-const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v4';
+const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v5';
 const HOLDINGS_MAX_COLS   = 3;
-// 6 Reihen. Reihe 1: Bestand/G-V pro Jahr. Reihe 2: die beiden Gewinn/Verlust-
-// je-Kauf-Charts zusammen mit Kauf-Details (letztere ist "capped" auf 1 Slot,
-// siehe updateHoldingsRowCols). Reihe 3: Käufe & Verkäufe (füllt die 2 freien
-// Slots neben der ebenfalls "capped" Referenzkurse-Kachel).
+// 7 Reihen. Reihe 1: Kennzahlen (volle Breite, von der Übersicht hierher
+// verschoben). Reihe 2: Bestand/G-V pro Jahr. Reihe 3: die beiden Gewinn/
+// Verlust-je-Kauf-Charts zusammen mit Kauf-Details (letztere ist "capped"
+// auf 1 Slot, siehe updateHoldingsRowCols). Reihe 4: Käufe & Verkäufe (füllt
+// den verbleibenden freien Slot) neben Referenzkurse und Allocation-Donut
+// (beide "capped", ebenfalls von der Übersicht hierher verschoben).
 const HOLDINGS_DEFAULT_LAYOUT = [
+    ['holdings-block-metrics'],
     ['holdings-block-balance', 'holdings-block-unrealized-pnl', 'holdings-block-realized-pnl'],
     ['holdings-block-buyabs', 'holdings-block-buypercent', 'holdings-block-buydetail'],
-    ['holdings-block-buys', 'holdings-block-refprices'],
+    ['holdings-block-buys', 'holdings-block-refprices', 'holdings-block-allocation'],
     [],
     [],
     []
@@ -1156,27 +1290,59 @@ function _getHoldingsDragAfterElement(row, x) {
 }
 
 /** Moves a block one step earlier/later in reading order (row by row, left to right). */
+/**
+ * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
+ * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
+ * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
+ * (< HOLDINGS_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter
+ * → wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
+ * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
+ * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
+ * die 3-Slot-Grenze "anstoßen" und der Pfeil täte nichts.
+ * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
+ * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos. Eigenständige Kopie,
+ * siehe identischer Fix in depot.js' moveOverviewBlock/yearly.js' moveYearlyBlock.)
+ */
 function moveHoldingsBlock(id, direction) {
     const grid = document.getElementById('holdingsGrid');
     if (!grid) return;
 
-    const rows     = Array.from(grid.querySelectorAll('.holdings-grid-row'));
-    const rowSizes = rows.map(r => r.querySelectorAll('.holdings-draggable').length);
-    const flat     = rows.flatMap(r => Array.from(r.querySelectorAll('.holdings-draggable')).map(el => el.id));
+    const rows   = Array.from(grid.querySelectorAll('.holdings-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.holdings-draggable')).map(el => el.id));
 
-    const idx     = flat.indexOf(id);
-    const swapIdx = idx + direction;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= flat.length) return;
+    let rowIdx = -1, posInRow = -1;
+    layout.forEach((rowIds, i) => {
+        const p = rowIds.indexOf(id);
+        if (p !== -1) { rowIdx = i; posInRow = p; }
+    });
+    if (rowIdx === -1) return;
 
-    [flat[idx], flat[swapIdx]] = [flat[swapIdx], flat[idx]];
+    const targetPosInRow = posInRow + direction;
 
-    let pos = 0;
-    rows.forEach((row, i) => {
-        flat.slice(pos, pos + rowSizes[i]).forEach(blockId => {
+    if (targetPosInRow >= 0 && targetPosInRow < layout[rowIdx].length) {
+        [layout[rowIdx][posInRow], layout[rowIdx][targetPosInRow]] =
+            [layout[rowIdx][targetPosInRow], layout[rowIdx][posInRow]];
+    } else {
+        const targetRowIdx = rowIdx + direction;
+        if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
+
+        if (layout[targetRowIdx].length < HOLDINGS_MAX_COLS) {
+            layout[rowIdx].splice(posInRow, 1);
+            if (direction > 0) layout[targetRowIdx].unshift(id);
+            else layout[targetRowIdx].push(id);
+        } else {
+            const boundaryIdx = direction > 0 ? 0 : layout[targetRowIdx].length - 1;
+            const boundaryId  = layout[targetRowIdx][boundaryIdx];
+            layout[targetRowIdx][boundaryIdx] = id;
+            layout[rowIdx][posInRow] = boundaryId;
+        }
+    }
+
+    layout.forEach((rowIds, i) => {
+        rowIds.forEach(blockId => {
             const el = document.getElementById(blockId);
-            if (el) row.appendChild(el);
+            if (el) rows[i].appendChild(el);
         });
-        pos += rowSizes[i];
     });
 
     updateHoldingsRowCols(grid);

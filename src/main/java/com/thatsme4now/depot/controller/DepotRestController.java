@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thatsme4now.depot.dto.PortfolioMetricsDTO;
 import com.thatsme4now.depot.dto.TransactionDTO;
 import com.thatsme4now.depot.entity.CurrentPrice;
 import com.thatsme4now.depot.entity.Position;
@@ -648,14 +649,44 @@ public class DepotRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> deletePosition(@PathVariable("id") Long id) {
+        if (depotService.getPosition(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        long txCount = depotService.getTransactionCount(id);
+        if (txCount > 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Position has " + txCount + " transaction(s) — move or delete them first."
+            ));
+        }
+        depotService.delete(id);
+        return ResponseEntity.ok(Map.of("id", id));
+    }
+
     @GetMapping("/positions")
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
         return depotService.getAllPositions(currency).stream()
-            .map(p -> Map.<String, Object>of("id", p.getId(), "label", p.getLabel()))
+            .map(p -> Map.<String, Object>of(
+                "id", p.getId(),
+                "label", p.getLabel(),
+                "totalValue", p.getTotalValue() != null ? p.getTotalValue() : BigDecimal.ZERO))
             .collect(Collectors.toList());
     }
-    
+
+    // Portfolio-weite Kennzahlen (Kennzahlen-Kachel, Bestandsansicht) — geteilte Berechnung,
+    // siehe HoldingsYearlyService.computePortfolioMetrics für Details/Begründung.
+    @GetMapping("/metrics")
+    public PortfolioMetricsDTO getMetrics(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return holdingsYearlyService.computePortfolioMetrics(cur);
+    }
+
     @DeleteMapping("/transactions/bulk")
     public ResponseEntity<Map<String, Object>> bulkDelete(@RequestBody List<Long> ids) {
         ids.forEach(depotService::deleteTransaction);

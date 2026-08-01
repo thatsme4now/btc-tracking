@@ -343,9 +343,6 @@ tr.tx-row-pulse > td {
     vertical-align: middle;
 }
 
-/* ── Chart containers ────────────────────────────────────── */
-#donutChart { min-height: 260px; }
-
 /* ── DataTables overrides ────────────────────────────────── */
 table.dataTable,
 table.dataTable td,
@@ -671,7 +668,7 @@ body.density-spacious {
 .overview-drag-handle:active { cursor: grabbing; }
 
 .overview-block-actions {
-    display: none;
+    display: flex;
     gap: .15rem;
     flex: 0 0 auto;
 }
@@ -698,8 +695,174 @@ body.density-spacious {
 }
 
 @media (max-width: 768px) {
-    .overview-block-actions { display: flex !important; }
     .overview-draggable .overview-drag-handle { display: none; }
+}
+
+/* ── "Alle Transaktionen": Kartenansicht ─────────────────────
+   Eigenständige, unabhängige Implementierung (eigener Namensraum, siehe
+   depot.js renderOverviewTxCards) — Optik angelehnt an .flow-tx-card
+   (flow.css), aber bewusst nicht geteilt. Aktiv, sobald die Kachel sich
+   eine Row mit einer anderen teilt oder der Viewport mobil ist (siehe
+   depot.js _overviewApplyTxViewMode). */
+.overview-tx-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: .6rem;
+    padding: .75rem 1rem 1rem;
+    /* Scroll-Limit analog #txTable_wrapper (max-height:55vh) — Karten brauchen
+       pro Eintrag mehr vertikalen Platz, daher etwas großzügiger bemessen. */
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+    scrollbar-color: var(--border) var(--bg-card);
+    scrollbar-width: thin;
+}
+.overview-tx-cards::-webkit-scrollbar { width: 6px; }
+.overview-tx-cards::-webkit-scrollbar-track { background: var(--bg-card); }
+.overview-tx-cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.overview-tx-cards::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+@media (max-width: 768px) {
+    .overview-tx-cards { max-height: none; }
+}
+
+.overview-tx-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-left-width: 8px;
+    border-radius: var(--radius);
+    padding: .55rem .7rem;
+    font-size: .72rem;
+    position: relative;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.overview-tx-card:hover { border-color: var(--accent); border-left-color: var(--accent); }
+.overview-tx-card.selected {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.overview-tx-card.warning           { border-left-color: var(--warn); }
+.overview-tx-card.warning-duplicate { border-left-color: var(--warn-duplicate); }
+.overview-tx-card.solo-transfer     { border-left-color: var(--solo-transfer); }
+.overview-tx-card.last-import       { border-left-color: var(--last-import); }
+
+.overview-tx-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .4rem;
+    margin-bottom: .35rem;
+    font-weight: 600;
+}
+.overview-tx-card-head-label {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.overview-tx-card-actions {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    flex: 0 0 auto;
+}
+
+.overview-tx-card-badge {
+    font-size: .6rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: .1rem .4rem;
+    border-radius: 999px;
+    background: var(--border);
+    color: var(--text-muted);
+    flex: 0 0 auto;
+}
+.overview-tx-card-badge.type-buy          { color: var(--pos); }
+.overview-tx-card-badge.type-sell         { color: var(--neg); }
+.overview-tx-card-badge.type-transfer-in  { color: var(--pos); }
+.overview-tx-card-badge.type-transfer-out { color: var(--neg); }
+
+.overview-tx-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .12rem 0;
+}
+.overview-tx-field-label {
+    color: var(--text-muted);
+    font-size: .66rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+.overview-tx-field-value {
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.overview-tx-cards-empty {
+    color: var(--text-muted);
+    font-size: .78rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .overview-tx-cards { grid-template-columns: 1fr; }
+}
+
+/* ── "Wallets & Börsen": Kartenansicht ───────────────────────
+   Eigenständige, unabhängige Implementierung (eigener Namensraum), aktiv nur
+   wenn die Kachel exakt 1 von 3 Slots einer vollen Row bekommt oder der
+   Viewport mobil ist (siehe depot.js _overviewApplyPosViewMode). Feld-/Kopf-
+   Optik wird bewusst mit .overview-tx-card-head/.overview-tx-field geteilt
+   (beide Kartenlisten leben auf derselben Seite/Feature), nur der Karten-
+   Rahmen selbst (.overview-pos-card) ist eigenständig — Positionen haben
+   keine Warnung/Duplikat/Solo/Import-Marker wie Transaktionen. */
+.overview-pos-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: .6rem;
+    padding: .75rem 1rem 1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    align-content: start;
+    scrollbar-color: var(--border) var(--bg-card);
+    scrollbar-width: thin;
+}
+.overview-pos-cards::-webkit-scrollbar { width: 6px; }
+.overview-pos-cards::-webkit-scrollbar-track { background: var(--bg-card); }
+.overview-pos-cards::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.overview-pos-cards::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+.overview-pos-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: .55rem .7rem;
+    font-size: .72rem;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+.overview-pos-card:hover { border-color: var(--accent); }
+
+@media (max-width: 768px) {
+    .overview-pos-cards { max-height: none; }
+}
+@media (max-width: 480px) {
+    .overview-pos-cards { grid-template-columns: 1fr; }
 }
 
 /* ── Responsive Transaktionstabelle ──────────────────────── */
@@ -978,10 +1141,22 @@ input#dt-search-1 {
 }
 
 /* ── Bulk Toolbar ──────────────────────────────────────── */
-.bulk-actions-dropdown { display: none; }
-@media (max-width: 768px) {
-    .bulk-actions-inline   { display: none !important; }
-    .bulk-actions-dropdown { display: inline-block !important; }
+/* Sichtbarkeit von .bulk-actions-inline vs. .bulk-actions-dropdown wird per
+   JS über die Klasse d-none umgeschaltet (siehe depot.js
+   _overviewApplyTxViewMode) — abhängig davon, ob die Transaktions-Kachel
+   gerade die Tabellen- oder die Kartenansicht zeigt, nicht mehr per reiner
+   Viewport-Breite. */
+.bulk-actions-dropdown {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+.tx-select-all-wrap {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: .25rem;
 }
 .depot-dropdown-menu {
     background: var(--bg-card);

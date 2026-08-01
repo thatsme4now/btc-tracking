@@ -81,6 +81,10 @@ public class DepotService {
         return transactionRepo.count();
     }
 
+    public long getTransactionCount(Long positionId) {
+        return transactionRepo.countByPositionId(positionId);
+    }
+
     public List<TransactionDTO> getAllTransactions() {
         return transactionRepo.findAllByOrderByDateDesc().stream()
                 .map(this::toTransactionDTO)

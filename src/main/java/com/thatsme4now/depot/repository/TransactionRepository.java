@@ -15,6 +15,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByPositionIdOrderByDateAsc(Long positionId);
 
+    long countByPositionId(Long positionId);
+
     List<Transaction> findByPositionIdOrderByDateDesc(Long positionId);
 
     List<Transaction> findByTransferId(String transferId);

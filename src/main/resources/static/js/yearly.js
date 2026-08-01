@@ -1233,27 +1233,59 @@ function _getYearlyDragAfterElement(row, x) {
 
 /** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
  *  links nach rechts) — für Touch/Mobile, wo natives Drag & Drop fehlt. */
+/**
+ * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
+ * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
+ * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
+ * (< YEARLY_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter →
+ * wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
+ * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
+ * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
+ * die Slot-Grenze "anstoßen" und der Pfeil täte nichts.
+ * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
+ * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos. Eigenständige Kopie,
+ * siehe identischer Fix in depot.js' moveOverviewBlock/holdings.js' moveHoldingsBlock.)
+ */
 function moveYearlyBlock(id, direction) {
     const grid = document.getElementById('yearlyGrid');
     if (!grid) return;
 
-    const rows     = Array.from(grid.querySelectorAll('.yearly-grid-row'));
-    const rowSizes = rows.map(r => r.querySelectorAll('.yearly-draggable').length);
-    const flat     = rows.flatMap(r => Array.from(r.querySelectorAll('.yearly-draggable')).map(el => el.id));
+    const rows   = Array.from(grid.querySelectorAll('.yearly-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.yearly-draggable')).map(el => el.id));
 
-    const idx     = flat.indexOf(id);
-    const swapIdx = idx + direction;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= flat.length) return;
+    let rowIdx = -1, posInRow = -1;
+    layout.forEach((rowIds, i) => {
+        const p = rowIds.indexOf(id);
+        if (p !== -1) { rowIdx = i; posInRow = p; }
+    });
+    if (rowIdx === -1) return;
 
-    [flat[idx], flat[swapIdx]] = [flat[swapIdx], flat[idx]];
+    const targetPosInRow = posInRow + direction;
 
-    let pos = 0;
-    rows.forEach((row, i) => {
-        flat.slice(pos, pos + rowSizes[i]).forEach(blockId => {
+    if (targetPosInRow >= 0 && targetPosInRow < layout[rowIdx].length) {
+        [layout[rowIdx][posInRow], layout[rowIdx][targetPosInRow]] =
+            [layout[rowIdx][targetPosInRow], layout[rowIdx][posInRow]];
+    } else {
+        const targetRowIdx = rowIdx + direction;
+        if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
+
+        if (layout[targetRowIdx].length < YEARLY_MAX_COLS) {
+            layout[rowIdx].splice(posInRow, 1);
+            if (direction > 0) layout[targetRowIdx].unshift(id);
+            else layout[targetRowIdx].push(id);
+        } else {
+            const boundaryIdx = direction > 0 ? 0 : layout[targetRowIdx].length - 1;
+            const boundaryId  = layout[targetRowIdx][boundaryIdx];
+            layout[targetRowIdx][boundaryIdx] = id;
+            layout[rowIdx][posInRow] = boundaryId;
+        }
+    }
+
+    layout.forEach((rowIds, i) => {
+        rowIds.forEach(blockId => {
             const el = document.getElementById(blockId);
-            if (el) row.appendChild(el);
+            if (el) rows[i].appendChild(el);
         });
-        pos += rowSizes[i];
     });
 
     updateYearlyRowCols(grid);

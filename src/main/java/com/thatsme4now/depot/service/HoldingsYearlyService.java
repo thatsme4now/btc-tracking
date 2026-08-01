@@ -13,6 +13,8 @@ import java.util.TreeMap;
 
 import org.springframework.stereotype.Service;
 
+import com.thatsme4now.depot.dto.PortfolioMetricsDTO;
+import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.dto.YearlyHoldingsDTO;
 import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.repository.HistoricalPriceRepository;
@@ -158,6 +160,71 @@ public class HoldingsYearlyService {
             result.add(dto);
         }
         return result;
+    }
+
+    /**
+     * Portfolio-weite Kennzahlen (Kennzahlen-Kachel) — einmal berechnet, genutzt sowohl
+     * von der Übersicht (bisher inline in DepotViewController.overview()) als auch von der
+     * Bestandsansicht (per REST, siehe GET /api/btc-tracking/metrics), damit die Werte nicht
+     * an zwei Stellen unabhängig berechnet werden (Drift-Risiko). Lebt hier statt in
+     * DepotService, da DepotService bereits von hier aus referenziert wird (depotService-Feld
+     * oben) — eine umgekehrte Abhängigkeit würde einen zirkulären Bean-Verweis erzeugen.
+     * Realized/Unrealized/GainLoss/Performance nutzen bewusst dieselbe portfolio-weite
+     * Berechnung wie getYearlyHoldings() (siehe Kommentar dort), nicht die Summe pro Position.
+     */
+    public PortfolioMetricsDTO computePortfolioMetrics(String currency) {
+        String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
+
+        List<PositionDTO> positions = depotService.getAllPositions(cur);
+
+        BigDecimal totalValue = positions.stream()
+            .map(PositionDTO::getTotalValue)
+            .filter(v -> v != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal invested = positions.stream()
+            .map(PositionDTO::getInvested)
+            .filter(v -> v != null)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalBtc = positions.stream()
+            .map(PositionDTO::getQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<YearlyHoldingsDTO> yearly = getYearlyHoldings(cur);
+
+        BigDecimal realized = yearly.stream()
+                .map(YearlyHoldingsDTO::getRealizedPnl)
+                .filter(v -> v != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal unrealized = yearly.stream()
+                .filter(YearlyHoldingsDTO::isCurrentYear)
+                .map(YearlyHoldingsDTO::getUnrealizedPnl)
+                .filter(v -> v != null)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal gainLoss = realized.add(unrealized);
+        BigDecimal performancePct = invested.compareTo(BigDecimal.ZERO) > 0
+            ? gainLoss.divide(invested, 4, RoundingMode.HALF_UP)
+                      .multiply(BigDecimal.valueOf(100))
+                      .setScale(2, RoundingMode.HALF_UP)
+            : BigDecimal.ZERO;
+
+        BigDecimal totalSats = totalBtc.multiply(BigDecimal.valueOf(100_000_000))
+            .setScale(0, RoundingMode.HALF_UP);
+
+        PortfolioMetricsDTO dto = new PortfolioMetricsDTO();
+        dto.setTotalBtc(totalBtc);
+        dto.setTotalSats(totalSats);
+        dto.setTotalValue(totalValue);
+        dto.setInvested(invested);
+        dto.setRealized(realized);
+        dto.setGainLoss(gainLoss);
+        dto.setPerformancePct(performancePct);
+        dto.setTransactionCount(depotService.getTransactionCount());
+        return dto;
     }
 
     private BigDecimal historicalYearEndPrice(int year, String currency) {

@@ -34,7 +34,7 @@
 
     <div class="overview-layout-toolbar d-flex justify-content-end align-items-center flex-wrap gap-2 mb-2">
         <p class="overview-layout-hint d-none me-auto mb-0" id="overviewLayoutHint" data-i18n="overview.layout.hint">
-            Ziehe die Kacheln am Griff, um sie neu anzuordnen — bis zu 2 pro Reihe. Auf dem Handy nutze stattdessen die Pfeil-Buttons.
+            Ziehe die Kacheln am Griff, um sie neu anzuordnen — bis zu 3 pro Reihe. Auf dem Handy nutze stattdessen die Pfeil-Buttons.
         </p>
         <button id="overviewResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetOverviewLayout()">
             <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
@@ -42,103 +42,7 @@
     </div>
 
     <div id="overviewGrid" class="overview-grid">
-        <div class="overview-grid-row" id="overview-row-0" data-row="0">
-            <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
-
-            <div class="depot-card overview-draggable" id="overview-block-metrics">
-                <div class="depot-card-header d-flex justify-content-between align-items-center">
-                    <span class="d-flex align-items-center gap-2">
-                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
-                        <span data-i18n="metrics.title">Kennzahlen</span>
-                    </span>
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="overview-block-actions">
-                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-metrics', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
-                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-metrics', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
-                        </span>
-                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('metricsCardBody', this)">
-                            <i class="bi bi-dash-lg"></i>
-                        </button>
-                    </span>
-                </div>
-                <div id="metricsCardBody">
-	        <div class="row g-3 metrics-row">
-		        <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.totalBtc">Total BTC</div>
-		                <div class="metric-value"
-		                     th:text="${#numbers.formatDecimal(totalBtc, 1, 'POINT', 8, 'COMMA')}">–</div>
-		            </div>
-		        </div>
-		        <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
-		                <div class="metric-value">
-		                     <span th:text="${#numbers.formatDecimal(totalValue, 1, 'POINT', 2, 'COMMA')}">–</span>
-		                     <span class="currency-symbol"></span>         
-		                </div>
-		            </div>
-		        </div>
-		         <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
-		                <div class="metric-value"
-		                     th:classappend="${gainLoss >= 0} ? 'text-pos' : 'text-neg'">
-		                 	<span th:text="${(gainLoss >= 0 ? '+' : '') +
-		                                #numbers.formatDecimal(gainLoss, 1, 'POINT', 2, 'COMMA')}">–</span>
-		                    <span class="currency-symbol"></span>                  
-		                 </div>
-		            </div>
-		        </div>
-		         <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.performance">Performance</div>
-		                <div class="metric-value"
-		                     th:classappend="${performancePct >= 0} ? 'text-pos' : 'text-neg'"
-		                     th:text="${(performancePct >= 0 ? '+' : '') +
-		                                #numbers.formatDecimal(performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}">–</div>
-		            </div>
-		        </div>
-		         <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.totalSats">Total Sats</div>
-		                <div class="metric-value sats-value"
-		                     th:text="${#numbers.formatInteger(totalSats, 1, 'POINT')}">–</div>
-		            </div>
-		        </div>
-		        <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.invested">Invested</div>
-		                <div class="metric-value">
-		                	<span th:text="${#numbers.formatDecimal(invested, 1, 'POINT', 2, 'COMMA')}">–</span>
-		                    <span class="currency-symbol"></span>      
-		                </div>
-		            </div>
-		        </div>
-		        <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label" data-i18n="metric.realized">Realized</div>
-		                <div class="metric-value">
-		                	<span th:text="${#numbers.formatDecimal(realized, 1, 'POINT', 2, 'COMMA')}">–</span>
-		                    <span class="currency-symbol"></span>                   
-		                </div>
-		            </div>
-		        </div>
-		        <div class="col-4">
-		            <div class="depot-card depot-card-metric">
-		                <div class="metric-label">
-		                    <span data-i18n="metric.transactions">Transactions</span>
-		                 
-		                </div>
-		                <div id="transactionCountValue" class="metric-value" th:text="${transactionCount}">–</div>
-		            </div>
-		        </div>
-		    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="overview-grid-row" id="overview-row-1" data-row="1">
+        <div class="overview-grid-row" id="overview-row-1" data-row="0">
             <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
 
             <div class="depot-card overview-draggable" id="overview-block-wallets">
@@ -154,28 +58,28 @@
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
                         </span>
-                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('walletsCardBody', this)">
-                            <i class="bi bi-dash-lg"></i>
-                        </button>
                     </span>
                 </div>
                 <div id="walletsCardBody">
-	                            <div class="table-responsive no-overflow">
-	                                <div id="posToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
-	                                     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
-	                                     <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
-	                                        <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
+	                            <div id="posToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
+	                                 style="border-bottom:1px solid var(--border);flex-wrap:wrap">
+	                                 <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
+	                                    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
+	                                </button>
+	                                <button type="button" id="posEmptyFilterBtn" class="btn depot-btn-outline" onclick="togglePosEmptyFilter()">
+	                                    <i class="bi bi-eye-slash me-1"></i><span data-i18n="table.filter.hideEmpty">Leere ausblenden</span>
+	                                </button>
+	                                <div class="pos-search-wrap dt-search-workaround">
+	                                    <input type="text" id="posSearchVisible" class="form-control depot-input"
+	                                           data-i18n-placeholder="dt.search" placeholder="Suche…"
+	                                           oninput="onPosVisibleSearchInput(this.value)"/>
+	                                    <button type="button" id="posSearchVisibleClear" class="pos-search-clear d-none"
+	                                            onclick="clearPosVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
+	                                        <i class="bi bi-x-lg"></i>
 	                                    </button>
-	                                    <div class="pos-search-wrap dt-search-workaround">
-	                                        <input type="text" id="posSearchVisible" class="form-control depot-input"
-	                                               data-i18n-placeholder="dt.search" placeholder="Suche…"
-	                                               oninput="onPosVisibleSearchInput(this.value)"/>
-	                                        <button type="button" id="posSearchVisibleClear" class="pos-search-clear d-none"
-	                                                onclick="clearPosVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
-	                                            <i class="bi bi-x-lg"></i>
-	                                        </button>
-	                                    </div>
 	                                </div>
+	                            </div>
+	                            <div class="table-responsive no-overflow" id="posTableWrap">
 	                                <table class="table dataTable depot-table mb-0" id="posTable">
 	                                    <thead>
 	                                    <tr>
@@ -190,9 +94,10 @@
 	                                    </tr>
 	                                    </thead>
 	                                    <tbody id="posTableBody">
-	                                        <tr th:each="p : ${positions}" th:if="${p.quantityInSats > 0}"
+	                                        <tr th:each="p : ${positions}"
 	                                            class="depot-row"
 	                                            th:data-label="${p.label}"
+	                                            th:data-qty-sats="${p.quantityInSats}"
 	                                            onclick="filterExchangeTransaction(this.dataset.label)">
 	
 	                                            <td th:text="${p.label}" class="fw-medium" data-i18n-label="table.col.label"></td>
@@ -224,7 +129,7 @@
 	                                                    onclick="event.stopPropagation(); openPositionModal(this.dataset.id)" title="Edit">
 	                                                    <i class="bi bi-pencil"></i>
 	                                                </button>
-	                                                <a th:href="@{/depot/delete/{id}(id=${p.id})}"
+	                                                <a href="#"
 	                                                   th:data-id="${p.id}"
 	                                                   class="btn btn-xs depot-btn-icon text-neg"
 	                                                   title="Delete"
@@ -242,32 +147,76 @@
 	                                    </tbody>
 	                                </table>
 	                            </div>
-                </div>
-            </div>
 
-            <div class="depot-card overview-draggable" id="overview-block-allocation">
-                <div class="depot-card-header d-flex justify-content-between align-items-center">
-                    <span class="d-flex align-items-center gap-2">
-                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
-                        <span data-i18n="chart.allocation">Allocation by Wallet / Exchange</span>
-                    </span>
-                    <span class="d-flex align-items-center gap-2">
-                        <span class="overview-block-actions">
-                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-allocation', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
-                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-allocation', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
-                        </span>
-                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('donutCardBody', this)">
-                            <i class="bi bi-dash-lg"></i>
-                        </button>
-                    </span>
-                </div>
-                <div id="donutCardBody">
-                    <div id="donutChart"></div>
+				<div id="posCardsList" class="overview-pos-cards d-none">
+					<div th:each="p : ${positions}"
+					th:data-qty-sats="${p.quantityInSats}"
+					     class="overview-pos-card"
+					     th:data-label="${p.label}"
+					     onclick="filterExchangeTransaction(this.dataset.label)">
+						<div class="overview-tx-card-head">
+							<span class="overview-tx-card-head-label">
+								<span th:text="${p.label}" class="fw-medium"></span>
+							</span>
+							<span class="overview-tx-card-actions" onclick="event.stopPropagation()">
+								<span th:if="${p.type.name == 'EXCHANGE'}" class="overview-tx-card-badge" data-i18n="form.position.type.exchange">Exchange</span>
+								<span th:if="${p.type.name == 'WALLET'}" class="overview-tx-card-badge" data-i18n="form.position.type.wallet">Wallet</span>
+								<button class="btn btn-xs depot-btn-icon" th:data-id="${p.id}"
+								        onclick="event.stopPropagation(); openPositionModal(this.dataset.id)" title="Edit">
+								    <i class="bi bi-pencil"></i>
+								</button>
+								<a href="#"
+								   th:data-id="${p.id}"
+								   class="btn btn-xs depot-btn-icon text-neg"
+								   title="Delete"
+								   onclick="event.preventDefault(); event.stopPropagation(); confirmDeletePosition(this.dataset.id)">
+								    <i class="bi bi-trash"></i>
+								</a>
+							</span>
+						</div>
+						<div class="overview-tx-field">
+							<span class="overview-tx-field-label" data-i18n="table.col.btc">BTC</span>
+							<span class="overview-tx-field-value" th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></span>
+						</div>
+						<div class="overview-tx-field">
+							<span class="overview-tx-field-label" data-i18n="table.col.sats">Sats</span>
+							<span class="overview-tx-field-value" th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.totalValue != null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.value">Value</span>
+							<span class="overview-tx-field-value"><span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span> <span class="currency-symbol"></span></span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.totalValue == null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.value">Value</span>
+							<span class="overview-tx-field-value text-muted">–</span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.gainLoss != null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.gl">G/L</span>
+							<span class="overview-tx-field-value" th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'"><span th:text="${(p.gainLoss >= 0 ? '+' : '') + #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span> <span class="currency-symbol"></span></span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.gainLoss == null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.gl">G/L</span>
+							<span class="overview-tx-field-value text-muted">–</span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.performancePct != null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.glPct">G/L %</span>
+							<span class="overview-tx-field-value" th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'" th:text="${(p.performancePct >= 0 ? '+' : '') + #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.performancePct == null}">
+							<span class="overview-tx-field-label" data-i18n="table.col.glPct">G/L %</span>
+							<span class="overview-tx-field-value text-muted">–</span>
+						</div>
+					</div>
+					<div th:if="${#lists.isEmpty(positions)}" class="overview-tx-cards-empty">
+						<span data-i18n="table.empty">No positions yet.</span>
+						<a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
+					</div>
+				</div>
                 </div>
             </div>
         </div>
 
-        <div class="overview-grid-row" id="overview-row-2" data-row="2">
+        <div class="overview-grid-row" id="overview-row-2" data-row="1">
             <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
 
             <div id="transactionsPanel" class="depot-card overview-draggable">
@@ -281,13 +230,9 @@
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
                         </span>
-                        <button class="btn btn-xs depot-btn-icon card-toggle-btn" onclick="toggleCard('txCardBody', this)">
-                            <i id="txToggleIcon" class="bi bi-dash-lg"></i>
-                        </button>
                     </div>
                 </div>
                 <div id="txCardBody">
-	        <div class="table-responsive">
 	        	<!-- Bulk Action Toolbar -->
 				<div id="bulkToolbar" class="d-flex align-items-center gap-2 px-1 py-2"
 			     style="border-bottom:1px solid var(--border);flex-wrap:wrap">
@@ -315,36 +260,45 @@
 			        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			        </button>
-			        <button type="button" id="txSoloFilterBtn" class="btn btn-xs depot-btn-outline" onclick="toggleTxSoloFilter()">
-			            <i class="bi bi-filter-circle me-1"></i><span data-i18n="table.filter.soloOnly"></span>
-			        </button>
-			        <div class="tx-search-wrap dt-search-workaround">
-			            <input type="text" id="txSearchVisible" class="form-control depot-input"
-			                   data-i18n-placeholder="dt.search" placeholder="Suche…"
-			                   oninput="onTxVisibleSearchInput(this.value)"/>
-			            <button type="button" id="txSearchVisibleClear" class="tx-search-clear d-none"
-			                    onclick="clearTxVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
-			                <i class="bi bi-x-lg"></i>
+			    </div>
+
+			    <!-- Kompakte Toolbar für die Kartenansicht (Kachel teilt sich eine Row):
+			         dieselben 7 Bulk-Aktionen im Dropdown statt einzeln inline, plus eine
+			         Select-All-Checkbox (die Tabellen-Kopfzeile mit #txSelectAll ist in der
+			         Kartenansicht unsichtbar). Sichtbarkeit wird per JS umgeschaltet, siehe
+			         depot.js _overviewApplyTxViewMode(). -->
+			    <div class="bulk-actions-dropdown d-none">
+			        <label class="tx-select-all-wrap" data-i18n-title="table.action.selectAll" title="Alle auswählen">
+			            <input type="checkbox" id="txCardsSelectAll" style="accent-color:var(--accent)"
+			                   onchange="toggleSelectAll(this)"/>
+			        </label>
+			        <div class="dropdown">
+			            <button class="btn btn-xs depot-btn-outline dropdown-toggle" type="button"
+			                    data-bs-toggle="dropdown" aria-expanded="false">
+			                <i class="bi bi-three-dots me-1"></i><span data-i18n="table.action.menu">Aktionen</span>
 			            </button>
+			            <ul class="dropdown-menu depot-dropdown-menu">
+			                <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li>
+			                <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li>
+			                <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li>
+			                <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li>
+			                <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li>
+			                <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li>
+			                <li><hr class="dropdown-divider"></li>
+			                <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li>
+			            </ul>
 			        </div>
 			    </div>
-			
-<!-- 			    <div class="dropdown bulk-actions-dropdown"> -->
-<!-- 			        <button class="btn btn-xs depot-btn-outline dropdown-toggle" type="button" -->
-<!-- 			                data-bs-toggle="dropdown" aria-expanded="false"> -->
-<!-- 			            <i class="bi bi-three-dots"></i> -->
-<!-- 			        </button> -->
-<!-- 			        <ul class="dropdown-menu depot-dropdown-menu"> -->
-<!-- 			            <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li> -->
-<!-- 			            <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li> -->
-<!-- 			            <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li> -->
-<!-- 			            <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li> -->
-<!-- 			            <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li> -->
-<!-- 			            <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li> -->
-<!-- 			            <li><hr class="dropdown-divider"></li> -->
-<!-- 			            <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li> -->
-<!-- 			        </ul> -->
-<!-- 			    </div> -->
+
+			    <div class="tx-search-wrap dt-search-workaround">
+			        <input type="text" id="txSearchVisible" class="form-control depot-input"
+			               data-i18n-placeholder="dt.search" placeholder="Suche…"
+			               oninput="onTxVisibleSearchInput(this.value)"/>
+			        <button type="button" id="txSearchVisibleClear" class="tx-search-clear d-none"
+			                onclick="clearTxVisibleSearch()" data-i18n-title="flow.panel.search.clear" title="Suche leeren">
+			            <i class="bi bi-x-lg"></i>
+			        </button>
+			    </div>
 			</div>
 
 				<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
@@ -365,6 +319,8 @@
 				        <span data-i18n="legend.last.import"></span>
 				    </span>
 				</div>
+
+				<div class="table-responsive" id="txTableWrap">
 	            <table class="table depot-table mb-0" id="txTable">
 	                <thead>
 	                <tr>
@@ -389,11 +345,13 @@
 	                </tbody>
 	            </table>
 	        </div>
+
+				<div id="txCardsList" class="overview-tx-cards d-none"></div>
                 </div>
             </div>
         </div>
 
-        <div class="overview-grid-row" id="overview-row-3" data-row="3">
+        <div class="overview-grid-row" id="overview-row-3" data-row="2">
             <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
         </div>
     </div>
@@ -687,17 +645,128 @@
         </div>
     </div>
 
+    <!-- Generic Confirm Dialog (showConfirm) -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" id="confirmModalTitle">Confirm</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmModalBody" style="font-size:.8rem;color:var(--text);margin-bottom:0"></p>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" id="confirmModalOk">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk: Wallet/Börse anpassen -->
+    <div class="modal fade" id="bulkMoveModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" data-i18n="table.action.move.position">Wallet/Börse anpassen</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="depot-label" data-i18n="modal.field.exchange">Exchange</label>
+                        <select id="bulkMoveSelect" class="form-select depot-input" onchange="onBulkMoveSelectChange(this)">
+                            <option value="">— Select —</option>
+                        </select>
+                    </div>
+                    <div id="bulkMoveNewRow" class="d-none">
+                        <input type="text" id="bulkMoveNew" class="form-control depot-input"
+                               maxlength="100" data-i18n-placeholder="modal.field.exchange.hint"
+                               placeholder="Position (e.g. Bitcoin.de, Bitget, Wallet)"/>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="confirmBulkMove()">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk: Wechselkurs anpassen -->
+    <div class="modal fade" id="bulkExRateModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" data-i18n="table.action.exchange.rate">Wechselkurs anpassen</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="depot-label" data-i18n="modal.field.exchangeRate">Exchange Rate</label>
+                    <input type="number" id="bulkExRateInput" class="form-control depot-input"
+                           step="0.000001" placeholder="1.000000"
+                           onkeydown="if(event.key==='Enter') confirmBulkExRate()"/>
+                    <div class="form-text text-muted" style="font-size:.7rem"
+                         data-i18n="modal.field.exchangeRate.hint">1 [Currency] = ? EUR</div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="confirmBulkExRate()">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Wallet/Exchange -->
+    <div class="modal fade" id="positionModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" id="positionModalTitle" data-i18n="form.position.titleNew">New Wallet / Exchange</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="positionId"/>
+                    <div class="mb-3">
+                        <label class="depot-label">
+                            <span data-i18n="form.position.label">Label</span>
+                            <span class="text-muted" data-i18n="form.position.label.hint"> (e.g. Binance, Ledger, Kraken)</span>
+                        </label>
+                        <input type="text" id="positionLabel" class="form-control depot-input"
+                               data-i18n-placeholder="form.position.label.placeholder"
+                               placeholder="Ledger Hardware Wallet"
+                               maxlength="100"
+                               onkeydown="if(event.key==='Enter') savePosition()"/>
+                    </div>
+                    <div>
+                        <label class="depot-label" data-i18n="modal.field.type">Type</label>
+                        <select id="positionType" class="form-select depot-input">
+                            <option value="EXCHANGE" data-i18n="form.position.type.exchange">Exchange</option>
+                            <option value="WALLET" data-i18n="form.position.type.wallet">Wallet</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="savePosition()">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="form.position.btn.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
 </main>
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-    var ALLOCATION_LABELS   = /*[[${positions.![totalValue != null && totalValue != 0.00 ? label : null]}]]*/ [];
-    ALLOCATION_LABELS = ALLOCATION_LABELS.filter(v => v !== null);
-
-    var ALLOCATION_VALUES   = /*[[${positions.![totalValue != null && totalValue != 0.00 ? totalValue : null]}]]*/ [];
-    ALLOCATION_VALUES = ALLOCATION_VALUES.filter(v => v !== null);
-
     const SERVER_CURRENCY     = /*[[${currency}]]*/ 'EUR';
     const NO_PRICE_AVAILABLE  = /*[[${noPriceAvailable}]]*/ false;
     const CURRENT_PRICE = /*[[${currentPrice}]]*/ 0;

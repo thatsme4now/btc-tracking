@@ -35,7 +35,73 @@
             </p>
 
             <div id="holdingsGrid" class="holdings-grid">
-                <div class="holdings-grid-row" id="holdings-row-0" data-row="0">
+                <div class="holdings-grid-row" id="holdings-row-metrics" data-row="0">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-metrics">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="metrics.title">Kennzahlen</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-metrics', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-metrics', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsMetricsBody">
+                            <div class="row g-3 metrics-row" id="holdingsMetricsRow">
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.totalBtc">Total BTC</div>
+                                        <div class="metric-value" id="holdingsMetricTotalBtc">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.totalValue">Total Value</div>
+                                        <div class="metric-value" id="holdingsMetricTotalValue">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.gainLoss">Gain / Loss</div>
+                                        <div class="metric-value" id="holdingsMetricGainLoss">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.performance">Performance</div>
+                                        <div class="metric-value" id="holdingsMetricPerformance">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.totalSats">Total Sats</div>
+                                        <div class="metric-value sats-value" id="holdingsMetricTotalSats">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.invested">Invested</div>
+                                        <div class="metric-value" id="holdingsMetricInvested">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.realized">Realized</div>
+                                        <div class="metric-value" id="holdingsMetricRealized">–</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="depot-card depot-card-metric">
+                                        <div class="metric-label" data-i18n="metric.transactions">Transactions</div>
+                                        <div class="metric-value" id="holdingsMetricTransactions">–</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="holdings-grid-row" id="holdings-row-0" data-row="1">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-buys">
                         <div class="holdings-chart-title">
@@ -74,7 +140,7 @@
                     </div>
                 </div>
 
-                <div class="holdings-grid-row" id="holdings-row-1" data-row="1">
+                <div class="holdings-grid-row" id="holdings-row-1" data-row="2">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-balance">
                         <div class="holdings-chart-title">
@@ -111,9 +177,21 @@
                             <tbody id="holdingsRefPricesBody"></tbody>
                         </table>
                     </div>
+
+                    <div class="holdings-chart-block holdings-draggable holdings-block-capped" id="holdings-block-allocation">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="chart.allocation">Allocation by Wallet / Exchange</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-allocation', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-allocation', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsDonutChart"></div>
+                    </div>
                 </div>
 
-                <div class="holdings-grid-row" id="holdings-row-buypercent" data-row="2">
+                <div class="holdings-grid-row" id="holdings-row-buypercent" data-row="3">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-buypercent">
                         <div class="holdings-chart-title">
@@ -127,7 +205,7 @@
                         <div id="holdingsBuyPercentChart"></div>
                     </div>
                 </div>
-                <div class="holdings-grid-row" id="holdings-row-buyabs" data-row="3">
+                <div class="holdings-grid-row" id="holdings-row-buyabs" data-row="4">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable" id="holdings-block-buyabs">
                         <div class="holdings-chart-title">
@@ -141,7 +219,7 @@
                         <div id="holdingsBuyAbsChart"></div>
                     </div>
                 </div>
-                <div class="holdings-grid-row" id="holdings-row-3" data-row="4">
+                <div class="holdings-grid-row" id="holdings-row-3" data-row="5">
                     <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
                     <div class="holdings-chart-block holdings-draggable holdings-block-capped" id="holdings-block-buydetail">
                         <div class="holdings-chart-title">
@@ -162,7 +240,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="holdings-grid-row" id="holdings-row-4" data-row="5"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" id="holdings-row-4" data-row="6"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
             </div>
         </div>
     </div>

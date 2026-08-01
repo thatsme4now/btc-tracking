@@ -4,56 +4,8 @@
 // bereits eigene Scroll-Container (max-height + overflow-y:auto), daher genügt dort
 // top:0 für die sticky Such-/Length-Zeile — kein Navbar-Höhen-Offset per JS nötig.
 
-const CHART_COLORS = [
-    '#F7931A','#1D9E75','#378ADD','#534AB7','#D85A30',
-    '#BA7517','#185FA5','#0F6E56','#3C3489','#993C1D'
-];
-
-const APEX_DEFAULTS = {
-    chart:   { background: 'transparent', fontFamily: "'IBM Plex Mono', monospace" },
-    theme:   { mode: 'dark' },
-    tooltip: {
-        theme: 'dark',
-        style: { fontFamily: "'IBM Plex Mono', monospace", fontSize: '12px' }
-    },
-    grid: { borderColor: '#252830' }
-};
 // ── Font + Density Toggle: jetzt in theme.js (siehe dort) ──
 // Auf allen 4 Seiten geladen statt nur hier, damit die Einstellung überall wirkt.
-
-// ── Card Collapse State (persisted like Theme) ────────────
-const CARD_STORAGE_KEY = 'depot-card-collapsed';
-const CARD_IDS = ['metricsCardBody', 'walletsCardBody', 'donutCardBody', 'txCardBody'];
-
-function _getCardState() {
-    try {
-        return JSON.parse(localStorage.getItem(CARD_STORAGE_KEY)) || {};
-    } catch (e) {
-        return {};
-    }
-}
-
-function _setCardState(id, collapsed) {
-    const state = _getCardState();
-    state[id] = collapsed;
-    localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
-}
-
-function _applyCardState(id) {
-    const body = document.getElementById(id);
-    if (!body) return;
-
-    const collapsed = !!_getCardState()[id];
-    body.classList.toggle('d-none', collapsed);
-
-    const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
-    const icon = btn ? btn.querySelector('i') : document.getElementById('txToggleIcon');
-    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-}
-
-(function initCardStates() {
-    CARD_IDS.forEach(_applyCardState);
-})();
 
 // ── Flatpickr Date Pickers / Add-Edit-Transaction modal ───
 // Moved to tx-form.js (shared with the Flow Diagram page): FLATPICKR_LOCALES,
@@ -62,17 +14,18 @@ function _applyCardState(id) {
 // ── Kachel-Grid (Drag&Drop Desktop, Pfeil-Buttons Mobile) ──
 // Eigenständige, unabhängige Implementierung — ersetzt das frühere einfache
 // Auf/Ab-Sortieren einer flachen Liste (SECTION_ORDER_KEY) durch ein echtes
-// Grid: 4 Reihen, max. 2 Slots pro Reihe, analog zum Muster auf Jahresansicht/
-// Bestandsansicht (siehe yearly.js/holdings.js), aber eigener Namensraum/Key
-// (bewusst nicht geteilt).
-const OVERVIEW_LAYOUT_KEY = 'overview-layout-v1';
-const OVERVIEW_MAX_COLS   = 2;
-// 4 Reihen. Reihe 1: Kennzahlen (füllt allein). Reihe 2: Wallets & Börsen +
-// Aufteilung nach Wallet/Börse nebeneinander. Reihe 3: Alle Transaktionen
-// (füllt allein). Reihe 4: leer, für künftige Kacheln reserviert.
+// Grid: 4 Reihen, max. 3 Slots pro Reihe (wie Bestandsansicht), analog zum
+// Muster auf Jahresansicht/Bestandsansicht (siehe yearly.js/holdings.js),
+// aber eigener Namensraum/Key (bewusst nicht geteilt).
+const OVERVIEW_LAYOUT_KEY = 'overview-layout-v2';
+const OVERVIEW_MAX_COLS   = 3;
+// 3 Reihen — die Übersicht ist reine Daten-Verwaltung (Kennzahlen und
+// Aufteilung nach Wallet/Börse leben jetzt auf der Bestandsansicht, siehe
+// holdings.js' HOLDINGS_DEFAULT_LAYOUT). Reihe 1: Wallets & Börsen (füllt
+// allein). Reihe 2: Alle Transaktionen (füllt allein). Reihe 3: leer, für
+// künftige Kacheln reserviert (z.B. Import).
 const OVERVIEW_DEFAULT_LAYOUT = [
-    ['overview-block-metrics'],
-    ['overview-block-wallets', 'overview-block-allocation'],
+    ['overview-block-wallets'],
     ['transactionsPanel'],
     []
 ];
@@ -87,6 +40,8 @@ function initOverviewLayout() {
     wireOverviewDragAndDrop(grid);
     updateOverviewRowCols(grid);
     _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
 
     const hint = document.getElementById('overviewLayoutHint');
     if (hint) hint.classList.remove('d-none');
@@ -155,6 +110,8 @@ function resetOverviewLayout() {
     applyOverviewLayout(grid, OVERVIEW_DEFAULT_LAYOUT);
     updateOverviewRowCols(grid);
     _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
 }
 
 function wireOverviewDragAndDrop(grid) {
@@ -176,6 +133,8 @@ function wireOverviewDragAndDrop(grid) {
             grid.querySelectorAll('.overview-grid-row.drag-over').forEach(r => r.classList.remove('drag-over'));
             updateOverviewRowCols(grid);
             _overviewTriggerChartResize();
+            _overviewApplyTxViewMode();
+            _overviewApplyPosViewMode();
             _saveOverviewLayout(grid);
         });
     });
@@ -227,31 +186,66 @@ function _getOverviewDragAfterElement(row, x) {
 /** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
  *  links nach rechts) — für Mobile/Touch, wo natives Drag & Drop fehlt bzw.
  *  über die Pfeil-Buttons in .overview-block-actions angesteuert wird. */
+/**
+ * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
+ * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
+ * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
+ * (< OVERVIEW_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter
+ * → wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
+ * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
+ * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
+ * die 3-Slot-Grenze "anstoßen" und der Pfeil täte nichts.
+ * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
+ * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos.)
+ */
 function moveOverviewBlock(id, direction) {
     const grid = document.getElementById('overviewGrid');
     if (!grid) return;
 
-    const rows     = Array.from(grid.querySelectorAll('.overview-grid-row'));
-    const rowSizes = rows.map(r => r.querySelectorAll('.overview-draggable').length);
-    const flat     = rows.flatMap(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
+    const rows   = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
 
-    const idx     = flat.indexOf(id);
-    const swapIdx = idx + direction;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= flat.length) return;
+    let rowIdx = -1, posInRow = -1;
+    layout.forEach((rowIds, i) => {
+        const p = rowIds.indexOf(id);
+        if (p !== -1) { rowIdx = i; posInRow = p; }
+    });
+    if (rowIdx === -1) return;
 
-    [flat[idx], flat[swapIdx]] = [flat[swapIdx], flat[idx]];
+    const targetPosInRow = posInRow + direction;
 
-    let pos = 0;
-    rows.forEach((row, i) => {
-        flat.slice(pos, pos + rowSizes[i]).forEach(blockId => {
+    if (targetPosInRow >= 0 && targetPosInRow < layout[rowIdx].length) {
+        // Innerhalb der Row: einfacher Tausch mit dem Nachbarn.
+        [layout[rowIdx][posInRow], layout[rowIdx][targetPosInRow]] =
+            [layout[rowIdx][targetPosInRow], layout[rowIdx][posInRow]];
+    } else {
+        // Row-Grenze überschritten.
+        const targetRowIdx = rowIdx + direction;
+        if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
+
+        if (layout[targetRowIdx].length < OVERVIEW_MAX_COLS) {
+            layout[rowIdx].splice(posInRow, 1);
+            if (direction > 0) layout[targetRowIdx].unshift(id);
+            else layout[targetRowIdx].push(id);
+        } else {
+            const boundaryIdx = direction > 0 ? 0 : layout[targetRowIdx].length - 1;
+            const boundaryId  = layout[targetRowIdx][boundaryIdx];
+            layout[targetRowIdx][boundaryIdx] = id;
+            layout[rowIdx][posInRow] = boundaryId;
+        }
+    }
+
+    layout.forEach((rowIds, i) => {
+        rowIds.forEach(blockId => {
             const el = document.getElementById(blockId);
-            if (el) row.appendChild(el);
+            if (el) rows[i].appendChild(el);
         });
-        pos += rowSizes[i];
     });
 
     updateOverviewRowCols(grid);
     _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
     _saveOverviewLayout(grid);
 }
 
@@ -283,7 +277,6 @@ I18N.ready.then(() => {
         }
     }
 
-    initDonut();
 	initFlatpickr();
 	loadTransactions();
 	// sorting for exchange/wallet table
@@ -304,80 +297,51 @@ I18N.ready.then(() => {
             paginate:   { previous: t('dt.previous'), next: t('dt.next') }
         },
         columnDefs: [{ orderable: false, targets: [-1] }]
-    });	
+    });
+    _applyPosEmptyFilter();
 
 });
 
 // ── Hilfe / Settings-Modal / Sats-Modal / Preis-Badge / Refresh: jetzt in
 // navbar.js (siehe dort) — auf allen 4 Seiten geladen statt nur hier.
 
-// ── Allocation Donut ──────────────────────────────────────
-let donutInstance = null;
+// ── Positionen: Toggle "Leere ausblenden" ──────────────────
+// Eigenständige Implementierung, analog zum früheren Solo-Transfer-Filter
+// (Tabelle: DataTables ext.search.push; Kartenansicht: einfaches d-none
+// anhand von data-qty-sats, da Karten serverseitig gerendert werden).
+const POS_EMPTY_FILTER_KEY = 'pos-hide-empty-v1';
+let _posEmptyFilterActive = _loadPosEmptyFilter();
 
-function initDonut() {
-    const labels = typeof ALLOCATION_LABELS !== 'undefined' ? ALLOCATION_LABELS : [];
-    const values = typeof ALLOCATION_VALUES !== 'undefined'
-        ? ALLOCATION_VALUES.map(Number) : [];
+function _loadPosEmptyFilter() {
+    const saved = localStorage.getItem(POS_EMPTY_FILTER_KEY);
+    // Default AN (matcht das frühere hart codierte Verhalten der Kartenansicht).
+    return saved === null ? true : saved === '1';
+}
 
-    if (!labels.length) return;
-    if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
+    if (settings.nTable.id !== 'posTable' || !_posEmptyFilterActive) return true;
+    const row = settings.aoData[dataIndex].nTr;
+    return row ? Number(row.dataset.qtySats) > 0 : true;
+});
 
-	
-    const options = {
-        ...APEX_DEFAULTS,
-        series: values,
-        labels: labels,
-        chart: {
-            ...APEX_DEFAULTS.chart,
-            type:   'donut',
-            height: window.innerHeight / 3
-        },
-        colors: CHART_COLORS,
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '80%',
-                    labels: {
-                        show: true,
-                        total: {
-                            show:      true,
-                            label:     t('chart.total'),
-                            color:     '#6b6f7a',
-                            fontSize:  '30px',
-                            formatter: (w) => {
-                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                return formatEur(total);
-                            }
-                        },
-                        value: {
-                            color:     '#ddd9d0',
-                            fontSize:  '30px',
-                            formatter: (val) => formatEur(Number(val))
-                        }
-                    }
-                }
-            }
-        },
-        legend: {
-            position:   'bottom',
-            fontSize:   '11px',
-            fontFamily: "'IBM Plex Mono', monospace",
-            labels:     { colors: '#6b6f7a' },
-            markers:    { width: 10, height: 10, radius: 2 }
-        },
-        dataLabels: { enabled: false },
-        stroke:     { width: 0 }
-    };
+function _applyPosEmptyFilter() {
+    const btn = document.getElementById('posEmptyFilterBtn');
+    if (btn) btn.classList.toggle('is-active', _posEmptyFilterActive);
 
-    donutInstance = new ApexCharts(document.getElementById('donutChart'), options);
-    donutInstance.render();
+    if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().draw();
+    }
 
-    // Vorsorglich: initOverviewLayout() (DOMContentLoaded) läuft normalerweise
-    // vor diesem I18N.ready-Callback und hat die Grid-Spalten bereits final
-    // gesetzt — aber falls sich die Reihenfolge künftig doch einmal ändert,
-    // stellt dieses resize-Event sicher, dass der Donut seine tatsächliche
-    // Container-Breite korrekt einliest (siehe _overviewTriggerChartResize).
-    window.dispatchEvent(new Event('resize'));
+    document.querySelectorAll('#posCardsList .overview-pos-card').forEach(card => {
+        const hide = _posEmptyFilterActive && Number(card.dataset.qtySats) <= 0;
+        card.classList.toggle('d-none', hide);
+    });
+}
+
+function togglePosEmptyFilter() {
+    _posEmptyFilterActive = !_posEmptyFilterActive;
+    localStorage.setItem(POS_EMPTY_FILTER_KEY, _posEmptyFilterActive ? '1' : '0');
+    _applyPosEmptyFilter();
 }
 
 function filterExchangeTransaction(exchange) {
@@ -398,15 +362,6 @@ function filterExchangeTransaction(exchange) {
     } else {
         doSearch();
     }
-	
-	const body = document.getElementById('txCardBody');
-    const collapsed = !body.classList.contains('d-none');
-	if (!collapsed) {		
-	   body.classList.toggle('d-none', collapsed);
-	   const icon =  document.getElementById('txToggleIcon');
-	   if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-	   _setCardState('txCardBody', false);
-	}
 }
 
 // ── Transactions Panel ────────────────────────────────────
@@ -423,8 +378,6 @@ async function loadTransactions() {
             txLoaded = true;
             _lastTxData = data;
             renderTxTable(data);
-			const countEl = document.getElementById('transactionCountValue');
-			if (countEl) countEl.textContent = data.length;
         })
         .catch(err => {
             // Legende ist bereits statisch im HTML vorhanden (mit data-i18n) — hier nur
@@ -569,9 +522,15 @@ function renderTxTable(data) {
                 info:       t('dt.info'),
                 paginate:   { previous: t('dt.previous'), next: t('dt.next') }
             },
-            columnDefs: [{ orderable: false, targets: [0, 1, -1] }]
+            columnDefs: [{ orderable: false, targets: [0, 1, -1] }],
+            // Jeder Draw (initial, Suche, Solo-Filter, Sortierung) hält die
+            // Kartenansicht synchron — siehe _overviewRenderTxCardsIfActive().
+            drawCallback: () => _overviewRenderTxCardsIfActive()
         });
         _txRowHtmlById = newHtmlById;
+        // Neu aufgebaute Tabelle hat keine mehr angehakten Checkboxen (z.B. nach
+        // Bulk-Löschen) — Toolbar-Count/Select-All-Status sonst fälschlich stehen.
+        _updateBulkToolbar();
         return;
     }
 
@@ -619,7 +578,12 @@ function renderTxTable(data) {
 
     table.draw(false); // false = aktuelle Seite/Sortierung beibehalten statt auf Seite 1 zu springen
     _markDuplicates();
+    _overviewRenderTxCardsIfActive();
     _txRowHtmlById = newHtmlById;
+    // Entfernte/neu aufgebaute Zeilen (z.B. nach Bulk-Löschen) haben keine
+    // angehakte Checkbox mehr — Toolbar-Count sonst fälschlich stehen (Fund:
+    // "2 selected" blieb nach dem Löschen der beiden Transaktionen sichtbar).
+    _updateBulkToolbar();
 
     // Kurzer grüner Fade-Pulse auf geänderten/duplizierten Zeilen (siehe .tx-row-pulse in depot.css).
     // Knoten erst NACH draw() über die DataTables-API erneut auflösen (bei frisch
@@ -634,6 +598,250 @@ function renderTxTable(data) {
         setTimeout(() => node.classList.remove('tx-row-pulse'), 1500);
     });
 }
+
+// ── "Alle Transaktionen": Kartenansicht ───────────────────────────────────
+// Eigenständige, unabhängige Implementierung (eigener Namensraum, siehe
+// depot.css .overview-tx-card). Aktiv, sobald die Kachel sich eine Grid-Row
+// mit einer anderen Kachel teilt (siehe updateOverviewRowCols) oder der
+// Viewport mobil ist. Die Tabelle (samt DataTables-Suche/Sortierung/Solo-
+// Filter) bleibt dabei die ALLEINIGE Wahrheitsquelle — sie wird nur unsicht-
+// bar (d-none) geschaltet. Die Karten sind eine reine Anzeige-Ableitung aus
+// den aktuell sichtbaren (gefilterten) <tr>-Zeilen in #txTableBody (DataTables
+// hängt bei aktivem Filter ohnehin nur die passenden Zeilen ins DOM ein, siehe
+// Kommentar in renderTxTable oben). Auswahl-Checkboxen in Karten wirken als
+// Fernbedienung auf die zugehörige (unsichtbare) Zeilen-Checkbox — dadurch
+// funktionieren Mehrfachauswahl, Bulk-Toolbar und Rechtsklick-Menü unverändert
+// in beiden Ansichten, ohne die bestehende Auswahl-Logik zu duplizieren.
+const OVERVIEW_TX_MOBILE_BREAKPOINT = 767;
+let _overviewTxCardModeActive = false;
+
+function _overviewShouldUseTxCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const panel = document.getElementById('transactionsPanel');
+    const row   = panel ? panel.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    return row.querySelectorAll('.overview-draggable').length > 1;
+}
+
+/** Prüft, ob umgeschaltet werden muss (Layout-Änderung, Resize) und rendert
+ *  bei Bedarf die Karten neu. Aufrufstellen: initOverviewLayout, nach jeder
+ *  Layout-Änderung (Drag&Drop-Ende, Pfeil-Buttons, Reset) sowie debounced
+ *  auf window "resize" (siehe unten). */
+function _overviewApplyTxViewMode() {
+    const wrap  = document.getElementById('txTableWrap');
+    const cards = document.getElementById('txCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUseTxCards();
+    const changed  = useCards !== _overviewTxCardModeActive;
+    _overviewTxCardModeActive = useCards;
+
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+
+    // Bulk-Toolbar: In der Kartenansicht sind die 7 einzelnen Buttons zu breit
+    // (die Kachel ist ja gerade deshalb schmal) — dort kompakt als Dropdown +
+    // eigene Select-All-Checkbox (Tabellen-Kopfzeile mit #txSelectAll ist in
+    // der Kartenansicht unsichtbar). In der Tabellenansicht bleibt es wie
+    // gehabt bei den inline Buttons.
+    const inline   = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-inline');
+    const dropdown = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-dropdown');
+    if (inline)   inline.classList.toggle('d-none', useCards);
+    if (dropdown) dropdown.classList.toggle('d-none', !useCards);
+
+    if (useCards && changed) renderOverviewTxCards();
+}
+
+// ── "Wallets & Börsen": Kartenansicht ─────────────────────────────────────
+// Eigenständige, unabhängige Implementierung. Anders als bei "Alle Trans-
+// aktionen" (jede Row-Teilung genügt) wird hier erst umgeschaltet, wenn die
+// Kachel wirklich auf 1 von 3 Slots einer vollen Row gequetscht wird — bei
+// nur 2 Kacheln in der Row (halbe Breite) bleibt die schmalere Wallets-
+// Tabelle noch als Tabelle lesbar. Da die Positionsliste rein serverseitig
+// per Thymeleaf gerendert wird (kein JS-Fetch, Hinzufügen/Bearbeiten/Löschen
+// lösen ohnehin einen Seiten-Reload aus) genügt hier ein reines Sichtbar-
+// keits-Umschalten zwischen #posTableWrap und #posCardsList — anders als bei
+// den Transaktionen ist kein Re-Render/Sync nötig.
+function _overviewShouldUsePosCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const block = document.getElementById('overview-block-wallets');
+    const row   = block ? block.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    // Schwelle bewusst bei 2 (statt OVERVIEW_MAX_COLS) — seit Kennzahlen/Donut auf
+    // die Bestandsansicht verschoben wurden, gibt es auf der Übersicht nur noch 2
+    // Kacheln insgesamt (Wallets + Transaktionen), eine Row kann also nie mehr 3
+    // erreichen. Trigger daher: sobald sich Wallets die Row mit irgendeiner
+    // anderen Kachel teilt (nicht mehr erst bei voller 3er-Row).
+    return row.querySelectorAll('.overview-draggable').length >= 2;
+}
+
+function _overviewApplyPosViewMode() {
+    const wrap  = document.getElementById('posTableWrap');
+    const cards = document.getElementById('posCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUsePosCards();
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+}
+
+/** Von renderTxTable()/drawCallback nach jedem Tabellen-Redraw aufgerufen,
+ *  damit die Kartenansicht (falls gerade aktiv) synchron bleibt. */
+function _overviewRenderTxCardsIfActive() {
+    if (_overviewTxCardModeActive) renderOverviewTxCards();
+}
+
+function renderOverviewTxCards() {
+    const container = document.getElementById('txCardsList');
+    if (!container) return;
+
+    const rows = document.querySelectorAll('#txTableBody tr[data-id]');
+    if (!rows.length) {
+        container.innerHTML = `<div class="overview-tx-cards-empty">${esc(t('dt.empty'))}</div>`;
+        return;
+    }
+
+    const txById = new Map((_lastTxData || []).map(tx => [String(tx.id), tx]));
+    container.innerHTML = Array.from(rows)
+        .map(row => {
+            const tx = txById.get(row.dataset.id);
+            return tx ? _buildTxCardHtml(tx, row) : '';
+        })
+        .join('');
+}
+
+const OVERVIEW_TX_BADGE_MAP = {
+    BUY:          { cls: 'type-buy',          key: 'flow.legend.buy' },
+    SELL:         { cls: 'type-sell',         key: 'flow.legend.sell' },
+    TRANSFER_IN:  { cls: 'type-transfer-in',  key: 'flow.panel.transferIn' },
+    TRANSFER_OUT: { cls: 'type-transfer-out', key: 'flow.panel.transferOut' }
+};
+
+/** Baut eine Karte aus den Roh-Transaktionsdaten (für Inhalt/Formatierung —
+ *  eigenständige Berechnung, analog zu _buildTxRowHtml) plus der zugehörigen,
+ *  bereits gerenderten <tr> (für Auswahl-/Status-Zustand: checked/selected/
+ *  warning/warning-duplicate/solo-transfer/last-import — so bleibt die Karte
+ *  immer exakt konsistent mit dem, was die Tabelle aktuell anzeigt). */
+function _buildTxCardHtml(tx, row) {
+    const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
+    const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
+    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import']
+        .filter(c => row.classList.contains(c)).join(' ');
+    const selectedClass = row.classList.contains('selected') ? ' selected' : '';
+
+    const badgeInfo = OVERVIEW_TX_BADGE_MAP[tx.type];
+    const badge = badgeInfo
+        ? `<span class="overview-tx-card-badge ${badgeInfo.cls}">${esc(t(badgeInfo.key))}</span>`
+        : '';
+
+    let earning = '–';
+    let posNeg  = '';
+    if (tx.type === 'BUY') {
+        let paid;
+        if (tx.currency !== CURRENCY.current()) {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+        } else {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees);
+        }
+        const percentage = (100 / paid * (paid + earning)) - 100;
+        earning = formatEur(earning) + ' (' + truncateTwoDecimals(percentage) + '%)';
+        posNeg = earning.startsWith('-') ? 'text-neg' : 'text-pos';
+    }
+
+    const priceLine = tx.pricePerBtc != null
+        ? _overviewTxFieldRow(t('table.col.pricePerBtc'),
+            tx.currency !== CURRENCY.current() ? formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc))
+        : '';
+    const totalLine = tx.quantityFiat != null
+        ? _overviewTxFieldRow(t('table.col.total'),
+            tx.currency !== CURRENCY.current()
+                ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ` <span style="font-size:.62rem">[${esc(tx.currency)} × ${tx.exchangeRate}]</span>`
+                : formatEur((tx.quantityFiat + tx.fees)))
+        : '';
+    const glLine = tx.type === 'BUY' && tx.quantityFiat != null
+        ? _overviewTxFieldRow(t('table.col.gl'), `<span class="${posNeg}">${earning}</span>`)
+        : '';
+    const transferLine = tx.transferId
+        ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
+        : '';
+    const commentLine = tx.comment
+        ? _overviewTxFieldRow(t('modal.field.comment'), esc(tx.comment), tx.comment)
+        : '';
+
+    const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
+
+    return `<div class="overview-tx-card ${statusClass}${selectedClass}" data-id="${tx.id}" onclick="_overviewToggleTxCard(this)">
+        <div class="overview-tx-card-head">
+            <span class="overview-tx-card-head-label">
+                <input type="checkbox" class="tx-card-check" data-id="${tx.id}" ${checked}
+                       style="accent-color:var(--accent)" onclick="event.stopPropagation()"
+                       onchange="_overviewOnTxCardCheckChange(this)"/>
+                <span>${esc(tx.positionLabel || '–')}</span>
+            </span>
+            <span class="overview-tx-card-actions" onclick="event.stopPropagation()">
+                ${badge}
+                <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
+                        onclick="openEditTx(${txJson})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon" title="Copy"
+                        onclick="openAddTx(${txJson})">
+                    <i class="bi bi-copy"></i>
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon text-neg" title="Delete"
+                        onclick="deleteTx(${tx.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </span>
+        </div>
+        ${_overviewTxFieldRow(t('table.col.date'), date)}
+        ${_overviewTxFieldRow(t('table.col.btc'), fmt8(tx.quantity))}
+        ${priceLine}${totalLine}${glLine}${transferLine}${commentLine}
+    </div>`;
+}
+
+function _overviewTxFieldRow(label, value, title) {
+    return `<div class="overview-tx-field">
+        <span class="overview-tx-field-label">${esc(label)}</span>
+        <span class="overview-tx-field-value"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
+    </div>`;
+}
+
+/** Fernbedienung: Karten-Checkbox-Änderung auf die tatsächliche (unsichtbare)
+ *  Zeilen-Checkbox übertragen und dort ein echtes change-Event feuern — der
+ *  bestehende globale change-Listener (siehe unten) übernimmt danach ganz
+ *  normal .selected-Klasse + _updateBulkToolbar(), unverändert. */
+function _overviewOnTxCardCheckChange(cb) {
+    const id = cb.dataset.id;
+    const rowCb = document.querySelector(`#txTableBody tr[data-id="${id}"] .tx-row-check`);
+    if (rowCb) {
+        rowCb.checked = cb.checked;
+        rowCb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    cb.closest('.overview-tx-card')?.classList.toggle('selected', cb.checked);
+}
+
+function _overviewToggleTxCard(cardEl) {
+    const cb = cardEl.querySelector('.tx-card-check');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    _overviewOnTxCardCheckChange(cb);
+}
+
+(function initOverviewTxCardMode() {
+    let _resizeTimeout = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimeout);
+        _resizeTimeout = setTimeout(() => {
+            _overviewApplyTxViewMode();
+            _overviewApplyPosViewMode();
+        }, 150);
+    });
+})();
 
 // ── Sichtbares Suchfeld in der Bulk-Toolbar (Transaktionstabelle) ──────────
 // Das native DataTables-Suchfeld liegt INNERHALB von #txTable_wrapper, das
@@ -660,28 +868,6 @@ function clearTxVisibleSearch() {
     if (input) input.value = '';
     onTxVisibleSearchInput('');
     input?.focus();
-}
-
-// ── Filter "Nur Solo-Transfers" ────────────────────────────
-// Solo-Transfers sind bereits per .solo-transfer-Klasse auf der Zeile markiert
-// (siehe _buildTxRowHtml/transferIdCounts oben — genau 1x vorkommende
-// transferId). Dieser Filter blendet einfach alle anderen Zeilen aus, per
-// DataTables custom search plugin — kombiniert sich automatisch (UND-
-// verknüpft) mit dem freien Suchfeld oben, da DataTables alle registrierten
-// Suchfunktionen nacheinander anwendet.
-let _txSoloFilterActive = false;
-
-$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
-    if (settings.nTable.id !== 'txTable' || !_txSoloFilterActive) return true;
-    const table = $('#txTable').DataTable();
-    const node = table.row(dataIndex).node();
-    return !!node && node.classList.contains('solo-transfer');
-});
-
-function toggleTxSoloFilter() {
-    _txSoloFilterActive = !_txSoloFilterActive;
-    document.getElementById('txSoloFilterBtn')?.classList.toggle('is-active', _txSoloFilterActive);
-    if ($.fn.DataTable.isDataTable('#txTable')) $('#txTable').DataTable().draw();
 }
 
 // Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
@@ -736,7 +922,16 @@ async function deleteTx(id) {
 
 function confirmDeletePosition(id) {
     showConfirm(t('table.action.delete'), t('confirm.deletePosition')).then(ok => {
-        if (ok) window.location.href = '/depot/delete/' + id;
+        if (!ok) return;
+        fetch('/api/btc-tracking/positions/' + id, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
+                _positionsCache = null;
+                showToast('✓ ' + t('toast.deletePosition.success'), 'success');
+                setTimeout(() => window.location.reload(), 600);
+            })
+            .catch(err => showToast('✗ ' + err.message, 'error'));
     });
 }
 
@@ -1442,26 +1637,15 @@ function _updateBulkToolbar() {
 //    toolbar.classList.toggle('d-none', n === 0);
     if (count) count.textContent = n + ' selected';
 
-    // Sync select-all checkbox state
+    // Sync select-all checkbox state (Tabellen-Kopfzeile UND die Kompakt-
+    // Toolbar-Checkbox in der Kartenansicht — beide steuern dieselbe Auswahl).
     const all  = document.querySelectorAll('.tx-row-check');
-    const selAll = document.getElementById('txSelectAll');
-    if (selAll) {
-        selAll.checked       = all.length > 0 && n === all.length;
-        selAll.indeterminate = n > 0 && n < all.length;
-    }
-}
-
-function toggleCard(bodyId, btn) {
-    const body = document.getElementById(bodyId);
-    if (!body) return;
-
-    const collapsed = !body.classList.contains('d-none');
-    body.classList.toggle('d-none', collapsed);
-
-    const icon = btn.querySelector('i');
-    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-
-    _setCardState(bodyId, collapsed);
+    [document.getElementById('txSelectAll'), document.getElementById('txCardsSelectAll')]
+        .forEach(selAll => {
+            if (!selAll) return;
+            selAll.checked       = all.length > 0 && n === all.length;
+            selAll.indeterminate = n > 0 && n < all.length;
+        });
 }
 
 function toggleSelectAll(cb) {
@@ -1471,6 +1655,10 @@ function toggleSelectAll(cb) {
         el.closest('tr').classList.toggle('selected', cb.checked);
     });
     _updateBulkToolbar();
+    // Kartenansicht wird aus den (jetzt aktualisierten) <tr>-Zeilen gebaut —
+    // ohne diesen Re-Render bleiben die bereits gerenderten Karten optisch auf
+    // dem alten Auswahlstatus stehen (Checkbox + Rahmen-Highlight).
+    _overviewRenderTxCardsIfActive();
 }
 
 // Row-Checkbox click (stopPropagation damit Row-Click nicht feuert)
@@ -1481,9 +1669,15 @@ document.addEventListener('change', e => {
     }
 });
 
-// Rechtsklick auf txTableBody → Kontextmenü
+// Rechtsklick auf txTableBody → Kontextmenü (funktioniert unverändert auch in
+// der Kartenansicht: ein Rechtsklick auf eine .overview-tx-card wird auf die
+// zugehörige, unsichtbare <tr> aufgelöst — der Rest der Logik bleibt gleich).
 document.addEventListener('contextmenu', e => {
-    const row = e.target.closest('#txTableBody tr');
+    let row = e.target.closest('#txTableBody tr');
+    if (!row) {
+        const card = e.target.closest('.overview-tx-card');
+        if (card) row = document.querySelector(`#txTableBody tr[data-id="${card.dataset.id}"]`);
+    }
     if (!row) return;
     e.preventDefault();
 
@@ -1638,6 +1832,12 @@ function openBulkMove() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('bulkMoveModal'))
         || new bootstrap.Modal(document.getElementById('bulkMoveModal'));
     modal.show();
+}
+
+/** Blendet das Freitext-Feld für eine neue Position ein/aus, je nachdem ob
+ *  "＋ New position..." im Select gewählt ist. */
+function onBulkMoveSelectChange(sel) {
+    document.getElementById('bulkMoveNewRow').classList.toggle('d-none', sel.value !== '__new__');
 }
 
 function confirmBulkMove() {
