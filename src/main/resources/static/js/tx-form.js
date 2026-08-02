@@ -93,6 +93,25 @@ function onExchangeSelectChange(prefix) {
     if (isNew) input.focus();
 }
 
+// ── Live-Umrechnung unter dem Wechselkurs-Feld ────────────
+// Fiat-Betrag × Wechselkurs = Wert in der aktuell gewählten Anzeigewährung
+// (siehe DepotService#getAllPositions, gleiche Formel wie dort) — zeigt
+// sofort, ob ein angepasster Kurs plausibel ist, ohne erst zu speichern.
+function _updateTxExchangeRatePreview(prefix) {
+    const previewEl = document.getElementById(prefix + 'TxExchangeRatePreview');
+    if (!previewEl) return;
+
+    const qtyFiat = parseFloat(document.getElementById(prefix + 'TxQuantityFiat').value);
+    const rate    = parseFloat(document.getElementById(prefix + 'TxExchangeRate').value);
+
+    if (!qtyFiat || !rate) {
+        previewEl.textContent = '';
+        return;
+    }
+    const converted = qtyFiat * rate;
+    previewEl.textContent = '= ' + converted.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + CURRENCY.current();
+}
+
 function _showExchangeNewInput(prefix) {
     document.getElementById(prefix + 'TxExchange').classList.remove('d-none');
 }
@@ -194,6 +213,7 @@ async function openAddTx(tx) {
         _setExchangeValue('add', '');
     }
     updateRelevantFields();
+    _updateTxExchangeRatePreview('add');
     if (!txModalAdd) txModalAdd = new bootstrap.Modal(document.getElementById('txModalAdd'));
     txModalAdd.show();
 }
@@ -219,6 +239,7 @@ async function openEditTx(tx) {
     document.getElementById('editTxType').disabled = true;
     const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
     document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
+    _updateTxExchangeRatePreview('edit');
 
     if (!txModal) txModal = new bootstrap.Modal(document.getElementById('txModal'));
     txModal.show();

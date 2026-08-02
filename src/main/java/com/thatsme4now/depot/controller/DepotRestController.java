@@ -359,10 +359,12 @@ public class DepotRestController {
 		tx.setComment(req.getComment());
 	}
     
+	// "App zurücksetzen" (früher "Alle löschen") — leert dieselben Tabellen
+	// wie der App-Lock-Reset (siehe AppLockService#reset), damit die App
+	// danach exakt einer frischen Installation ohne Daten entspricht.
 	@DeleteMapping("/")
     public ResponseEntity<Void> deleteAllTransaction() {
-        depotService.deleteTransaction();
-        depotService.delete();
+        dataExportService.clearAll();
         return ResponseEntity.noContent().build();
     }
 	

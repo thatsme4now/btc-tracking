@@ -342,8 +342,28 @@ function openStagingEdit(id) {
     document.getElementById('stagingEditTransferId').value = row.transferId || '';
     document.getElementById('stagingEditComment').value = row.comment || '';
 
+    _updateStagingEditExchangeRatePreview();
+
     const el = document.getElementById('stagingEditModal');
     (bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el)).show();
+}
+
+// Fiat-Betrag × Wechselkurs = Wert in der aktuell gewählten Anzeigewährung
+// (gleiche Formel wie DepotService#getAllPositions) — zeigt sofort, ob ein
+// angepasster Kurs plausibel ist, ohne erst zu speichern.
+function _updateStagingEditExchangeRatePreview() {
+    const previewEl = document.getElementById('stagingEditExchangeRatePreview');
+    if (!previewEl) return;
+
+    const qtyFiat = parseFloat(document.getElementById('stagingEditQtyFiat').value);
+    const rate    = parseFloat(document.getElementById('stagingEditExchangeRate').value);
+
+    if (!qtyFiat || !rate) {
+        previewEl.textContent = '';
+        return;
+    }
+    const converted = qtyFiat * rate;
+    previewEl.textContent = '= ' + converted.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + CURRENCY.current();
 }
 
 function saveStagingEdit() {

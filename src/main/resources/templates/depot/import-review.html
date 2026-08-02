@@ -162,7 +162,8 @@
                     </div>
                     <div class="col-lg-4">
                         <label class="depot-label" data-i18n="modal.field.qtyFiat">Fiat-Betrag</label>
-                        <input type="number" id="stagingEditQtyFiat" class="form-control depot-input" step="0.01"/>
+                        <input type="number" id="stagingEditQtyFiat" class="form-control depot-input" step="0.01"
+                               oninput="_updateStagingEditExchangeRatePreview()"/>
                     </div>
                     <div class="col-lg-4">
                         <label class="depot-label" data-i18n="modal.field.currency">Währung</label>
@@ -170,7 +171,9 @@
                     </div>
                     <div class="col-lg-4">
                         <label class="depot-label" data-i18n="modal.field.exchangeRate">Wechselkurs zur Anzeigewährung</label>
-                        <input type="number" id="stagingEditExchangeRate" class="form-control depot-input" step="0.000001" placeholder="1.000000"/>
+                        <input type="number" id="stagingEditExchangeRate" class="form-control depot-input" step="0.000001" placeholder="1.000000"
+                               oninput="_updateStagingEditExchangeRatePreview()"/>
+                        <div id="stagingEditExchangeRatePreview" class="form-text" style="font-size:.7rem"></div>
                     </div>
                     <div class="col-lg-4">
                         <label class="depot-label" data-i18n="modal.field.fees">Gebühren</label>
