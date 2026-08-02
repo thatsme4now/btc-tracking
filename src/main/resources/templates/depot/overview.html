@@ -93,8 +93,6 @@
 	                                        <th class="text-end" data-i18n="table.col.btc">BTC</th>
 	                                        <th class="text-end" data-i18n="table.col.sats">Sats</th>
 	                                        <th class="text-end" data-i18n="table.col.value">Value</th>
-	                                        <th class="text-end" data-i18n="table.col.gl">G/L</th>
-	                                        <th class="text-end" data-i18n="table.col.glPct">G/L %</th>
 	                                    </tr>
 	                                    </thead>
 	                                    <tbody id="posTableBody">
@@ -132,22 +130,12 @@
 	                                                <span class="currency-symbol"></span>
 	                                            </td>
 	                                            <td class="text-end text-muted" data-i18n-label="table.col.value" th:if="${p.totalValue == null}">–</td>
-	                                            <td class="text-end" data-i18n-label="table.col.gl" th:if="${p.gainLoss != null}"
-	                                                th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'">
-	                                                <span th:text="${(p.gainLoss >= 0 ? '+' : '') + #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span>
-	                                                <span class="currency-symbol"></span>
-	                                            </td>
-	                                            <td class="text-end text-muted" data-i18n-label="table.col.gl" th:if="${p.gainLoss == null}">–</td>
-	                                            <td class="text-end" data-i18n-label="table.col.glPct" th:if="${p.performancePct != null}"
-	                                                th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
-	                                                th:text="${(p.performancePct >= 0 ? '+' : '') + #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
-	                                            <td class="text-end text-muted" data-i18n-label="table.col.glPct" th:if="${p.performancePct == null}">–</td>
-	                                        </tr>
+	                                            </tr>
 	                                        <tr th:if="${#lists.isEmpty(positions)}">
 	                                            <td></td><td></td><td></td><td class="text-center text-muted py-4">
 	                                                <span data-i18n="table.empty">No positions yet.</span>
 	                                                <a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
-	                                            </td><td></td><td></td><td></td><td></td>
+	                                            </td><td></td><td></td>
 	                                        </tr>
 	                                    </tbody>
 	                                </table>
@@ -193,22 +181,6 @@
 						</div>
 						<div class="overview-tx-field" th:if="${p.totalValue == null}">
 							<span class="overview-tx-field-label" data-i18n="table.col.value">Value</span>
-							<span class="overview-tx-field-value text-muted">–</span>
-						</div>
-						<div class="overview-tx-field" th:if="${p.gainLoss != null}">
-							<span class="overview-tx-field-label" data-i18n="table.col.gl">G/L</span>
-							<span class="overview-tx-field-value" th:classappend="${p.gainLoss >= 0} ? 'text-pos' : 'text-neg'"><span th:text="${(p.gainLoss >= 0 ? '+' : '') + #numbers.formatDecimal(p.gainLoss, 1, 'POINT', 2, 'COMMA')}"></span> <span class="currency-symbol"></span></span>
-						</div>
-						<div class="overview-tx-field" th:if="${p.gainLoss == null}">
-							<span class="overview-tx-field-label" data-i18n="table.col.gl">G/L</span>
-							<span class="overview-tx-field-value text-muted">–</span>
-						</div>
-						<div class="overview-tx-field" th:if="${p.performancePct != null}">
-							<span class="overview-tx-field-label" data-i18n="table.col.glPct">G/L %</span>
-							<span class="overview-tx-field-value" th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'" th:text="${(p.performancePct >= 0 ? '+' : '') + #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></span>
-						</div>
-						<div class="overview-tx-field" th:if="${p.performancePct == null}">
-							<span class="overview-tx-field-label" data-i18n="table.col.glPct">G/L %</span>
 							<span class="overview-tx-field-value text-muted">–</span>
 						</div>
 					</div>
@@ -378,30 +350,30 @@
                         <table class="table depot-table mb-0" id="importHistoryTable">
                             <thead>
                             <tr>
+                                <th style="width:2.5rem"></th>
                                 <th data-i18n="import.history.col.date">Zeitpunkt</th>
                                 <th data-i18n="import.history.col.file">Datei</th>
                                 <th class="text-end" data-i18n="import.history.col.total">Gesamt</th>
                                 <th class="text-end" data-i18n="import.history.col.imported">Importiert</th>
                                 <th class="text-end" data-i18n="import.history.col.duplicates">Duplikate</th>
                                 <th class="text-end" data-i18n="import.history.col.errors">Fehler</th>
-                                <th></th>
                             </tr>
                             </thead>
                             <tbody>
                                 <tr th:each="entry : ${importHistory}" class="depot-row">
-                                    <td th:text="${#temporals.format(entry.importedAt, 'dd.MM.yyyy HH:mm')}"></td>
-                                    <td th:text="${entry.filename}" class="fw-medium"></td>
-                                    <td class="text-end" th:text="${entry.totalRows}"></td>
-                                    <td class="text-end" th:text="${entry.importedRows}"></td>
-                                    <td class="text-end" th:text="${entry.duplicateRows}" th:style="${entry.duplicateRows > 0} ? 'color:var(--warn-duplicate)'"></td>
-                                    <td class="text-end" th:text="${entry.errorRows}" th:style="${entry.errorRows > 0} ? 'color:var(--neg)'"></td>
-                                    <td class="text-end depot-actions">
+                                    <td style="white-space:nowrap;padding-left:.4rem;padding-right:.4rem">
                                         <button class="btn btn-xs depot-btn-icon text-neg"
                                                 th:attr="onclick=|openDeleteImportHistoryModal(${entry.id}, ${entry.linkedTransactionCount}, '${#strings.escapeJavaScript(entry.filename)}')|"
                                                 data-i18n-title="table.action.delete" title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </td>
+                                    <td th:text="${#temporals.format(entry.importedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                                    <td th:text="${entry.filename}" class="fw-medium"></td>
+                                    <td class="text-end" th:text="${entry.totalRows}"></td>
+                                    <td class="text-end" th:text="${entry.importedRows}"></td>
+                                    <td class="text-end" th:text="${entry.duplicateRows}" th:style="${entry.duplicateRows > 0} ? 'color:var(--warn-duplicate)'"></td>
+                                    <td class="text-end" th:text="${entry.errorRows}" th:style="${entry.errorRows > 0} ? 'color:var(--neg)'"></td>
                                 </tr>
                                 <tr th:if="${#lists.isEmpty(importHistory)}">
                                     <td colspan="7" class="text-center text-muted py-4" data-i18n="import.history.empty">Noch keine Importe.</td>
