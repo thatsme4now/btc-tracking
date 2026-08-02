@@ -215,7 +215,12 @@ function renderYearlyChart(series, currency, singleYear) {
             { name: (typeof t === 'function') ? t('yearly.chart.balance') : 'Bestand', type: 'line', data: balances },
             { name: (typeof t === 'function') ? t('yearly.chart.value') : 'Wertentwicklung', type: 'line', data: values }
         ],
-        chart: { ...YEARLY_APEX_DEFAULTS.chart, type: 'line', height: 360 },
+        chart: {
+            ...YEARLY_APEX_DEFAULTS.chart, type: 'line', height: 360,
+            // Zoom per Bereichs-Markierung ist auf Tablet/Phone (≤991px) nur
+            // hinderlich (kollidiert mit Scrollen/Touch) — dort deaktivieren.
+            zoom: { enabled: window.innerWidth > 991 }
+        },
         colors: [YEARLY_BALANCE_COLOR, YEARLY_VALUE_COLOR],
         stroke: { width: 2.5, curve: 'straight' },
         markers: { size: 3, strokeWidth: 0 },
@@ -228,12 +233,12 @@ function renderYearlyChart(series, currency, singleYear) {
         yaxis: [
             {
                 seriesName: (typeof t === 'function') ? t('yearly.chart.balance') : 'Bestand',
-                labels: { style: { colors: YEARLY_BALANCE_COLOR }, formatter: v => Number(v).toFixed(4) }
+                labels: { style: { colors: YEARLY_BALANCE_COLOR }, formatter: v => Number(v).toFixed(1) }
             },
             {
                 seriesName: (typeof t === 'function') ? t('yearly.chart.value') : 'Wertentwicklung',
                 opposite: true,
-                labels: { style: { colors: YEARLY_VALUE_COLOR }, formatter: v => fmt(v, currency) }
+                labels: { style: { colors: YEARLY_VALUE_COLOR }, formatter: v => _yearlyFmtAxisPrice(v, currency) }
             }
         ],
         tooltip: {
@@ -317,7 +322,10 @@ function renderYearlyPriceChart(rows, currency, singleYear) {
     const options = {
         ...YEARLY_APEX_DEFAULTS,
         series: [{ name: (typeof t === 'function') ? t('yearly.priceChart.series') : 'Kurs', type: 'line', data: prices }],
-        chart: { ...YEARLY_APEX_DEFAULTS.chart, type: 'line', height: 300 },
+        chart: {
+            ...YEARLY_APEX_DEFAULTS.chart, type: 'line', height: 300,
+            zoom: { enabled: window.innerWidth > 991 }
+        },
         colors: [YEARLY_PRICE_COLOR],
         stroke: { width: 2, curve: 'straight' },
         markers: { size: 0 },
@@ -328,7 +336,7 @@ function renderYearlyPriceChart(rows, currency, singleYear) {
             axisTicks: { show: false }
         },
         yaxis: {
-            labels: { style: { colors: YEARLY_PRICE_COLOR }, formatter: v => fmt(v, currency) }
+            labels: { style: { colors: YEARLY_PRICE_COLOR }, formatter: v => _yearlyFmtAxisPrice(v, currency) }
         },
         tooltip: {
             ...YEARLY_APEX_DEFAULTS.tooltip,
@@ -875,6 +883,16 @@ function fmt(val, currency) {
 
 function fmtBtc(val) {
     return Number(val).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 }) + ' BTC';
+}
+
+/** Kompakte Variante von fmt() für Achsen-Beschriftungen (0 statt 2 Nachkommastellen) —
+ *  eigenständige Kopie analog zu holdings.js' _holdingsFmtCompact() (bewusst nicht geteilt). */
+function _yearlyFmtAxisPrice(val, currency) {
+    if (typeof CURRENCY !== 'undefined') {
+        const cur = CURRENCY.get(currency);
+        return Number(val).toLocaleString(cur.locale, { maximumFractionDigits: 0 }) + ' ' + cur.symbol;
+    }
+    return Number(val).toFixed(0);
 }
 
 function _yearlyFormatFiat(val, code) {

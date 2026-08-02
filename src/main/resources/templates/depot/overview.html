@@ -57,6 +57,7 @@
                         <span class="overview-block-actions">
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-wallets', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            <button type="button" class="overview-block-collapse-btn" id="overview-block-wallets-collapseBtn" onclick="toggleOverviewBlockCollapse('overview-block-wallets')" data-i18n-title="holdings.layout.collapse" title="Ein-/Ausklappen"><i class="bi bi-dash-square"></i></button>
                         </span>
                     </span>
                 </div>
@@ -229,6 +230,7 @@
                         <span class="overview-block-actions">
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                             <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('transactionsPanel', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            <button type="button" class="overview-block-collapse-btn" id="transactionsPanel-collapseBtn" onclick="toggleOverviewBlockCollapse('transactionsPanel')" data-i18n-title="holdings.layout.collapse" title="Ein-/Ausklappen"><i class="bi bi-dash-square"></i></button>
                         </span>
                     </div>
                 </div>
@@ -509,15 +511,15 @@
                 <div class="modal-body">
                     <input type="hidden" id="addTxId"/>
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.qty">Quantity (BTC)</label>
                             <input type="number" id="addTxQty" class="form-control depot-input" step="0.00000001"/>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.date">Date &amp; Time</label>
                             <input type="datetime-local" id="addTxDate" class="form-control depot-input"/>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.type">Type</label>
                             <select id="addTxType" class="form-select depot-input" onchange="updateRelevantFields()">
                                 <option value="BUY">BUY</option>
@@ -526,11 +528,11 @@
                                 <option value="TRANSFER_IN">TRANSFER_IN</option>
                             </select>
                         </div>
-                        <div class="col-md-4 fiat-field">
+                        <div class="col-lg-4 fiat-field">
                             <label class="depot-label" data-i18n="modal.field.qtyFiat">Quantity Fiat</label>
                             <input type="number" id="addTxQuantityFiat" class="form-control depot-input" step="0.01"/>
                         </div>
-                        <div class="col-md-4 fiat-field">
+                        <div class="col-lg-4 fiat-field">
                             <label class="depot-label" data-i18n="modal.field.currency">Currency</label>
                             <input type="text" id="addTxCurrency" class="form-control depot-input"
                                    placeholder="EUR" maxlength="10"
@@ -538,14 +540,14 @@
                             <div class="form-text text-muted" style="font-size:.7rem"
                                  data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
                         </div>
-                        <div class="col-md-4 fiat-field">
+                        <div class="col-lg-4 fiat-field">
                             <label class="depot-label" data-i18n="modal.field.exchangeRate">Exchange Rate to €</label>
                             <input type="number" id="addTxExchangeRate" class="form-control depot-input"
                                    step="0.000001" placeholder="1.000000"/>
                             <div class="form-text text-muted" style="font-size:.7rem"
                                  data-i18n="modal.field.exchangeRate.hint">1 [Currency] = ? EUR</div>
                         </div>
-                       <div class="col-md-4">
+                       <div class="col-lg-4">
 						    <label class="depot-label" data-i18n="modal.field.exchange">Exchange</label>
 						    <select id="addTxExchangeSelect" class="form-select depot-input mb-1"
 						            onchange="onExchangeSelectChange('add')">
@@ -557,11 +559,11 @@
 						    <div class="form-text text-muted" style="font-size:.7rem"
 						         data-i18n="modal.field.exchange.hint">Position (e.g. Bitcoin.de, Bitget, Wallet)</div>
 						</div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.fees">Fees (€)</label>
                             <input type="number" id="addTxFees" class="form-control depot-input" step="0.01"/>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.fees.currency">Fee Currency</label>
                             <input type="text" id="addTxFeesCurrency" class="form-control depot-input"
                                    placeholder="EUR" maxlength="10"
@@ -569,7 +571,7 @@
                             <div class="form-text text-muted" style="font-size:.7rem"
                                  data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-lg-4">
                             <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
                             <textarea id="addTxComment" class="form-control depot-input"></textarea>
                         </div>
@@ -580,7 +582,7 @@
 						        <i class="bi bi-arrow-left-right me-1"></i>Paired TRANSFER_IN (optional)
 						    </div>
 						    <div class="row g-3">
-						        <div class="col-md-6">
+						        <div class="col-lg-6">
 						            <label class="depot-label">Target Position</label>
 						            <select id="transferTargetSelect" class="form-select depot-input"
 						                    onchange="
@@ -589,16 +591,16 @@
 						                <option value="">— Select position —</option>
 						            </select>
 						        </div>
-						        <div class="col-md-6 d-none" id="transferTargetNewRow">
+						        <div class="col-lg-6 d-none" id="transferTargetNewRow">
 						            <label class="depot-label">New Position Name</label>
 						            <input type="text" id="transferTargetNew" class="form-control depot-input"
 						                   placeholder="e.g. Ledger Wallet" maxlength="100"/>
 						        </div>
-						        <div class="col-md-4">
+						        <div class="col-lg-4">
 						            <label class="depot-label">Date &amp; Time (IN)</label>
 						            <input type="datetime-local" id="transferInDate" class="form-control depot-input"/>
 						        </div>
-						        <div class="col-md-4">
+						        <div class="col-lg-4">
 						            <label class="depot-label">Quantity BTC (IN)</label>
 						            <input type="number" id="transferInQty" class="form-control depot-input"
 						                   step="0.00000001"/>

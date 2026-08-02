@@ -257,5 +257,6 @@
   "holdings.layout.reset": "รีเซ็ตเลย์เอาต์",
   "holdings.layout.emptyRow": "ว่าง",
   "holdings.layout.moveUp": "เลื่อนขึ้น",
-  "holdings.layout.moveDown": "เลื่อนลง"
+  "holdings.layout.moveDown": "เลื่อนลง",
+  "holdings.layout.collapse": "ยุบ/ขยาย"
 }

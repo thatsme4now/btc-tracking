@@ -248,5 +248,6 @@
   "holdings.layout.reset": "Restablecer diseño",
   "holdings.layout.emptyRow": "Vacío",
   "holdings.layout.moveUp": "Subir",
-  "holdings.layout.moveDown": "Bajar"
+  "holdings.layout.moveDown": "Bajar",
+  "holdings.layout.collapse": "Contraer/expandir"
 }

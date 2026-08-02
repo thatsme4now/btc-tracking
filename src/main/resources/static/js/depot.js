@@ -30,6 +30,40 @@ const OVERVIEW_DEFAULT_LAYOUT = [
     []
 ];
 
+// Tablet/Phone (≤991px, siehe App-weite Konvention): Wallets- und Transaktions-
+// Kachel dürfen dort nur gemeinsam in EINER Row stehen (kein Drag & Drop auf
+// Mobile, aber Pfeil-Buttons könnten sie sonst in getrennte Rows schieben).
+const OVERVIEW_LAYOUT_MOBILE_BREAKPOINT = 991;
+
+function _isOverviewMobileLayout() {
+    return window.innerWidth <= OVERVIEW_LAYOUT_MOBILE_BREAKPOINT;
+}
+
+/** Führt Rows zusammen, in denen Wallets- und Transaktions-Kachel getrennt
+ *  stehen (z.B. ein auf Desktop gespeichertes Layout) — Ziel-Row ist die mit
+ *  dem kleineren Index, Reihenfolge der Blöcke bleibt erhalten. Kein Effekt,
+ *  wenn beide bereits in derselben Row sind. */
+function _enforceOverviewMobileRowMerge(layout) {
+    const rowIdxOf = id => layout.findIndex(row => row.includes(id));
+    const rowIdxs = [...new Set(OVERVIEW_COLLAPSIBLE_BLOCKS.map(rowIdxOf).filter(i => i !== -1))];
+    if (rowIdxs.length <= 1) return layout;
+
+    const merged = layout.map(row => row.slice());
+    const targetIdx = Math.min(...rowIdxs);
+    rowIdxs.forEach(i => {
+        if (i === targetIdx) return;
+        merged[targetIdx] = merged[targetIdx].concat(merged[i]);
+        merged[i] = [];
+    });
+    return merged;
+}
+
+/** Wendet die Mobile-Row-Regel auf ein Layout an, sofern gerade Tablet/Phone
+ *  aktiv ist — zentrale Stelle, die von Load, Reset UND Resize genutzt wird. */
+function _overviewLayoutForBreakpoint(layout) {
+    return _isOverviewMobileLayout() ? _enforceOverviewMobileRowMerge(layout) : layout;
+}
+
 let _overviewDragEl = null;
 
 function initOverviewLayout() {
@@ -42,6 +76,7 @@ function initOverviewLayout() {
     _overviewTriggerChartResize();
     _overviewApplyTxViewMode();
     _overviewApplyPosViewMode();
+    _applyOverviewCollapseState();
 
     const hint = document.getElementById('overviewLayoutHint');
     if (hint) hint.classList.remove('d-none');
@@ -56,11 +91,11 @@ function _loadOverviewLayout() {
             const savedIds   = saved.flat();
             const defaultIds = OVERVIEW_DEFAULT_LAYOUT.flat();
             if (savedIds.length === defaultIds.length && defaultIds.every(id => savedIds.includes(id))) {
-                return saved;
+                return _overviewLayoutForBreakpoint(saved);
             }
         }
     } catch (e) { /* ignore malformed storage */ }
-    return OVERVIEW_DEFAULT_LAYOUT;
+    return _overviewLayoutForBreakpoint(OVERVIEW_DEFAULT_LAYOUT);
 }
 
 function _saveOverviewLayout(grid) {
@@ -107,11 +142,51 @@ function resetOverviewLayout() {
     localStorage.removeItem(OVERVIEW_LAYOUT_KEY);
     const grid = document.getElementById('overviewGrid');
     if (!grid) return;
-    applyOverviewLayout(grid, OVERVIEW_DEFAULT_LAYOUT);
+    applyOverviewLayout(grid, _overviewLayoutForBreakpoint(OVERVIEW_DEFAULT_LAYOUT));
     updateOverviewRowCols(grid);
     _overviewTriggerChartResize();
     _overviewApplyTxViewMode();
     _overviewApplyPosViewMode();
+}
+
+// ── Zuklapp-Feature für Kacheln (nur Tablet/Phone ≤991px, siehe depot.css) ──
+// Eigener Namensraum/Key, unabhängig vom Layout-Key (Kollabieren betrifft nur
+// die Sichtbarkeit des Kachel-Inhalts, nicht die Grid-Reihenfolge).
+const OVERVIEW_COLLAPSE_KEY = 'overview-collapse-v1';
+const OVERVIEW_COLLAPSIBLE_BLOCKS = ['overview-block-wallets', 'transactionsPanel'];
+
+function _loadOverviewCollapseState() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OVERVIEW_COLLAPSE_KEY));
+        if (saved && typeof saved === 'object') return saved;
+    } catch (e) { /* ignore malformed storage */ }
+    return {};
+}
+
+function _setOverviewCollapseIcon(id, collapsed) {
+    const icon = document.querySelector(`#${id}-collapseBtn i`);
+    if (icon) icon.className = collapsed ? 'bi bi-plus-square' : 'bi bi-dash-square';
+}
+
+function _applyOverviewCollapseState() {
+    const state = _loadOverviewCollapseState();
+    OVERVIEW_COLLAPSIBLE_BLOCKS.forEach(id => {
+        const block = document.getElementById(id);
+        const collapsed = !!state[id];
+        if (block) block.classList.toggle('collapsed', collapsed);
+        _setOverviewCollapseIcon(id, collapsed);
+    });
+}
+
+function toggleOverviewBlockCollapse(id) {
+    const block = document.getElementById(id);
+    if (!block) return;
+    const collapsed = block.classList.toggle('collapsed');
+    _setOverviewCollapseIcon(id, collapsed);
+    const state = _loadOverviewCollapseState();
+    state[id] = collapsed;
+    localStorage.setItem(OVERVIEW_COLLAPSE_KEY, JSON.stringify(state));
+    _overviewTriggerChartResize();
 }
 
 function wireOverviewDragAndDrop(grid) {
@@ -222,6 +297,11 @@ function moveOverviewBlock(id, direction) {
         // Row-Grenze überschritten.
         const targetRowIdx = rowIdx + direction;
         if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
+
+        // Tablet/Phone (≤991px): Wallets- und Transaktions-Kachel dürfen die
+        // gemeinsame Row nicht verlassen (siehe OVERVIEW_LAYOUT_MOBILE_BREAKPOINT) —
+        // Pfeil tut in diesem Fall bewusst nichts, statt sie zu trennen.
+        if (_isOverviewMobileLayout() && OVERVIEW_COLLAPSIBLE_BLOCKS.includes(id)) return;
 
         if (layout[targetRowIdx].length < OVERVIEW_MAX_COLS) {
             layout[rowIdx].splice(posInRow, 1);
@@ -343,9 +423,26 @@ function _applyPosEmptyFilter() {
         $('#posTable').DataTable().draw();
     }
 
+    _applyPosCardFilters();
+}
+
+// Aktueller Suchtext aus dem sichtbaren Suchfeld (siehe onPosVisibleSearchInput) —
+// separat vom Leer-Filter gehalten, da beide Filter gleichzeitig aktiv sein
+// können und unabhängig ausgelöst werden (Tabelle wird direkt über die
+// DataTables-API gefiltert, die Kartenansicht braucht dafür diesen eigenen
+// Abgleich, da Karten serverseitig gerendert und nie neu aufgebaut werden).
+let _posSearchTerm = '';
+
+/** Wendet Leer-Filter UND Suchtext gemeinsam auf die Kartenansicht an — eine
+ *  Karte ist sichtbar, wenn sie BEIDE Kriterien erfüllt. Von _applyPosEmptyFilter()
+ *  (Leer-Filter geändert) und onPosVisibleSearchInput() (Suchtext geändert)
+ *  gleichermaßen aufgerufen. */
+function _applyPosCardFilters() {
+    const term = _posSearchTerm.trim().toLowerCase();
     document.querySelectorAll('#posCardsList .overview-pos-card').forEach(card => {
-        const hide = _posEmptyFilterActive && Number(card.dataset.qtySats) <= 0;
-        card.classList.toggle('d-none', hide);
+        const emptyHidden  = _posEmptyFilterActive && Number(card.dataset.qtySats) <= 0;
+        const searchHidden = term && !(card.dataset.label || '').toLowerCase().includes(term);
+        card.classList.toggle('d-none', emptyHidden || searchHidden);
     });
 }
 
@@ -857,6 +954,26 @@ function _overviewToggleTxCard(cardEl) {
     _overviewOnTxCardCheckChange(cb);
 }
 
+/** Re-merged Wallets-/Transaktions-Row bei Bedarf nach einem Resize (z.B.
+ *  Fenster von Desktop- auf Tablet/Phone-Breite verkleinert, ohne Reload) —
+ *  ohne Reload würde sonst ein bereits im DOM getrenntes Layout stehen
+ *  bleiben, bis die Seite neu geladen wird. Kein Effekt, wenn schon gemergt
+ *  oder auf Desktop-Breite. */
+function _overviewReapplyMobileRowConstraint() {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid || !_isOverviewMobileLayout()) return;
+
+    const rows   = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
+    const merged = _enforceOverviewMobileRowMerge(layout);
+    if (JSON.stringify(merged) === JSON.stringify(layout)) return;
+
+    applyOverviewLayout(grid, merged);
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _saveOverviewLayout(grid);
+}
+
 (function initOverviewTxCardMode() {
     let _resizeTimeout = null;
     window.addEventListener('resize', () => {
@@ -864,6 +981,7 @@ function _overviewToggleTxCard(cardEl) {
         _resizeTimeout = setTimeout(() => {
             _overviewApplyTxViewMode();
             _overviewApplyPosViewMode();
+            _overviewReapplyMobileRowConstraint();
         }, 150);
     });
 })();
@@ -896,6 +1014,10 @@ function clearTxVisibleSearch() {
 }
 
 // Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
+// Filtert zusätzlich die Kartenansicht mit (siehe _applyPosCardFilters) — die
+// Karten sind serverseitig gerendert und wurden von der DataTables-Suche bisher
+// gar nicht erfasst, dadurch ging die Suche auf Tablet/Phone (dort aktive
+// Kartenansicht) faktisch ins Leere.
 function onPosVisibleSearchInput(value) {
     const hiddenInput = document.querySelector('#posTable_wrapper .dt-search input');
     if (hiddenInput) hiddenInput.value = value;
@@ -905,6 +1027,9 @@ function onPosVisibleSearchInput(value) {
     if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().search(value).draw();
     }
+
+    _posSearchTerm = value || '';
+    _applyPosCardFilters();
 }
 
 function clearPosVisibleSearch() {

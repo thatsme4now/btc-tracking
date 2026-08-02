@@ -278,6 +278,7 @@
   "holdings.layout.emptyRow": "Leer",
   "holdings.layout.moveUp": "Nach oben",
   "holdings.layout.moveDown": "Nach unten",
+  "holdings.layout.collapse": "Ein-/Ausklappen",
   "yearly.title": "Jahresansicht",
   "yearly.select.all": "Gesamtansicht",
   "yearly.btn.loadPrices": "Preise laden",

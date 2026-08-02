@@ -371,6 +371,7 @@ function renderBuysChart(data, currency) {
         colors,
         plotOptions: { bar: { columnWidth: '65%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
+        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => _holdingsFmtCompact(v, currency) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
             // intersect:false → Tooltip reagiert auf die ganze Spaltenbreite (auch
@@ -403,6 +404,7 @@ function renderRealizedPnlChart(data, currency) {
         colors: [({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR],
         plotOptions: { bar: { columnWidth: '55%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
+        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => _holdingsFmtCompact(v, currency) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
             shared: false,
@@ -433,6 +435,7 @@ function renderUnrealizedPnlChart(data, currency) {
         colors: [({ value }) => value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR],
         plotOptions: { bar: { columnWidth: '55%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
+        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => _holdingsFmtCompact(v, currency) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
             shared: false,
@@ -461,7 +464,7 @@ function renderBalanceChart(data) {
         colors: [HOLDINGS_BALANCE_COLOR],
         plotOptions: { bar: { columnWidth: '55%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
-        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => Number(v).toFixed(4) } },
+        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => Number(v).toFixed(1) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
             shared: false,

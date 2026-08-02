@@ -278,6 +278,7 @@
   "holdings.layout.emptyRow": "Empty",
   "holdings.layout.moveUp": "Move up",
   "holdings.layout.moveDown": "Move down",
+  "holdings.layout.collapse": "Collapse/expand",
   "yearly.title": "Yearly View",
   "yearly.select.all": "All Time",
   "yearly.btn.loadPrices": "Load Prices",

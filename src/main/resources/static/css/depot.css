@@ -671,7 +671,8 @@ body.density-spacious {
     gap: .15rem;
     flex: 0 0 auto;
 }
-.overview-block-move-btn {
+.overview-block-move-btn,
+.overview-block-collapse-btn {
     background: none;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -686,11 +687,28 @@ body.density-spacious {
     cursor: pointer;
     padding: 0;
 }
-.overview-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+.overview-block-move-btn:hover,
+.overview-block-collapse-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Zuklapp-Button: nur auf Tablet/Phone relevant (siehe #75), auf Desktop
+   versteckt — Kollabieren ist rein für kleine Bildschirme gedacht. */
+.overview-block-collapse-btn { display: none; }
 
 @media (max-width: 991px) {
     .overview-grid-row,
     .overview-grid-row.empty { grid-template-columns: 1fr !important; }
+
+    /* Leere Reihe (aktuell Reihe 3, für künftige Kacheln reserviert) bringt
+       auf Tablet/Phone keinen Mehrwert und nimmt nur Platz weg — ausblenden. */
+    .overview-grid-row.empty { display: none; }
+
+    .overview-block-collapse-btn { display: flex; }
+
+    /* Kollabierter Zustand: Kachel-Inhalt ausblenden, nur Header sichtbar.
+       Bewusst scoped auf ≤991px — selbst falls die Klasse gespeichert bleibt,
+       bleibt der Inhalt auf Desktop immer sichtbar (Feature ist mobile-only). */
+    #overview-block-wallets.collapsed #walletsCardBody,
+    #transactionsPanel.collapsed #txCardBody { display: none; }
 }
 
 @media (max-width: 768px) {
@@ -738,7 +756,13 @@ body.density-spacious {
     cursor: pointer;
     transition: border-color .15s, background .15s;
 }
-.overview-tx-card:hover { border-color: var(--accent); border-left-color: var(--accent); }
+/* Nur bei echten Zeigegeräten (Maus) — auf Touch-Geräten bleibt :hover nach
+   dem Antippen oft "hängen" (bekannter Mobile-Effekt), wodurch angetippte,
+   nicht ausgewählte Karten denselben Akzentton wie .selected zeigten und
+   beide Zustände visuell kaum unterscheidbar waren. */
+@media (hover: hover) {
+    .overview-tx-card:hover { border-color: var(--accent); border-left-color: var(--accent); }
+}
 .overview-tx-card.selected {
     border-color: var(--accent);
     box-shadow: inset 0 0 0 1px var(--accent);
@@ -766,6 +790,12 @@ body.density-spacious {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+/* Checkbox rein funktional (Fernbedienung auf die versteckte Tabellen-
+   Checkbox, siehe _overviewOnTxCardCheckChange in depot.js) — visuell
+   ausgeblendet, da die ganze Karte bereits per Tap wählbar ist
+   (_overviewToggleTxCard) und der Auswahl-Status über Rahmen/Hintergrund
+   der Karte (.overview-tx-card.selected) angezeigt wird. */
+.tx-card-check { display: none; }
 
 .overview-tx-card-actions {
     display: flex;

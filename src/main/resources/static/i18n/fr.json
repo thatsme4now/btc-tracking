@@ -248,5 +248,6 @@
   "holdings.layout.reset": "Réinitialiser la mise en page",
   "holdings.layout.emptyRow": "Vide",
   "holdings.layout.moveUp": "Monter",
-  "holdings.layout.moveDown": "Descendre"
+  "holdings.layout.moveDown": "Descendre",
+  "holdings.layout.collapse": "Réduire/développer"
 }
