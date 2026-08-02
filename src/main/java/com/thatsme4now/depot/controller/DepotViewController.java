@@ -29,7 +29,7 @@ public class DepotViewController {
 
     @GetMapping("/")
     public String root() {
-    	return "redirect:/btc-tracking";
+    	return "redirect:/btc-tracking/holdings";
     }
     
     @GetMapping("/btc-tracking/flow")

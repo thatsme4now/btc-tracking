@@ -120,6 +120,26 @@
                            autocomplete="off" spellcheck="false"
                            onkeydown="if(event.key==='Enter') AppLock.doUnlock()"/>
                     <div id="unlockError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+
+                    <a href="#" id="appResetLink" onclick="event.preventDefault();AppLock.toggleReset()"
+                       style="display:inline-block;font-size:.72rem;color:var(--text-muted);margin-top:.75rem"
+                       data-i18n="applock.reset.link">Forgot password?</a>
+
+                    <div id="appResetSection" class="d-none" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+                        <p style="font-size:.75rem;color:var(--neg);margin-bottom:.75rem" data-i18n="applock.reset.hint">
+                            This permanently deletes all data. This cannot be undone.
+                        </p>
+                        <label class="depot-label" data-i18n="applock.reset.confirmLabel"></label>
+                        <input type="text" id="resetConfirmInput"
+                               class="form-control depot-input" autocomplete="off" spellcheck="false"
+                               placeholder="delete" oninput="AppLock.onResetConfirmInput()"
+                               onkeydown="if(event.key==='Enter') AppLock.doReset()"/>
+                        <div id="resetError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+                        <button class="btn depot-btn-outline text-neg w-100" id="resetConfirmBtn" disabled
+                                style="margin-top:.75rem" onclick="AppLock.doReset()">
+                            <i class="bi bi-exclamation-triangle me-1"></i><span data-i18n="applock.reset.btn">Reset app</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
                     <button class="btn depot-btn-primary" onclick="AppLock.doUnlock()">

@@ -794,7 +794,10 @@ public class DepotRestController {
                 ? req.getPassword() : null;
         byte[] data = dataExportService.exportFull(password);
 
-        String filename = password != null ? "btc-tracking_full_export.json.enc" : "btc-tracking_full_export.json";
+        String datePart = java.time.LocalDate.now().toString(); // ISO yyyy-MM-dd
+        String filename = password != null
+                ? "btc-tracking_backup_" + datePart + ".json.enc"
+                : "btc-tracking_backup_" + datePart + ".json";
         response.setContentType(password != null ? "application/octet-stream" : "application/json; charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=" + filename);
         response.getOutputStream().write(data);

@@ -12,12 +12,20 @@
   Requires on the including page: bootstrap.bundle.min.js, i18n.js, currency.js,
   theme.js, offline.js, applock.js, navbar.js (price badge / settings / sats / help
   logic) — plus the navbar-modals fragment (settings/sats/applock/offline-confirm).
+  pageTitleKey: i18n-Key für den Seitennamen hinter Titel/Version (z.B.
+  "nav.btn.holdings"), reuse der bestehenden Visualisierung-Dropdown-Keys,
+  damit keine neuen Übersetzungen nötig sind. Leerstring ('') unterdrückt den
+  Suffix (z.B. auf den Import-Assistent-Seiten).
 -->
-<div th:fragment="navbar(showActions)">
+<div th:fragment="navbar(showActions, pageTitleKey)">
     <nav class="navbar depot-navbar">
         <div class="container-fluid px-4">
-            <a class="navbar-brand depot-brand" th:href="@{/btc-tracking}">
+            <a class="navbar-brand depot-brand" th:href="@{/btc-tracking/holdings}">
                 <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+                <span th:if="${appVersion != null and !#strings.isEmpty(appVersion)}"
+                      class="depot-brand-suffix" th:text="${appVersion}"></span>
+                <span th:if="${pageTitleKey != null and !#strings.isEmpty(pageTitleKey)}"
+                      class="depot-brand-suffix">- <span th:attr="data-i18n=${pageTitleKey}"></span></span>
             </a>
         </div>
         <div class="container-fluid px-4">
@@ -80,11 +88,11 @@
                         </button></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item" onclick="openDbExportModal()">
-                            <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+                            <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">Backup erstellen</span>
                         </button></li>
                         <li>
                             <label class="dropdown-item mb-0" style="cursor:pointer">
-                                <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+                                <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">Backup einspielen</span>
                                 <input type="file" id="dbImportFileInput" accept=".json,.enc"
                                        style="display:none" onchange="onDbImportFileSelected(this)"/>
                             </label>
@@ -98,17 +106,17 @@
                         <i class="bi bi-bar-chart-line me-1"></i><span data-i18n="nav.btn.visualization">Visualisierung</span>
                     </button>
                     <ul class="dropdown-menu depot-dropdown-menu">
-                        <li><a class="dropdown-item" th:href="@{/btc-tracking}">
-                            <i class="bi bi-house me-2"></i><span data-i18n="nav.btn.overview">Übersicht</span>
-                        </a></li>
-                        <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
-                            <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
-                        </a></li>
                         <li><a class="dropdown-item" th:href="@{/btc-tracking/holdings}">
                             <i class="bi bi-bar-chart-steps me-2"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
                         </a></li>
                         <li><a class="dropdown-item" th:href="@{/btc-tracking/yearly}">
                             <i class="bi bi-calendar3 me-2"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
+                        </a></li>
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
+                            <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+                        </a></li>
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking}">
+                            <i class="bi bi-database me-2"></i><span data-i18n="nav.btn.overview">Datenverwaltung</span>
                         </a></li>
                     </ul>
                 </div>
@@ -170,10 +178,10 @@
                     <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
                 </button>
                 <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
-                    <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">DB Export</span>
+                    <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">Backup erstellen</span>
                 </button>
                 <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
-                    <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">DB Import</span>
+                    <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">Backup einspielen</span>
                     <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
                            style="display:none" onchange="onDbImportFileSelected(this)"/>
                 </label>
@@ -181,7 +189,7 @@
 
             <div class="depot-card-header mb-1 mt-2" data-i18n="nav.btn.visualization">Visualisierung</div>
             <a th:href="@{/btc-tracking}" class="btn depot-btn-outline w-100">
-                <i class="bi bi-house me-1"></i><span data-i18n="nav.btn.overview">Übersicht</span>
+                <i class="bi bi-database me-1"></i><span data-i18n="nav.btn.overview">Datenverwaltung</span>
             </a>
             <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
                 <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>

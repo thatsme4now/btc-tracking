@@ -7,12 +7,27 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.thatsme4now.depot.dto.CurrentPriceExportDTO;
 import com.thatsme4now.depot.dto.FullExportDTO;
+import com.thatsme4now.depot.dto.HistoricalPriceExportDTO;
+import com.thatsme4now.depot.dto.ImportHistoryExportDTO;
+import com.thatsme4now.depot.dto.MonthlyPriceExportDTO;
 import com.thatsme4now.depot.dto.PositionExportDTO;
+import com.thatsme4now.depot.dto.PriceHistoryExportDTO;
 import com.thatsme4now.depot.dto.TransactionExportDTO;
+import com.thatsme4now.depot.entity.CurrentPrice;
+import com.thatsme4now.depot.entity.HistoricalPrice;
+import com.thatsme4now.depot.entity.ImportHistory;
+import com.thatsme4now.depot.entity.MonthlyPrice;
 import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.entity.Transaction;
+import com.thatsme4now.depot.repository.CurrentPriceRepository;
+import com.thatsme4now.depot.repository.HistoricalPriceRepository;
+import com.thatsme4now.depot.repository.ImportHistoryRepository;
+import com.thatsme4now.depot.repository.MonthlyPriceRepository;
 import com.thatsme4now.depot.repository.PositionRepository;
+import com.thatsme4now.depot.repository.PriceHistoryRepository;
 import com.thatsme4now.depot.repository.TransactionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -22,6 +37,21 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * "Backup erstellen" / "Backup einspielen" (frühere Bezeichnung: DB-Export/-Import)
+ * — kompletter Snapshot der Anwendungsdaten als JSON (optional passwortverschlüsselt).
+ *
+ * Seit Version 2 des Export-Formats deckt das Backup neben position/transaction
+ * auch import_history sowie die vier Kurs-Tabellen (price_history, current_price,
+ * historical_price, monthly_price) ab — siehe FullExportDTO. Die Sektionen sind
+ * bewusst einzeln nullable: fehlt eine Sektion in der eingespielten Datei (z.B.
+ * ein Backup von vor diesem Update), bleibt die entsprechende Tabelle beim
+ * Restore unangetastet statt geleert zu werden (siehe importFull).
+ *
+ * import_staging_row (Zwischenspeicher eines laufenden Imports) ist bewusst
+ * NICHT Teil des Backups — rein transientes Arbeitsergebnis, wird ohnehin bei
+ * jedem neuen Datei-Upload vollständig geleert.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -29,6 +59,11 @@ public class DataExportService {
 
     private final PositionRepository positionRepo;
     private final TransactionRepository transactionRepo;
+    private final ImportHistoryRepository importHistoryRepo;
+    private final PriceHistoryRepository priceHistoryRepo;
+    private final CurrentPriceRepository currentPriceRepo;
+    private final HistoricalPriceRepository historicalPriceRepo;
+    private final MonthlyPriceRepository monthlyPriceRepo;
     private final CsvEncryptionService encryptionService;
     private final JdbcTemplate jdbcTemplate;
 
@@ -51,6 +86,16 @@ public class DataExportService {
         dto.setPositions(positionRepo.findAll().stream()
                 .map(this::toDto).collect(Collectors.toList()));
         dto.setTransactions(transactionRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setImportHistory(importHistoryRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setPriceHistory(priceHistoryRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setCurrentPrices(currentPriceRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setHistoricalPrices(historicalPriceRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setMonthlyPrices(monthlyPriceRepo.findAll().stream()
                 .map(this::toDto).collect(Collectors.toList()));
 
         try {
@@ -82,6 +127,10 @@ public class DataExportService {
             throw new RuntimeException("Export file missing positions or transactions.");
         }
 
+        // Reihenfolge wichtig: transaction hat einen echten FK auf position
+        // (ON DELETE CASCADE) sowie eine lose (FK-lose) Referenz auf
+        // import_history — daher position und import_history VOR transaction
+        // leeren/neu befüllen.
         jdbcTemplate.update("DELETE FROM `transaction`");
         jdbcTemplate.update("DELETE FROM `position`");
 
@@ -92,29 +141,114 @@ public class DataExportService {
                 p.getId(), p.getLabel(), p.getType().name());
             maxPositionId = Math.max(maxPositionId, p.getId());
         }
+        jdbcTemplate.update("ALTER TABLE `position` AUTO_INCREMENT = " + (maxPositionId + 1));
+
+        boolean importHistoryRestored = restoreImportHistory(dto.getImportHistory());
 
         long maxTransactionId = 0;
         for (TransactionExportDTO t : dto.getTransactions()) {
             jdbcTemplate.update(
                 "INSERT INTO `transaction` (id, transaction_id, position_id, type, date, quantity, " +
                 "quantity_fiat, currency, exchange_rate, price_per_btc, fees, fees_currency, comment, " +
-                "transfer_id, is_duplicate, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
+                "transfer_id, is_duplicate, import_history_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
                 t.getId(), t.getTransactionId(), t.getPositionId(), t.getType().name(), t.getDate(),
                 t.getQuantity(), t.getQuantityFiat(), t.getCurrency(), t.getExchangeRate(),
                 t.getPricePerBtc(), t.getFees(), t.getFeesCurrency(), t.getComment(),
-                t.getTransferId(), t.isDuplicate());
+                t.getTransferId(), t.isDuplicate(), t.getImportHistoryId());
             maxTransactionId = Math.max(maxTransactionId, t.getId());
         }
-
         // NOTE: MySQL/H2 don't allow bind params in DDL → inline the (internally computed) value.
-        jdbcTemplate.update("ALTER TABLE `position` AUTO_INCREMENT = " + (maxPositionId + 1));
         jdbcTemplate.update("ALTER TABLE `transaction` AUTO_INCREMENT = " + (maxTransactionId + 1));
+
+        int priceHistoryCount   = restorePriceHistory(dto.getPriceHistory());
+        int currentPriceCount   = restoreCurrentPrices(dto.getCurrentPrices());
+        int historicalPriceCount = restoreHistoricalPrices(dto.getHistoricalPrices());
+        int monthlyPriceCount   = restoreMonthlyPrices(dto.getMonthlyPrices());
+
+        log.info("Backup restore: {} positions, {} transactions, import-history restored={}, " +
+                 "{} price-history, {} current-price, {} historical-price, {} monthly-price rows",
+                 dto.getPositions().size(), dto.getTransactions().size(), importHistoryRestored,
+                 priceHistoryCount, currentPriceCount, historicalPriceCount, monthlyPriceCount);
 
         ImportSummary summary = new ImportSummary();
         summary.positions = dto.getPositions().size();
         summary.transactions = dto.getTransactions().size();
         return summary;
     }
+
+    /** @return false, falls die Sektion im Backup fehlte (Tabelle bleibt unangetastet). */
+    private boolean restoreImportHistory(java.util.List<ImportHistoryExportDTO> rows) {
+        if (rows == null) return false; // altes Backup ohne diese Sektion -> Tabelle unangetastet lassen
+        jdbcTemplate.update("DELETE FROM import_history");
+        long maxId = 0;
+        for (ImportHistoryExportDTO h : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO import_history (id, imported_at, filename, total_rows, imported_rows, " +
+                "duplicate_rows, error_rows) VALUES (?,?,?,?,?,?,?)",
+                h.getId(), h.getImportedAt(), h.getFilename(), h.getTotalRows(), h.getImportedRows(),
+                h.getDuplicateRows(), h.getErrorRows());
+            maxId = Math.max(maxId, h.getId());
+        }
+        jdbcTemplate.update("ALTER TABLE import_history AUTO_INCREMENT = " + (maxId + 1));
+        return true;
+    }
+
+    private int restorePriceHistory(java.util.List<PriceHistoryExportDTO> rows) {
+        if (rows == null) return 0;
+        jdbcTemplate.update("DELETE FROM price_history");
+        long maxId = 0;
+        for (PriceHistoryExportDTO p : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO price_history (id, ticker, date, open, high, low, close, volume, loaded_at) " +
+                "VALUES (?,?,?,?,?,?,?,?,?)",
+                p.getId(), p.getTicker(), p.getDate(), p.getOpen(), p.getHigh(), p.getLow(),
+                p.getClose(), p.getVolume(), p.getLoadedAt());
+            maxId = Math.max(maxId, p.getId());
+        }
+        jdbcTemplate.update("ALTER TABLE price_history AUTO_INCREMENT = " + (maxId + 1));
+        return rows.size();
+    }
+
+    private int restoreCurrentPrices(java.util.List<CurrentPriceExportDTO> rows) {
+        if (rows == null) return 0;
+        jdbcTemplate.update("DELETE FROM current_price");
+        for (CurrentPriceExportDTO c : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO current_price (ticker, currency, price, price_date, loaded_at) VALUES (?,?,?,?,?)",
+                c.getTicker(), c.getCurrency(), c.getPrice(), c.getPriceDate(), c.getLoadedAt());
+        }
+        return rows.size(); // kein Auto-Increment (Composite-PK ticker+currency) -> kein ALTER TABLE nötig
+    }
+
+    private int restoreHistoricalPrices(java.util.List<HistoricalPriceExportDTO> rows) {
+        if (rows == null) return 0;
+        jdbcTemplate.update("DELETE FROM historical_price");
+        long maxId = 0;
+        for (HistoricalPriceExportDTO h : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO historical_price (id, ticker, price_year, currency, price) VALUES (?,?,?,?,?)",
+                h.getId(), h.getTicker(), h.getYear(), h.getCurrency(), h.getPrice());
+            maxId = Math.max(maxId, h.getId());
+        }
+        jdbcTemplate.update("ALTER TABLE historical_price AUTO_INCREMENT = " + (maxId + 1));
+        return rows.size();
+    }
+
+    private int restoreMonthlyPrices(java.util.List<MonthlyPriceExportDTO> rows) {
+        if (rows == null) return 0;
+        jdbcTemplate.update("DELETE FROM monthly_price");
+        long maxId = 0;
+        for (MonthlyPriceExportDTO m : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO monthly_price (id, ticker, price_year, price_month, currency, price) VALUES (?,?,?,?,?,?)",
+                m.getId(), m.getTicker(), m.getYear(), m.getMonth(), m.getCurrency(), m.getPrice());
+            maxId = Math.max(maxId, m.getId());
+        }
+        jdbcTemplate.update("ALTER TABLE monthly_price AUTO_INCREMENT = " + (maxId + 1));
+        return rows.size();
+    }
+
+    // ── toDto Mapper ──────────────────────────────────────────
 
     private PositionExportDTO toDto(Position p) {
         PositionExportDTO dto = new PositionExportDTO();
@@ -141,6 +275,64 @@ public class DataExportService {
         dto.setTransferId(tx.getTransferId());
         dto.setDuplicate(tx.isDuplicate());
         dto.setComment(tx.getComment());
+        dto.setImportHistoryId(tx.getImportHistoryId());
+        return dto;
+    }
+
+    private ImportHistoryExportDTO toDto(ImportHistory h) {
+        ImportHistoryExportDTO dto = new ImportHistoryExportDTO();
+        dto.setId(h.getId());
+        dto.setImportedAt(h.getImportedAt());
+        dto.setFilename(h.getFilename());
+        dto.setTotalRows(h.getTotalRows());
+        dto.setImportedRows(h.getImportedRows());
+        dto.setDuplicateRows(h.getDuplicateRows());
+        dto.setErrorRows(h.getErrorRows());
+        return dto;
+    }
+
+    private PriceHistoryExportDTO toDto(PriceHistory p) {
+        PriceHistoryExportDTO dto = new PriceHistoryExportDTO();
+        dto.setId(p.getId());
+        dto.setTicker(p.getTicker());
+        dto.setDate(p.getDate());
+        dto.setOpen(p.getOpen());
+        dto.setHigh(p.getHigh());
+        dto.setLow(p.getLow());
+        dto.setClose(p.getClose());
+        dto.setVolume(p.getVolume());
+        dto.setLoadedAt(p.getLoadedAt());
+        return dto;
+    }
+
+    private CurrentPriceExportDTO toDto(CurrentPrice c) {
+        CurrentPriceExportDTO dto = new CurrentPriceExportDTO();
+        dto.setTicker(c.getTicker());
+        dto.setCurrency(c.getCurrency());
+        dto.setPrice(c.getPrice());
+        dto.setPriceDate(c.getPriceDate());
+        dto.setLoadedAt(c.getLoadedAt());
+        return dto;
+    }
+
+    private HistoricalPriceExportDTO toDto(HistoricalPrice h) {
+        HistoricalPriceExportDTO dto = new HistoricalPriceExportDTO();
+        dto.setId(h.getId());
+        dto.setTicker(h.getTicker());
+        dto.setYear(h.getYear());
+        dto.setCurrency(h.getCurrency());
+        dto.setPrice(h.getPrice());
+        return dto;
+    }
+
+    private MonthlyPriceExportDTO toDto(MonthlyPrice m) {
+        MonthlyPriceExportDTO dto = new MonthlyPriceExportDTO();
+        dto.setId(m.getId());
+        dto.setTicker(m.getTicker());
+        dto.setYear(m.getYear());
+        dto.setMonth(m.getMonth());
+        dto.setCurrency(m.getCurrency());
+        dto.setPrice(m.getPrice());
         return dto;
     }
 
@@ -148,12 +340,21 @@ public class DataExportService {
         public int positions;
         public int transactions;
     }
-    
- // ── Clear (für App-Lock) ──────────────────────────────────
+
+    // ── Clear (für App-Lock) ──────────────────────────────────
+    // Muss 1:1 zum Umfang von exportFull() passen — sonst blieben beim Sperren
+    // Reste einzelner Tabellen unverschlüsselt in der DB liegen (siehe
+    // AppLockService#lock: erst exportFull() als Snapshot sichern, dann hier
+    // alles leeren).
 
     @Transactional
     public void clearAll() {
         jdbcTemplate.update("DELETE FROM `transaction`");
         jdbcTemplate.update("DELETE FROM `position`");
+        jdbcTemplate.update("DELETE FROM import_history");
+        jdbcTemplate.update("DELETE FROM price_history");
+        jdbcTemplate.update("DELETE FROM current_price");
+        jdbcTemplate.update("DELETE FROM historical_price");
+        jdbcTemplate.update("DELETE FROM monthly_price");
     }
 }

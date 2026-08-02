@@ -114,6 +114,18 @@ body.light {
     text-decoration: none;
 }
 
+/* Versionsnummer + aktuelle Ansicht hinter dem Apptitel — bewusst ohne die
+   breite letter-spacing/Großschreibung des Titels, damit der Unterschied
+   zwischen fixem Markennamen und variablem Zusatz klar erkennbar bleibt. */
+.depot-brand-suffix {
+    font-size:       .72rem;
+    font-weight:     400;
+    letter-spacing:  normal;
+    text-transform:  none;
+    color:           var(--text-muted);
+    margin-left:     .4rem;
+}
+
 /* ── BTC live price badge ─────────────────────────────────── */
 .btc-price-badge {
     font-size:      0.72rem;

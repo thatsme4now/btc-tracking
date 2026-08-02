@@ -1595,9 +1595,10 @@ function doDbExport() {
             throw new Error(err.error || 'Export failed');
         }
         const disposition = response.headers.get('Content-Disposition') || '';
+        const datePart = new Date().toISOString().slice(0, 10);
         const filename = disposition.includes('filename=')
             ? disposition.split('filename=')[1].replace(/"/g, '')
-            : (pw ? 'btc-tracking_full_export.json.enc' : 'btc-tracking_full_export.json');
+            : (pw ? `btc-tracking_backup_${datePart}.json.enc` : `btc-tracking_backup_${datePart}.json`);
         const blob = await response.blob();
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');

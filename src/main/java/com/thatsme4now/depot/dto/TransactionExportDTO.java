@@ -22,4 +22,5 @@ public class TransactionExportDTO {
     private String transferId;
     private boolean duplicate;
     private String comment;
+    private Long importHistoryId;
 }
