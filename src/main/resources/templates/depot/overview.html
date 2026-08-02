@@ -67,9 +67,12 @@
 	                                 <button class="btn depot-btn-outline" onclick="openPositionModal(null)">
 	                                    <i class="bi bi-plus-lg me-1"></i><span data-i18n="nav.btn.addWallet">Add Wallet / Exchange</span>
 	                                </button>
-	                                <button type="button" id="posEmptyFilterBtn" class="btn depot-btn-outline" onclick="togglePosEmptyFilter()">
-	                                    <i class="bi bi-eye-slash me-1"></i><span data-i18n="table.filter.hideEmpty">Leere ausblenden</span>
-	                                </button>
+	                                <span class="pill-filter" id="posFilterGroup">
+	                                    <button type="button" class="pill-filter-btn" data-mode="all"
+	                                            onclick="togglePosEmptyFilter('all')" data-i18n="table.filter.all">Alle</button>
+	                                    <button type="button" class="pill-filter-btn is-active" data-mode="withHoldings"
+	                                            onclick="togglePosEmptyFilter('withHoldings')" data-i18n="table.filter.withHoldings">Mit Bestand</button>
+	                                </span>
 	                                <div class="pos-search-wrap dt-search-workaround">
 	                                    <input type="text" id="posSearchVisible" class="form-control depot-input"
 	                                           data-i18n-placeholder="dt.search" placeholder="Suche…"
@@ -84,6 +87,7 @@
 	                                <table class="table dataTable depot-table mb-0" id="posTable">
 	                                    <thead>
 	                                    <tr>
+	                                        <th style="width:5rem"></th>
 	                                        <th data-i18n="table.col.label">Label</th>
 	                                        <th data-i18n="table.col.type">Type</th>
 	                                        <th class="text-end" data-i18n="table.col.btc">BTC</th>
@@ -91,7 +95,6 @@
 	                                        <th class="text-end" data-i18n="table.col.value">Value</th>
 	                                        <th class="text-end" data-i18n="table.col.gl">G/L</th>
 	                                        <th class="text-end" data-i18n="table.col.glPct">G/L %</th>
-	                                        <th></th>
 	                                    </tr>
 	                                    </thead>
 	                                    <tbody id="posTableBody">
@@ -101,6 +104,21 @@
 	                                            th:data-qty-sats="${p.quantityInSats}"
 	                                            onclick="filterExchangeTransaction(this.dataset.label)">
 	
+	                                            <td class="depot-actions-cell" style="white-space:nowrap;padding-left:.4rem;padding-right:.4rem">
+	                                                <span class="depot-actions">
+	                                                    <button class="btn btn-xs depot-btn-icon" th:data-id="${p.id}"
+	                                                        onclick="event.stopPropagation(); openPositionModal(this.dataset.id)" title="Edit">
+	                                                        <i class="bi bi-pencil"></i>
+	                                                    </button>
+	                                                    <a href="#"
+	                                                       th:data-id="${p.id}"
+	                                                       class="btn btn-xs depot-btn-icon text-neg"
+	                                                       title="Delete"
+	                                                       onclick="event.stopPropagation(); event.preventDefault(); confirmDeletePosition(this.dataset.id)">
+	                                                        <i class="bi bi-trash"></i>
+	                                                    </a>
+	                                                </span>
+	                                            </td>
 	                                            <td th:text="${p.label}" class="fw-medium" data-i18n-label="table.col.label"></td>
 	                                            <td th:if="${p.type.name == 'EXCHANGE'}" data-i18n="form.position.type.exchange" data-i18n-label="table.col.type" class="fw-medium"></td>
 	                                            <td th:if="${p.type.name == 'WALLET'}" data-i18n="form.position.type.wallet" data-i18n-label="table.col.type" class="fw-medium"></td>
@@ -124,20 +142,6 @@
 	                                                th:classappend="${p.performancePct >= 0} ? 'text-pos' : 'text-neg'"
 	                                                th:text="${(p.performancePct >= 0 ? '+' : '') + #numbers.formatDecimal(p.performancePct, 1, 'POINT', 2, 'COMMA') + ' %'}"></td>
 	                                            <td class="text-end text-muted" data-i18n-label="table.col.glPct" th:if="${p.performancePct == null}">–</td>
-	
-	                                            <td class="text-end depot-actions" onclick="event.stopPropagation()">
-	                                                <button class="btn btn-xs depot-btn-icon" th:data-id="${p.id}"
-	                                                    onclick="event.stopPropagation(); openPositionModal(this.dataset.id)" title="Edit">
-	                                                    <i class="bi bi-pencil"></i>
-	                                                </button>
-	                                                <a href="#"
-	                                                   th:data-id="${p.id}"
-	                                                   class="btn btn-xs depot-btn-icon text-neg"
-	                                                   title="Delete"
-	                                                   onclick="event.preventDefault(); confirmDeletePosition(this.dataset.id)">
-	                                                    <i class="bi bi-trash"></i>
-	                                                </a>
-	                                            </td>
 	                                        </tr>
 	                                        <tr th:if="${#lists.isEmpty(positions)}">
 	                                            <td></td><td></td><td></td><td class="text-center text-muted py-4">
@@ -330,8 +334,8 @@
 					        <input type="checkbox" id="txSelectAll" style="accent-color:var(--accent)"
 					               onchange="toggleSelectAll(this)"/>
 					    </th>
-	                    <th style="width:1rem"></th>
-	                    <th data-i18n="table.col.date">Date</th>
+	                    <th style="width:5rem"></th>
+	                    <th class="tx-date-col" data-i18n="table.col.date">Date</th>
 	                    <th data-i18n="table.col.position">Position</th>
 	                    <th data-i18n="table.col.type">Type</th>
 	                    <th class="text-end" data-i18n="table.col.btc">BTC</th>
@@ -339,11 +343,10 @@
 	                    <th class="text-end" data-i18n="table.col.total">Total EUR</th>
 	                    <th class="text-end" data-i18n="table.col.profit"></th>
 	                    <th class="text-end" data-i18n="table.col.transferId">Transfer ID</th>
-	                    <th></th>
 	                </tr>
 	                </thead>
 	                <tbody id="txTableBody">
-	                <tr><td colspan="11" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
+	                <tr><td colspan="10" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
 	                </tbody>
 	            </table>
 	        </div>
@@ -355,6 +358,96 @@
 
         <div class="overview-grid-row" id="overview-row-3" data-row="2">
             <span class="overview-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+            <div class="depot-card overview-draggable" id="overview-block-import-history">
+                <div class="depot-card-header d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center gap-2">
+                        <i class="bi bi-grip-vertical overview-drag-handle"></i>
+                        <span data-i18n="import.history.title">Import-Historie</span>
+                    </span>
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="overview-block-actions">
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-import-history', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="overview-block-move-btn" onclick="moveOverviewBlock('overview-block-import-history', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            <button type="button" class="overview-block-collapse-btn" id="overview-block-import-history-collapseBtn" onclick="toggleOverviewBlockCollapse('overview-block-import-history')" data-i18n-title="holdings.layout.collapse" title="Ein-/Ausklappen"><i class="bi bi-dash-square"></i></button>
+                        </span>
+                    </span>
+                </div>
+                <div id="importHistoryCardBody">
+                    <div class="table-responsive no-overflow" id="importHistoryTableWrap">
+                        <table class="table depot-table mb-0" id="importHistoryTable">
+                            <thead>
+                            <tr>
+                                <th data-i18n="import.history.col.date">Zeitpunkt</th>
+                                <th data-i18n="import.history.col.file">Datei</th>
+                                <th class="text-end" data-i18n="import.history.col.total">Gesamt</th>
+                                <th class="text-end" data-i18n="import.history.col.imported">Importiert</th>
+                                <th class="text-end" data-i18n="import.history.col.duplicates">Duplikate</th>
+                                <th class="text-end" data-i18n="import.history.col.errors">Fehler</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="entry : ${importHistory}" class="depot-row">
+                                    <td th:text="${#temporals.format(entry.importedAt, 'dd.MM.yyyy HH:mm')}"></td>
+                                    <td th:text="${entry.filename}" class="fw-medium"></td>
+                                    <td class="text-end" th:text="${entry.totalRows}"></td>
+                                    <td class="text-end" th:text="${entry.importedRows}"></td>
+                                    <td class="text-end" th:text="${entry.duplicateRows}" th:style="${entry.duplicateRows > 0} ? 'color:var(--warn-duplicate)'"></td>
+                                    <td class="text-end" th:text="${entry.errorRows}" th:style="${entry.errorRows > 0} ? 'color:var(--neg)'"></td>
+                                    <td class="text-end depot-actions">
+                                        <button class="btn btn-xs depot-btn-icon text-neg"
+                                                th:attr="onclick=|openDeleteImportHistoryModal(${entry.id}, ${entry.linkedTransactionCount}, '${#strings.escapeJavaScript(entry.filename)}')|"
+                                                data-i18n-title="table.action.delete" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(importHistory)}">
+                                    <td colspan="7" class="text-center text-muted py-4" data-i18n="import.history.empty">Noch keine Importe.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="importHistoryCardsList" class="overview-pos-cards d-none">
+                        <div th:each="entry : ${importHistory}" class="overview-pos-card">
+                            <div class="overview-tx-card-head">
+                                <span class="overview-tx-card-head-label">
+                                    <span th:text="${entry.filename}" class="fw-medium"></span>
+                                </span>
+                                <span class="overview-tx-card-actions">
+                                    <span class="overview-tx-card-badge" th:text="${#temporals.format(entry.importedAt, 'dd.MM.yyyy HH:mm')}"></span>
+                                    <button class="btn btn-xs depot-btn-icon text-neg"
+                                            th:attr="onclick=|openDeleteImportHistoryModal(${entry.id}, ${entry.linkedTransactionCount}, '${#strings.escapeJavaScript(entry.filename)}')|"
+                                            data-i18n-title="table.action.delete" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="overview-tx-field">
+                                <span class="overview-tx-field-label" data-i18n="import.history.col.total">Gesamt</span>
+                                <span class="overview-tx-field-value" th:text="${entry.totalRows}"></span>
+                            </div>
+                            <div class="overview-tx-field">
+                                <span class="overview-tx-field-label" data-i18n="import.history.col.imported">Importiert</span>
+                                <span class="overview-tx-field-value" th:text="${entry.importedRows}"></span>
+                            </div>
+                            <div class="overview-tx-field">
+                                <span class="overview-tx-field-label" data-i18n="import.history.col.duplicates">Duplikate</span>
+                                <span class="overview-tx-field-value" th:text="${entry.duplicateRows}" th:style="${entry.duplicateRows > 0} ? 'color:var(--warn-duplicate)'"></span>
+                            </div>
+                            <div class="overview-tx-field">
+                                <span class="overview-tx-field-label" data-i18n="import.history.col.errors">Fehler</span>
+                                <span class="overview-tx-field-value" th:text="${entry.errorRows}" th:style="${entry.errorRows > 0} ? 'color:var(--neg)'"></span>
+                            </div>
+                        </div>
+                        <div th:if="${#lists.isEmpty(importHistory)}" class="overview-tx-cards-empty">
+                            <span data-i18n="import.history.empty">Noch keine Importe.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -694,6 +787,31 @@
                         <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
                     </button>
                     <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import-Historie: Eintrag löschen -->
+    <div class="modal fade" id="deleteImportHistoryModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" data-i18n="import.history.delete.title">Import-Eintrag löschen</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteImportHistoryFilename" style="font-weight:500;margin-bottom:.5rem"></p>
+                    <p id="deleteImportHistoryBody" style="font-size:.82rem;color:var(--text-muted)"></p>
+                </div>
+                <div class="modal-footer flex-column align-items-stretch gap-2" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-outline w-100" onclick="confirmDeleteImportHistory(false)">
+                        <span data-i18n="import.history.delete.entryOnly">Nur Eintrag löschen</span>
+                    </button>
+                    <button class="btn depot-btn-outline text-neg w-100" id="deleteImportHistoryWithTxBtn" onclick="confirmDeleteImportHistory(true)">
+                        <span data-i18n="import.history.delete.withTx">Eintrag + Transaktionen löschen</span>
+                    </button>
+                    <button class="btn depot-btn-outline w-100" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
                 </div>
             </div>
         </div>

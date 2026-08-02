@@ -252,10 +252,16 @@ body.light {
     white-space:    nowrap;
 }
 
+.depot-table tbody tr {
+    background-color: transparent;
+}
+
 .depot-table tbody td {
     border-bottom:  1px solid #1a1d23;
     padding:        0.75rem 0.75rem;
     vertical-align: middle;
+    background-color: transparent;
+    color:          var(--text) !important;
 }
 
 .depot-row { cursor: pointer; transition: background 0.1s; }
@@ -264,6 +270,28 @@ body.light {
 
 .depot-actions { opacity: 0; transition: opacity 0.15s; }
 .depot-row:hover .depot-actions { opacity: 1; }
+
+/* Datums-Spalte (txTable): fixes Format "YYYY-MM-DD HH:MM:SS" braucht keine
+   variable Breite — width allein reicht im automatischen Tabellen-Layout
+   nicht, der Browser verteilt sonst überschüssigen Platz trotzdem hierhin
+   (siehe .depot-actions-cell-Historie oben), daher zusätzlich max-width. */
+.tx-date-col {
+    width:     9.5rem;
+    max-width: 9.5rem;
+}
+
+/* Fester Platzhalter für das Kommentar-Info-Icon: reserviert die Breite
+   auch wenn kein Kommentar vorhanden ist, damit die danach folgenden
+   Aktions-Buttons in JEDER Zeile an derselben Position beginnen — sonst
+   rutschen sie in kommentarlosen Zeilen nach links und die Spalte wirkt
+   uneinheitlich breit. */
+.depot-actions-icon {
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    width:           1rem;
+    flex:            0 0 auto;
+}
 
 /* ── Form ────────────────────────────────────────────────── */
 .depot-label {
@@ -409,6 +437,74 @@ table.dataTable tbody tr.last-import:hover td { background-color: var(--last-imp
 table.dataTable tbody tr.warning:hover td           { background-color: var(--warn) !important; }
 table.dataTable tbody tr.warning-duplicate:hover td { background-color: var(--warn-duplicate) !important; }
 table.dataTable tbody tr.solo-transfer:hover td { background-color: var(--solo-transfer) !important; }
+
+/* Import-Assistent: Staging-Zeile mit Fehler (ungültiges Datum, unbekannte
+   Währung, o.ä.) — eigene Markierung analog warning/warning-duplicate oben,
+   nutzt bewusst --neg (Fehler != Duplikat/FX-Warnung). */
+.depot-row.error-row td                      { background: rgba(216, 90, 48, .12); }
+.depot-row.error-row:hover td                { background: rgba(216, 90, 48, .2) !important; }
+table.dataTable tbody tr.error-row           { background-color: rgba(216, 90, 48, .12) !important; }
+table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 48, .2) !important; }
+
+.depot-badge { font-size: .85rem; margin-right: .15rem; }
+
+/* Import-Assistent Step 2 (Review): Staging-Liste bekommt einen eigenen
+   Scroll-Container (siehe max-height:60vh am .table-responsive in
+   import-review.html), damit lange Importe nicht die ganze Seite
+   auseinanderziehen. Der Tabellenkopf bleibt beim Scrollen sichtbar. */
+#stagingTable thead th {
+    position: sticky;
+    top:      0;
+    z-index:  1;
+    background-color: var(--bg-card);
+}
+
+/* Generischer Alle/X-Filter als Pill-Button-Gruppe — radio-artig sich
+   gegenseitig ausschließend, gleiches Muster wie der Alle/Paare/Solo-Filter
+   der Yearly-Transfers-Kachel (siehe yearly.css). Genutzt u.a. von der
+   Staging-Toolbar (Review, Step 2) und dem Positionen-Leer-Filter. */
+.pill-filter {
+    display: flex;
+    gap: .25rem;
+    flex: 0 0 auto;
+}
+.pill-filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: .25rem .6rem;
+    cursor: pointer;
+    opacity: .5;
+    transition: opacity .12s, border-color .12s, color .12s;
+}
+.pill-filter-btn:hover { opacity: .8; }
+.pill-filter-btn.is-active { opacity: 1; border-color: var(--accent); color: var(--accent); }
+
+#stagingTableScroll {
+    scrollbar-color: var(--border) var(--bg-card);
+    scrollbar-width: thin;
+}
+#stagingTableScroll::-webkit-scrollbar { width: 6px; }
+#stagingTableScroll::-webkit-scrollbar-track { background: var(--bg-card); }
+#stagingTableScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+#stagingTableScroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Import-Assistent: einfache 3-Step-Anzeige oben auf den 3 Wizard-Seiten */
+.import-wizard-steps {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .78rem;
+    color: var(--text-muted);
+}
+.import-wizard-step { padding: .2rem .5rem; }
+.import-wizard-step.active { color: var(--accent); font-weight: 600; }
+.import-wizard-step.done   { color: var(--pos); }
+.import-wizard-step-sep    { color: var(--border); }
 
 .tx-legend-item {
     display:     flex;
@@ -1159,16 +1255,22 @@ input#dt-search-1 {
     }
     #txTable tbody td:first-child::before { content: none; }
 
-    /* Actions-Zeile: immer sichtbar, zentriert, wenig Padding */
-    #posTable tbody td.depot-actions,
-    #txTable tbody td.depot-actions {
+    /* Actions-Zeile: immer sichtbar, zentriert, wenig Padding. Die Buttons
+       stecken in einem verschachtelten .depot-actions-Span (siehe
+       .depot-actions-cell oben) — auf Touch-Geräten gibt es kein Hover,
+       daher hier zusätzlich explizit sichtbar erzwingen. */
+    #posTable tbody td.depot-actions-cell,
+    #txTable tbody td.depot-actions-cell {
         justify-content: center;
-        opacity: 1 !important;
         gap: .5rem;
         padding: .5rem 0;
     }
-    #posTable tbody td.depot-actions::before,
-    #txTable tbody td.depot-actions::before { content: none; }
+    #posTable tbody td.depot-actions-cell .depot-actions,
+    #txTable tbody td.depot-actions-cell .depot-actions {
+        opacity: 1 !important;
+    }
+    #posTable tbody td.depot-actions-cell::before,
+    #txTable tbody td.depot-actions-cell::before { content: none; }
 
     #posTable_wrapper, #txTable_wrapper { max-height: none; }
 }

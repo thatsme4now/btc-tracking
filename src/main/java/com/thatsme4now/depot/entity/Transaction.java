@@ -100,6 +100,12 @@ public class Transaction {
     @Column(name = "is_duplicate", nullable = false)
     private boolean duplicate = false;
 
+    /** Herkunfts-Import (import_history.id) — NULL bei manuell angelegten
+     *  Transaktionen oder wenn der Herkunfts-Import-Eintrag inzwischen
+     *  gelöscht wurde. Bewusst kein FK-Constraint, siehe schema-h2.sql. */
+    @Column(name = "import_history_id")
+    private Long importHistoryId;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }

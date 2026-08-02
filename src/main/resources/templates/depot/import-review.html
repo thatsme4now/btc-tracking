@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Bitcoin Portfolio — Import</title>
+    <link rel="icon" type="image/x-icon"  th:href="@{/favicon.ico}"/>
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/favicon-32.png}"/>
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/apple-touch-icon.png}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/flatpickr.min.css}"/>
+</head>
+<body class="depot-body">
+
+<div th:replace="~{depot/fragments/navbar :: navbar(false)}"></div>
+
+<main class="container-fluid px-4 py-4">
+
+    <div id="statusToast" class="depot-toast d-none"></div>
+
+    <div class="import-wizard-steps mb-3">
+        <span class="import-wizard-step done">1. <span data-i18n="import.step.mapping">Zuordnung</span></span>
+        <span class="import-wizard-step-sep">→</span>
+        <span class="import-wizard-step active">2. <span data-i18n="import.step.review">Prüfen</span></span>
+        <span class="import-wizard-step-sep">→</span>
+        <span class="import-wizard-step">3. <span data-i18n="import.step.status">Status</span></span>
+    </div>
+
+    <div class="depot-card mb-3">
+        <div class="depot-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-file-earmark-spreadsheet me-2"></i><span id="reviewFilename"></span></span>
+            <span id="reviewSummary" style="font-size:.75rem;color:var(--text-muted)"></span>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 py-2" style="border-bottom:1px solid var(--border)">
+            <button class="btn depot-btn-outline" onclick="cancelImportWizard()">
+                <i class="bi bi-x-lg me-1"></i><span data-i18n="import.btn.cancel">Abbrechen</span>
+            </button>
+            <button class="btn depot-btn-primary" id="confirmImportBtn" onclick="confirmImport()">
+                <i class="bi bi-check-lg me-1"></i><span data-i18n="import.review.confirm">Import bestätigen</span>
+            </button>
+        </div>
+
+        <div id="errorHint" class="d-none"
+             style="border-left:3px solid var(--neg);padding:.5rem .75rem;margin:.75rem 0;
+                    font-size:.75rem;color:var(--neg);background:rgba(216,90,48,.08)">
+            <i class="bi bi-exclamation-triangle me-1"></i><span data-i18n="import.review.errorHint">
+                Es gibt fehlerhafte Zeilen (z.B. ungültiges Datum). Bitte reparieren oder löschen, bevor der Import bestätigt werden kann.
+            </span>
+        </div>
+
+        <div id="skippedNoBtcHint" class="d-none"
+             style="border-left:3px solid var(--text-muted);padding:.5rem .75rem;margin:.75rem 0;
+                    font-size:.75rem;color:var(--text-muted);background:rgba(128,128,128,.08)">
+            <i class="bi bi-info-circle me-1"></i><span id="skippedNoBtcText"></span>
+        </div>
+
+        <div id="reviewLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
+            <span class="tx-legend-item">
+                <span class="tx-legend-dot" style="background:var(--warn)"></span>
+                <span data-i18n="legend.warn.currency"></span>
+            </span>
+            <span class="tx-legend-item">
+                <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
+                <span data-i18n="legend.warn.duplicate"></span>
+            </span>
+            <span class="tx-legend-item">
+                <span class="tx-legend-dot" style="background:var(--neg)"></span>
+                <span data-i18n="import.review.legend.error">Fehlerhaft (nicht importierbar)</span>
+            </span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 px-1 py-2 flex-wrap" style="border-top:1px solid var(--border)">
+            <label class="tx-select-all-wrap" data-i18n-title="table.action.selectAll" title="Alle auswählen">
+                <input type="checkbox" id="stagingSelectAll" style="accent-color:var(--accent)" onchange="toggleSelectAllStaging(this)"/>
+            </label>
+            <span id="stagingBulkCount" style="font-size:.75rem;color:var(--text-muted);min-width:80px">0</span>
+            <button class="btn btn-xs depot-btn-outline" onclick="bulkPairStaging()">
+                <i class="bi bi-link-45deg me-1"></i><span data-i18n="table.action.pair.transfer"></span>
+            </button>
+            <button class="btn btn-xs depot-btn-outline" onclick="bulkRemoveTransferStaging()">
+                <i class="bi bi-x-circle me-1"></i><span data-i18n="table.action.remove.transfer"></span>
+            </button>
+            <button class="btn btn-xs depot-btn-outline" onclick="openStagingBulkMove()">
+                <i class="bi bi-arrow-right-square me-1"></i><span data-i18n="table.action.move.position"></span>
+            </button>
+            <button class="btn btn-xs depot-btn-outline" onclick="openStagingBulkExRate()">
+                <i class="bi bi-percent me-1"></i><span data-i18n="table.action.exchange.rate"></span>
+            </button>
+            <button class="btn btn-xs depot-btn-outline" onclick="bulkSoloTransferStaging()">
+                <i class="bi bi-arrow-down-up me-1"></i><span data-i18n="table.action.mark.solo"></span>
+            </button>
+            <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDeleteStaging()">
+                <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
+            </button>
+
+            <span class="pill-filter ms-auto" id="stagingFilterGroup">
+                <button type="button" class="pill-filter-btn is-active" data-mode="all"
+                        onclick="toggleStagingErrorFilter('all')" data-i18n="import.review.filter.all">Alle</button>
+                <button type="button" class="pill-filter-btn" data-mode="errors"
+                        onclick="toggleStagingErrorFilter('errors')" data-i18n="import.review.filter.errorsOnly">Nur fehlerhafte</button>
+            </span>
+        </div>
+
+        <div class="table-responsive" id="stagingTableScroll" style="max-height:60vh;overflow-y:auto">
+            <table class="table dataTable depot-table mb-0" id="stagingTable">
+                <thead>
+                <tr>
+                    <th style="width:2rem"></th>
+                    <th style="width:5.5rem;white-space:nowrap"></th>
+                    <th data-i18n="table.col.date">Datum</th>
+                    <th data-i18n="table.col.position">Position</th>
+                    <th data-i18n="table.col.type">Typ</th>
+                    <th class="text-end" data-i18n="table.col.btc">BTC</th>
+                    <th class="text-end" data-i18n="table.col.total">Betrag</th>
+                    <th data-i18n="table.col.transferId">Transfer-ID</th>
+                </tr>
+                </thead>
+                <tbody id="stagingTableBody">
+                <tr><td colspan="8" class="text-center text-muted py-3" data-i18n="dt.loading">Wird geladen…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!-- Staging-Zeile bearbeiten -->
+<div class="modal fade" id="stagingEditModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0" data-i18n="import.review.editTitle">Zeile bearbeiten</span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="stagingEditId"/>
+                <div class="row g-3">
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.date">Datum &amp; Uhrzeit</label>
+                        <input type="datetime-local" id="stagingEditDate" class="form-control depot-input"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.type">Typ</label>
+                        <select id="stagingEditType" class="form-select depot-input">
+                            <option value="BUY">BUY</option>
+                            <option value="SELL">SELL</option>
+                            <option value="TRANSFER_IN">TRANSFER_IN</option>
+                            <option value="TRANSFER_OUT">TRANSFER_OUT</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.exchange">Börse</label>
+                        <input type="text" id="stagingEditExchange" list="stagingPositionsList" class="form-control depot-input" maxlength="100"/>
+                        <datalist id="stagingPositionsList"></datalist>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.qty">Menge (BTC)</label>
+                        <input type="number" id="stagingEditQty" class="form-control depot-input" step="0.00000001"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.qtyFiat">Fiat-Betrag</label>
+                        <input type="number" id="stagingEditQtyFiat" class="form-control depot-input" step="0.01"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.currency">Währung</label>
+                        <input type="text" id="stagingEditCurrency" class="form-control depot-input" maxlength="10" placeholder="EUR"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.exchangeRate">Wechselkurs zur Anzeigewährung</label>
+                        <input type="number" id="stagingEditExchangeRate" class="form-control depot-input" step="0.000001" placeholder="1.000000"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.fees">Gebühren</label>
+                        <input type="number" id="stagingEditFees" class="form-control depot-input" step="0.00000001"/>
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="depot-label" data-i18n="modal.field.fees.currency">Währung (Gebühren)</label>
+                        <input type="text" id="stagingEditFeesCurrency" class="form-control depot-input" maxlength="10"/>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="depot-label" data-i18n="modal.field.transfer.id">Transfer-ID</label>
+                        <input type="text" id="stagingEditTransferId" class="form-control depot-input" maxlength="36"/>
+                    </div>
+                    <div class="col-lg-6">
+                        <label class="depot-label" data-i18n="modal.field.comment">Kommentar</label>
+                        <input type="text" id="stagingEditComment" class="form-control depot-input" maxlength="255"/>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border)">
+                <button class="btn depot-btn-primary" onclick="saveStagingEdit()">
+                    <i class="bi bi-check-lg me-1"></i><span data-i18n="import.btn.save">Speichern</span>
+                </button>
+                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk: Wallet/Börse anpassen (Staging) -->
+<div class="modal fade" id="stagingBulkMoveModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0" data-i18n="table.action.move.position">Wallet/Börse anpassen</span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2">
+                    <label class="depot-label" data-i18n="modal.field.exchange">Exchange</label>
+                    <select id="stagingBulkMoveSelect" class="form-select depot-input" onchange="onStagingBulkMoveSelectChange(this)">
+                        <option value="">— Select —</option>
+                    </select>
+                </div>
+                <div id="stagingBulkMoveNewRow" class="d-none">
+                    <input type="text" id="stagingBulkMoveNew" class="form-control depot-input"
+                           maxlength="100" data-i18n-placeholder="modal.field.exchange.hint"
+                           placeholder="Position (e.g. Bitcoin.de, Bitget, Wallet)"/>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border)">
+                <button class="btn depot-btn-primary" onclick="confirmStagingBulkMove()">
+                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
+                </button>
+                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk: Wechselkurs anpassen (Staging) -->
+<div class="modal fade" id="stagingBulkExRateModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0" data-i18n="table.action.exchange.rate">Wechselkurs anpassen</span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="depot-label" data-i18n="modal.field.exchangeRate">Exchange Rate</label>
+                <input type="number" id="stagingBulkExRateInput" class="form-control depot-input"
+                       step="0.000001" placeholder="1.000000"
+                       onkeydown="if(event.key==='Enter') confirmStagingBulkExRate()"/>
+                <div class="form-text text-muted" style="font-size:.7rem"
+                     data-i18n="modal.field.exchangeRate.hint">1 [Currency] = ? EUR</div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border)">
+                <button class="btn depot-btn-primary" onclick="confirmStagingBulkExRate()">
+                    <i class="bi bi-check-lg me-1"></i><span data-i18n="modal.ok">Ok</span>
+                </button>
+                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
+
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/currency.js}"></script>
+<script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/offline.js}"></script>
+<script th:src="@{/js/applock.js}"></script>
+<script th:src="@{/js/navbar.js}"></script>
+<script th:src="@{/js/import-common.js}"></script>
+<script th:src="@{/js/import-review.js}"></script>
+</body>
+</html>

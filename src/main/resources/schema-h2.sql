@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     comment       VARCHAR(255),
     transfer_id   VARCHAR(36),
     is_duplicate  BOOLEAN       NOT NULL DEFAULT FALSE,
+    import_history_id BIGINT,
     created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_tx_position FOREIGN KEY (position_id)
         REFERENCES `position`(id) ON DELETE CASCADE
@@ -35,6 +36,10 @@ CREATE TABLE IF NOT EXISTS `transaction` (
 
 CREATE INDEX IF NOT EXISTS idx_tx_position ON `transaction`(position_id);
 CREATE INDEX IF NOT EXISTS idx_tx_transfer ON `transaction`(transfer_id);
+-- idx_tx_import_history NICHT hier: auf bestehenden Installationen existiert
+-- die Spalte an dieser Stelle im Skript noch nicht (CREATE TABLE IF NOT
+-- EXISTS oben ist dann ein No-op) — der Index wird weiter unten, NACH dem
+-- ALTER TABLE ADD COLUMN, angelegt.
 
 CREATE TABLE IF NOT EXISTS price_history (
     id        BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -92,3 +97,62 @@ CREATE TABLE IF NOT EXISTS monthly_price (
 );
 
 CREATE INDEX IF NOT EXISTS idx_mp_year_month ON monthly_price(price_year, price_month);
+
+-- ============================================================
+-- CSV-Import-Assistent (3-Step-Wizard): Staging-Tabelle + Historie
+-- ============================================================
+
+-- Zwischenspeicher für Zeilen aus einem laufenden Import (Step 2 "Review"),
+-- bevor sie final in die transaction-Tabelle übernommen werden. Wird beim
+-- Übergang Step 1 → Step 2 befüllt und nach Bestätigen/Abbrechen bzw. vor
+-- jedem neuen Datei-Upload komplett geleert (siehe ImportWizardService).
+CREATE TABLE IF NOT EXISTS import_staging_row (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    row_index       INT            NOT NULL,
+    raw_typ         VARCHAR(50),
+    type            VARCHAR(20),
+    position_label  VARCHAR(100),
+    date_raw        VARCHAR(64),
+    date_parsed     TIMESTAMP,
+    quantity        DECIMAL(18,8),
+    quantity_fiat   DECIMAL(14,2),
+    price_per_btc   DECIMAL(14,2),
+    currency        VARCHAR(10),
+    exchange_rate   DECIMAL(14,6),
+    fees            DECIMAL(18,8),
+    fees_currency   VARCHAR(10),
+    comment         VARCHAR(255),
+    transaction_id  VARCHAR(36),
+    transfer_id     VARCHAR(36),
+    is_duplicate    BOOLEAN        NOT NULL DEFAULT FALSE,
+    is_fx_warning   BOOLEAN        NOT NULL DEFAULT FALSE,
+    has_error       BOOLEAN        NOT NULL DEFAULT FALSE,
+    error_reason    VARCHAR(255),
+    created_at      TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_isr_row_index ON import_staging_row(row_index);
+
+-- Einfache Historie abgeschlossener Imports, angezeigt als eigene Kachel
+-- auf der Übersicht.
+CREATE TABLE IF NOT EXISTS import_history (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    imported_at    TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    filename       VARCHAR(255)   NOT NULL,
+    total_rows     INT            NOT NULL DEFAULT 0,
+    imported_rows  INT            NOT NULL DEFAULT 0,
+    duplicate_rows INT            NOT NULL DEFAULT 0,
+    error_rows     INT            NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_ih_imported_at ON import_history(imported_at);
+
+-- Migration für bestehende Installationen: `transaction` existierte schon vor
+-- dieser Spalte, das CREATE TABLE IF NOT EXISTS oben greift bei bereits
+-- vorhandener Tabelle nicht mehr (H2 überspringt es dann komplett). Dieses
+-- Skript läuft bei jedem Start (siehe DatabaseConfig#dataSourceInitializer),
+-- ADD COLUMN IF NOT EXISTS ist daher idempotent nachgezogen. Bewusst OHNE
+-- FK-Constraint (siehe ImportWizardService#deleteHistory: die Zuordnung wird
+-- vor dem Löschen eines History-Eintrags applikationsseitig aufgelöst).
+ALTER TABLE `transaction` ADD COLUMN IF NOT EXISTS import_history_id BIGINT;
+CREATE INDEX IF NOT EXISTS idx_tx_import_history ON `transaction`(import_history_id);

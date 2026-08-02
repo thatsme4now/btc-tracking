@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Bitcoin Portfolio — Import</title>
+    <link rel="icon" type="image/x-icon"  th:href="@{/favicon.ico}"/>
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/favicon-32.png}"/>
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/apple-touch-icon.png}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+</head>
+<body class="depot-body">
+
+<div th:replace="~{depot/fragments/navbar :: navbar(false)}"></div>
+
+<main class="container-fluid px-4 py-4">
+
+    <div id="statusToast" class="depot-toast d-none"></div>
+
+    <div class="import-wizard-steps mb-3">
+        <span class="import-wizard-step active">1. <span data-i18n="import.step.mapping">Zuordnung</span></span>
+        <span class="import-wizard-step-sep">→</span>
+        <span class="import-wizard-step">2. <span data-i18n="import.step.review">Prüfen</span></span>
+        <span class="import-wizard-step-sep">→</span>
+        <span class="import-wizard-step">3. <span data-i18n="import.step.status">Status</span></span>
+    </div>
+
+    <div class="depot-card mb-3" th:if="${uploadError}">
+        <p style="color:var(--neg);margin:0" th:text="${uploadError}"></p>
+    </div>
+
+    <div class="depot-card mb-3" th:unless="${uploadError}">
+        <div class="depot-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-file-earmark-spreadsheet me-2"></i><span th:text="${filename}"></span></span>
+            <span style="font-size:.75rem;color:var(--text-muted)">
+                <strong id="mappingRowCount" style="color:var(--text)">0</strong>
+                <span data-i18n="modal.csv.rowsDetected">Zeilen erkannt.</span>
+            </span>
+        </div>
+
+        <div id="dateTimeWarning" class="d-none"
+             style="border-left:3px solid var(--neg);padding:.5rem .75rem;margin:.75rem 0;
+                    font-size:.75rem;color:var(--neg);background:rgba(216,90,48,.08)">
+            <i class="bi bi-exclamation-triangle me-1"></i><span data-i18n="csv.import.dateTimeWarning"></span>
+        </div>
+
+        <table style="width:100%;border-spacing:0 6px;margin-top:.75rem" id="mappingTable"></table>
+
+        <hr style="border-color:var(--border);margin:1.25rem 0"/>
+        <div class="depot-card-header mb-2" data-i18n="modal.csv.typMapping">typ – Wertzuordnung</div>
+        <p style="font-size:.72rem;color:var(--text-muted);margin-bottom:.75rem" data-i18n="modal.csv.typHint"></p>
+        <div id="typRemapContainer"></div>
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            <button class="btn depot-btn-outline" onclick="cancelImportWizard()">
+                <i class="bi bi-x-lg me-1"></i><span data-i18n="import.btn.cancel">Abbrechen</span>
+            </button>
+            <button class="btn depot-btn-primary" id="mappingNextBtn" onclick="goToReview()">
+                <span data-i18n="import.btn.next">Weiter</span><i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="depot-card">
+        <div class="depot-card-header d-flex justify-content-between align-items-center">
+            <span data-i18n="import.preview.title">Vorschau</span>
+            <span style="font-size:.72rem;color:var(--text-muted)" data-i18n="import.preview.hint">
+                Wird bei Änderungen an der Zuordnung automatisch aktualisiert.
+            </span>
+        </div>
+        <div class="table-responsive">
+            <table class="table depot-table mb-0" id="previewTable">
+                <thead>
+                <tr>
+                    <th data-i18n="table.col.type">Typ</th>
+                    <th data-i18n="table.col.date">Datum</th>
+                    <th data-i18n="table.wallets">Wallet/Börse</th>
+                    <th class="text-end" data-i18n="csv.import.mapping.buy.quantity"></th>
+                    <th data-i18n="csv.import.mapping.buy.currency"></th>
+                    <th class="text-end" data-i18n="csv.import.mapping.sell.quantity"></th>
+                    <th data-i18n="csv.import.mapping.sell.currency"></th>
+                    <th class="text-end" data-i18n="table.col.fees">Gebühren</th>
+                    <th data-i18n="csv.import.mapping.fee.currency"></th>
+                    <th class="text-end" data-i18n="csv.import.mapping.fee.exchange.rate"></th>
+                    <th data-i18n="modal.field.comment"></th>
+                    <th data-i18n="modal.field.transaction.id"></th>
+                    <th data-i18n="modal.field.transfer.id"></th>
+                </tr>
+                </thead>
+                <tbody id="previewTableBody">
+                <tr><td colspan="13" class="text-center text-muted py-3" data-i18n="dt.loading">Wird geladen…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const IMPORT_FILENAME = /*[[${filename}]]*/ '';
+    const IMPORT_HEADERS  = /*[[${headers}]]*/ [];
+    const IMPORT_ROWS     = /*[[${rows}]]*/ [];
+    /*]]>*/
+</script>
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/currency.js}"></script>
+<script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/offline.js}"></script>
+<script th:src="@{/js/applock.js}"></script>
+<script th:src="@{/js/navbar.js}"></script>
+<script th:src="@{/js/import-common.js}"></script>
+<script th:src="@{/js/import-mapping.js}"></script>
+</body>
+</html>

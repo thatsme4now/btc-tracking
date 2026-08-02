@@ -27,7 +27,7 @@ const OVERVIEW_MAX_COLS   = 3;
 const OVERVIEW_DEFAULT_LAYOUT = [
     ['overview-block-wallets'],
     ['transactionsPanel'],
-    []
+    ['overview-block-import-history']
 ];
 
 // Tablet/Phone (≤991px, siehe App-weite Konvention): Wallets- und Transaktions-
@@ -76,6 +76,7 @@ function initOverviewLayout() {
     _overviewTriggerChartResize();
     _overviewApplyTxViewMode();
     _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
     _applyOverviewCollapseState();
 
     const hint = document.getElementById('overviewLayoutHint');
@@ -147,13 +148,14 @@ function resetOverviewLayout() {
     _overviewTriggerChartResize();
     _overviewApplyTxViewMode();
     _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
 }
 
 // ── Zuklapp-Feature für Kacheln (nur Tablet/Phone ≤991px, siehe depot.css) ──
 // Eigener Namensraum/Key, unabhängig vom Layout-Key (Kollabieren betrifft nur
 // die Sichtbarkeit des Kachel-Inhalts, nicht die Grid-Reihenfolge).
 const OVERVIEW_COLLAPSE_KEY = 'overview-collapse-v1';
-const OVERVIEW_COLLAPSIBLE_BLOCKS = ['overview-block-wallets', 'transactionsPanel'];
+const OVERVIEW_COLLAPSIBLE_BLOCKS = ['overview-block-wallets', 'transactionsPanel', 'overview-block-import-history'];
 
 function _loadOverviewCollapseState() {
     try {
@@ -210,6 +212,7 @@ function wireOverviewDragAndDrop(grid) {
             _overviewTriggerChartResize();
             _overviewApplyTxViewMode();
             _overviewApplyPosViewMode();
+            _overviewApplyHistoryViewMode();
             _saveOverviewLayout(grid);
         });
     });
@@ -326,6 +329,7 @@ function moveOverviewBlock(id, direction) {
     _overviewTriggerChartResize();
     _overviewApplyTxViewMode();
     _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
     _saveOverviewLayout(grid);
 }
 
@@ -369,6 +373,7 @@ I18N.ready.then(() => {
 	loadTransactions().then(() => {
 	    _overviewApplyTxViewMode();
 	    _overviewApplyPosViewMode();
+	    _overviewApplyHistoryViewMode();
 	});
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
@@ -376,18 +381,18 @@ I18N.ready.then(() => {
     }
 
     $('#posTable').DataTable({
-        order:      [[2, 'desc']],
+        order:      [[3, 'desc']],
         pageLength: 100,
 		paging:     false,
-		searching:  true, 
-		autoWidth:  false, 
+		searching:  true,
+		autoWidth:  false,
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
             info:       t('dt.info'),
             paginate:   { previous: t('dt.previous'), next: t('dt.next') }
         },
-        columnDefs: [{ orderable: false, targets: [-1] }]
+        columnDefs: [{ orderable: false, targets: [0] }]
     });
     _applyPosEmptyFilter();
 
@@ -416,8 +421,9 @@ $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowDat
 });
 
 function _applyPosEmptyFilter() {
-    const btn = document.getElementById('posEmptyFilterBtn');
-    if (btn) btn.classList.toggle('is-active', _posEmptyFilterActive);
+    document.querySelectorAll('#posFilterGroup .pill-filter-btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.mode === (_posEmptyFilterActive ? 'withHoldings' : 'all'));
+    });
 
     if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().draw();
@@ -446,8 +452,8 @@ function _applyPosCardFilters() {
     });
 }
 
-function togglePosEmptyFilter() {
-    _posEmptyFilterActive = !_posEmptyFilterActive;
+function togglePosEmptyFilter(mode) {
+    _posEmptyFilterActive = mode === 'withHoldings';
     localStorage.setItem(POS_EMPTY_FILTER_KEY, _posEmptyFilterActive ? '1' : '0');
     _applyPosEmptyFilter();
 }
@@ -491,7 +497,7 @@ async function loadTransactions() {
             // Legende ist bereits statisch im HTML vorhanden (mit data-i18n) — hier nur
             // die Fehlermeldung in der Tabelle anzeigen.
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -544,8 +550,21 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 	               style="accent-color:var(--accent)"/>
 	    </td>
-	    <td class="text-center">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</td>
-	    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
+	    <td class="depot-actions-cell" style="white-space:nowrap;padding-left:.4rem;padding-right:.4rem">
+	        <span class="depot-actions-icon">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</span>
+	        <span class="depot-actions">
+	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
+	                <i class="bi bi-pencil"></i>
+	            </button>
+	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
+	                <i class="bi bi-copy"></i>
+	            </button>
+	            <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
+	                <i class="bi bi-trash"></i>
+	            </button>
+	        </span>
+	    </td>
+	    <td class="tx-date-col" style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
 	    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
 	    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
@@ -553,17 +572,6 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
 	    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
-	    <td class="text-end depot-actions" style="white-space:nowrap">
-	        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
-	            <i class="bi bi-pencil"></i>
-	        </button>
-	        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
-	            <i class="bi bi-copy"></i>
-	        </button>
-	        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
-	            <i class="bi bi-trash"></i>
-	        </button>
-	    </td>
 	</tr>`;
 }
 
@@ -616,7 +624,7 @@ function renderTxTable(data) {
 
         document.getElementById('txTableBody').innerHTML = data.length
             ? [...newHtmlById.values()].join('')
-            : `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+            : `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
         _markDuplicates();
 
         $('#txTable').DataTable({
@@ -630,7 +638,7 @@ function renderTxTable(data) {
                 info:       t('dt.info'),
                 paginate:   { previous: t('dt.previous'), next: t('dt.next') }
             },
-            columnDefs: [{ orderable: false, targets: [0, 1, -1] }],
+            columnDefs: [{ orderable: false, targets: [0, 1] }],
             // Jeder Draw (initial, Suche, Solo-Filter, Sortierung) hält die
             // Kartenansicht synchron — siehe _overviewRenderTxCardsIfActive().
             drawCallback: () => _overviewRenderTxCardsIfActive()
@@ -791,6 +799,30 @@ function _overviewApplyPosViewMode() {
     if (!wrap || !cards) return;
 
     const useCards = _overviewShouldUsePosCards();
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+}
+
+// ── "Import-Historie": Kartenansicht ──────────────────────────────────────
+// Gleiches Muster wie bei Wallets/Börsen oben: rein serverseitig gerendert
+// (Thymeleaf, kein JS-Fetch), Umschalten genügt daher als reines Sichtbarkeits-
+// Toggle zwischen #importHistoryTableWrap und #importHistoryCardsList — Listen-
+// ansicht, sobald die Kachel allein in ihrer Row steht, sonst Kartenansicht.
+function _overviewShouldUseHistoryCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const block = document.getElementById('overview-block-import-history');
+    const row   = block ? block.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    return row.querySelectorAll('.overview-draggable').length >= 2;
+}
+
+function _overviewApplyHistoryViewMode() {
+    const wrap  = document.getElementById('importHistoryTableWrap');
+    const cards = document.getElementById('importHistoryCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUseHistoryCards();
     wrap.classList.toggle('d-none', useCards);
     cards.classList.toggle('d-none', !useCards);
 }
@@ -981,6 +1013,7 @@ function _overviewReapplyMobileRowConstraint() {
         _resizeTimeout = setTimeout(() => {
             _overviewApplyTxViewMode();
             _overviewApplyPosViewMode();
+            _overviewApplyHistoryViewMode();
             _overviewReapplyMobileRowConstraint();
         }, 150);
     });
@@ -1096,6 +1129,41 @@ function fmt8(val) {
 // ── CSV Import – PapaParse + Mapping Modal ────────────────
 
 const csvImport = { rawData: [], headers: [] };
+
+// ── CSV Import – neuer 3-Step-Assistent (ersetzt importCsv() unten für
+// normale .csv-Dateien; importCsv() bleibt unverändert im Code, wird aber
+// nicht mehr aufgerufen — .enc-Importe laufen weiterhin unverändert über
+// _importEnc(), siehe unten). Datei-Upload läuft als echtes Formular-POST an
+// die Step-1-Route (siehe Absprache: serverseitiges Parsen ersetzt PapaParse
+// für den Upload-Schritt) statt per fetch(), damit der Browser direkt auf die
+// gerenderte Mapping-Seite navigiert. ──
+function onCsvFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    if (file.name.toLowerCase().endsWith('.enc')) {
+        _importEnc(file);
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/btc-tracking/import/mapping';
+    form.enctype = 'multipart/form-data';
+    form.style.display = 'none';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.name = 'file';
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+
+    form.appendChild(fileInput);
+    document.body.appendChild(form);
+    form.submit();
+}
 
 function importCsv(input) {
     const file = input.files[0];
@@ -2152,6 +2220,38 @@ function showConfirm(title, body) {
 
         _confirmModal.show();
     });
+}
+
+// ── Import-Historie: Eintrag löschen ──────────────────────
+let _deleteImportHistoryId = null;
+
+function openDeleteImportHistoryModal(id, linkedTransactionCount, filename) {
+    _deleteImportHistoryId = id;
+    document.getElementById('deleteImportHistoryFilename').textContent = filename;
+    document.getElementById('deleteImportHistoryBody').textContent =
+        linkedTransactionCount > 0
+            ? t('import.history.delete.body', { COUNT: linkedTransactionCount })
+            : t('import.history.delete.body.none');
+
+    const withTxBtn = document.getElementById('deleteImportHistoryWithTxBtn');
+    withTxBtn.disabled = linkedTransactionCount === 0;
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteImportHistoryModal'))
+        || new bootstrap.Modal(document.getElementById('deleteImportHistoryModal'));
+    modal.show();
+}
+
+function confirmDeleteImportHistory(deleteTransactions) {
+    if (_deleteImportHistoryId == null) return;
+    const id = _deleteImportHistoryId;
+    bootstrap.Modal.getInstance(document.getElementById('deleteImportHistoryModal'))?.hide();
+
+    fetch(`/api/btc-tracking/import/history/${id}?deleteTransactions=${deleteTransactions}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            window.location.reload();
+        })
+        .catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
 function _markDuplicates() {
