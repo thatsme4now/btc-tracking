@@ -80,6 +80,11 @@ This project includes the following third-party software and fonts.
 - **URL:** https://fonts.google.com/specimen/Roboto
 - **Copyright:** Copyright (c) 2011 The Roboto Project Authors (https://github.com/googlefonts/roboto)
 
+### Inconsolata
+- **License:** SIL Open Font License 1.1
+- **URL:** https://fonts.google.com/specimen/Inconsolata
+- **Copyright:** Copyright 2006 The Inconsolata Project Authors (https://github.com/googlefonts/Inconsolata)
+
 ---
 
 ## License Texts
