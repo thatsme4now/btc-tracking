@@ -217,6 +217,9 @@
 			    <span id="bulkCount" style="font-size:.75rem;color:var(--text-muted);min-width:80px">0 selected</span>
 			
 			    <div class="bulk-actions-inline d-flex align-items-center gap-2 flex-wrap">
+			        <button class="btn btn-xs depot-btn-outline" onclick="openAddTx()">
+			            <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+			        </button>
 			        <button class="btn btn-xs depot-btn-outline" onclick="openExportModal(true)">
 			            <i class="bi bi-download me-1"></i><span data-i18n="table.action.exportSelected"></span>
 			        </button>
@@ -256,6 +259,8 @@
 			                <i class="bi bi-three-dots me-1"></i><span data-i18n="table.action.menu">Aktionen</span>
 			            </button>
 			            <ul class="dropdown-menu depot-dropdown-menu">
+			                <li><button class="dropdown-item" onclick="openAddTx()"><i class="bi bi-plus-circle me-2"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span></button></li>
+			                <li><hr class="dropdown-divider"></li>
 			                <li><button class="dropdown-item" onclick="openExportModal(true)"><i class="bi bi-download me-2"></i><span data-i18n="table.action.exportSelected"></span></button></li>
 			                <li><button class="dropdown-item" onclick="bulkPair()"><i class="bi bi-link-45deg me-2"></i><span data-i18n="table.action.pair.transfer"></span></button></li>
 			                <li><button class="dropdown-item" onclick="openBulkMove()"><i class="bi bi-arrow-right-square me-2"></i><span data-i18n="table.action.move.position"></span></button></li>
@@ -627,11 +632,11 @@
 						    <div class="form-text text-muted" style="font-size:.7rem"
 						         data-i18n="modal.field.exchange.hint">Position (e.g. Bitcoin.de, Bitget, Wallet)</div>
 						</div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-4 fee-field">
                             <label class="depot-label" data-i18n="modal.field.fees">Fees (€)</label>
                             <input type="number" id="addTxFees" class="form-control depot-input" step="0.01"/>
                         </div>
-                        <div class="col-lg-4">
+                        <div class="col-lg-4 fee-field">
                             <label class="depot-label" data-i18n="modal.field.fees.currency">Fee Currency</label>
                             <input type="text" id="addTxFeesCurrency" class="form-control depot-input"
                                    placeholder="EUR" maxlength="10"

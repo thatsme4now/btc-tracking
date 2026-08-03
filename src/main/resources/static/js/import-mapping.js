@@ -162,7 +162,14 @@ function onFixedExchangeChange() {
 
 function _extractTimeValue(timeVal) {
     if (!timeVal) return '';
-    const match = timeVal.match(/\d{1,2}:\d{2}(:\d{2})?/);
+    // Zeit-Token muss isoliert stehen (nicht von weiteren Ziffern umgeben) —
+    // sonst würde z.B. ein kaputter/verrutschter Wert wie "1720:21" (fehlendes
+    // Trennzeichen zwischen Stunde und Minute) still zu "20:21" zusammen-
+    // gestutzt und als plausible, aber falsche Uhrzeit übernommen. Ohne
+    // sauberen Match bleibt cleanTime leer, sodass die Zeile beim Server-
+    // seitigen Parsen als "invalid_date"-Fehler sichtbar wird statt mit
+    // einem stillschweigend falschen Datum importiert zu werden.
+    const match = timeVal.match(/(?<!\d)\d{1,2}:\d{2}(:\d{2})?(?!\d)/);
     return match ? match[0] : '';
 }
 
@@ -228,8 +235,18 @@ function computeMappedRows() {
 
         let dateValue = mapping.date ? (r[mapping.date] || '').trim() : null;
         if (mapping.time && dateValue) {
-            const cleanTime = _extractTimeValue((r[mapping.time] || '').trim());
-            if (cleanTime) dateValue = dateValue + ' ' + cleanTime;
+            const rawTime = (r[mapping.time] || '').trim();
+            if (rawTime) {
+                const cleanTime = _extractTimeValue(rawTime);
+                // Bei sauber erkannter Zeit den bereinigten Wert anhängen (ohne
+                // z.B. "GMT+1"-Suffix, damit das Datumsformat matcht). Schlägt
+                // die Erkennung fehl (kaputter Wert wie "1720:21"), trotzdem den
+                // rohen Zeit-Anteil anhängen statt ihn stillschweigend wegzu-
+                // lassen — die Zeile bleibt ein Datumsfehler, aber dateRaw zeigt
+                // dann den vollständigen Originalwert zur Fehlersuche an, statt
+                // nur den (unauffälligen) Datumsteil.
+                dateValue = dateValue + ' ' + (cleanTime || rawTime);
+            }
         }
 
         return {

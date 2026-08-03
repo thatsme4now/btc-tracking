@@ -80,9 +80,11 @@ public class ImportWizardService {
             offset = 3; // UTF-8 BOM
         }
         String content = new String(bytes, offset, bytes.length - offset, StandardCharsets.UTF_8);
+        char delimiter = detectDelimiter(content);
 
         List<List<String>> allRows = new ArrayList<>();
         try (CSVParser parser = CSVFormat.DEFAULT.builder()
+                .setDelimiter(delimiter)
                 .setTrim(true)
                 .setIgnoreEmptyLines(true)
                 .build()
@@ -134,6 +136,35 @@ public class ImportWizardService {
         result.headers = headers;
         result.rows = rows;
         return result;
+    }
+
+    /**
+     * Erkennt das CSV-Trennzeichen anhand der ersten (Header-)Zeile, da
+     * CSVFormat.DEFAULT fest auf Komma steht. Exportformate wie CoinTracking
+     * nutzen Komma, viele Wallet-/Hardware-Wallet-Exporte dagegen Semikolon
+     * oder Tab — ohne diese Erkennung landet die gesamte Header-Zeile als ein
+     * einziger Spaltenname und das Mapping kann keine Felder mehr zuordnen
+     * (vorher hat clientseitiges PapaParse den Delimiter automatisch erkannt).
+     */
+    private char detectDelimiter(String content) {
+        int firstLineEnd = content.indexOf('\n');
+        String firstLine = firstLineEnd >= 0 ? content.substring(0, firstLineEnd) : content;
+        firstLine = firstLine.replace("\r", "");
+
+        char[] candidates = { ',', ';', '\t' };
+        char best = ',';
+        int bestCount = -1;
+        for (char c : candidates) {
+            int count = 0;
+            for (int i = 0; i < firstLine.length(); i++) {
+                if (firstLine.charAt(i) == c) count++;
+            }
+            if (count > bestCount) {
+                bestCount = count;
+                best = c;
+            }
+        }
+        return bestCount > 0 ? best : ',';
     }
 
     // ── Step 1 → Step 2: gemappte Zeilen in die Staging-Tabelle übernehmen ────
@@ -455,8 +486,8 @@ public class ImportWizardService {
         }
         boolean dbDup = transactionRepo.existsByDateAndTypeAndQuantity(
             row.getDateParsed(), row.getType(), row.getQuantity());
-        boolean batchDup = stagingRepo.countByDateParsedAndTypeAndQuantity(
-            row.getDateParsed(), row.getType(), row.getQuantity()) > 0;
+        boolean batchDup = stagingRepo.countByDateParsedAndTypeAndQuantityAndIdNot(
+            row.getDateParsed(), row.getType(), row.getQuantity(), row.getId()) > 0;
         row.setDuplicate(dbDup || batchDup);
     }
 

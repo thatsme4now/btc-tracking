@@ -115,6 +115,20 @@ CREATE TABLE IF NOT EXISTS import_history (
 ) ENGINE=InnoDB;
 
 -- ============================================================
+-- App-weite Einstellungen (Singleton-Zeile, feste id=1)
+-- ============================================================
+
+-- tax_holding_period_cutoff_date: Stichtag, ab dem für neu angeschaffte
+-- Coins (Kaufdatum >= Stichtag) die 1-Jahres-Haltefrist-Steuerfreiheit
+-- (rein informativ, keine Steuerberatung) nicht mehr gilt. NULL = deaktiviert
+-- (Standard), vom Nutzer über die Einstellungen setzbar.
+CREATE TABLE IF NOT EXISTS app_settings (
+    id                              BIGINT NOT NULL PRIMARY KEY,
+    tax_holding_period_cutoff_date  DATE
+) ENGINE=InnoDB;
+INSERT IGNORE INTO app_settings (id, tax_holding_period_cutoff_date) VALUES (1, NULL);
+
+-- ============================================================
 -- Sample data
 -- ============================================================
 INSERT INTO position (label, type) VALUES

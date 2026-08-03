@@ -12,11 +12,13 @@ import org.springframework.stereotype.Service;
 
 import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.dto.TransactionDTO;
+import com.thatsme4now.depot.entity.AppSettings;
 import com.thatsme4now.depot.entity.CurrentPrice;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.entity.TransactionType;
+import com.thatsme4now.depot.repository.AppSettingsRepository;
 import com.thatsme4now.depot.repository.CurrentPriceRepository;
 import com.thatsme4now.depot.repository.PositionRepository;
 import com.thatsme4now.depot.repository.PriceHistoryRepository;
@@ -35,6 +37,7 @@ public class DepotService {
     private final CurrentPriceRepository currentPriceRepo;
     private final PriceHistoryRepository priceHistoryRepo;
     private final CoinGeckoService       coinGeckoService;
+    private final AppSettingsRepository  appSettingsRepo;
 
     private static final String     TICKER = "BTC";
     private static final BigDecimal SATS   = BigDecimal.valueOf(100_000_000);
@@ -73,6 +76,20 @@ public class DepotService {
 
     public CurrentPrice saveCurrentPrice(CurrentPrice cp) {
         return currentPriceRepo.save(cp);
+    }
+
+    // ── App Settings (Singleton-Zeile) ────────────────────
+
+    public AppSettings getAppSettings() {
+        return appSettingsRepo.findById(1L).orElseGet(() -> {
+            AppSettings s = new AppSettings();
+            s.setId(1L);
+            return appSettingsRepo.save(s);
+        });
+    }
+
+    public AppSettings saveAppSettings(AppSettings settings) {
+        return appSettingsRepo.save(settings);
     }
 
     // ── Transactions ──────────────────────────────────────

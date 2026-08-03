@@ -121,10 +121,21 @@ function _doRefresh() {
         });
 }
 
-// ── Settings Modal (Sprache / Währung / Schriftart) ────────
+// ── Settings Modal (Sprache / Währung / Schriftart / Steuer-Stichtag) ──
 let settingsModal = null;
+let _taxCutoffOriginal = ''; // zuletzt vom Server geladener Wert, zum Änderungs-Check beim Speichern
 
 function openSettings() {
+    // Steuer-Stichtag (Haltefrist-Wegfall) — asynchron nachladen, damit das
+    // Öffnen des Modals nicht auf den Request wartet; Wert kommt i.d.R. quasi
+    // sofort aus dem lokalen Backend.
+    fetch('/api/btc-tracking/settings')
+        .then(r => r.json())
+        .then(data => {
+            _taxCutoffOriginal = data.taxHoldingPeriodCutoffDate || '';
+            document.getElementById('taxCutoffDateInput').value = _taxCutoffOriginal;
+        })
+        .catch(() => { /* Feld bleibt leer, falls Abruf fehlschlägt */ });
     const langContainer = document.getElementById('langOptions');
     const supported     = I18N.supported();
     const currentLang   = I18N.currentLang();
@@ -172,33 +183,44 @@ function saveSettings() {
     const selLang = document.querySelector('input[name="langChoice"]:checked');
     const selCur  = document.querySelector('input[name="curChoice"]:checked');
     const selFont = document.querySelector('input[name="fontChoice"]:checked');
+    const taxCutoffValue = document.getElementById('taxCutoffDateInput').value || '';
 
-    const langChanged = selLang && selLang.value !== I18N.currentLang();
-    const curChanged  = selCur  && selCur.value  !== CURRENCY.current();
+    const langChanged      = selLang && selLang.value !== I18N.currentLang();
+    const curChanged       = selCur  && selCur.value  !== CURRENCY.current();
+    const taxCutoffChanged = taxCutoffValue !== _taxCutoffOriginal;
 
     if (selFont) applyFont(selFont.value);
 
-    const applyLang = selLang
-        ? I18N.setLanguage(selLang.value)
-        : Promise.resolve();
+    // Sprache, Währung UND der Steuer-Stichtag beeinflussen serverseitig
+    // berechnete/gerenderte Werte (Zahl-/Datumsformate, positionsbezogene
+    // Beträge in der gewählten Anzeigewährung, Steuerfrei/-pflichtig-Badges
+    // auf Yearly-/Flow-Seite usw.) auf jeder Seite — punktuelles Nachladen
+    // einzelner Tabellen lässt an anderer Stelle veraltete/falsche Werte
+    // stehen. Deshalb bei jeder Änderung ein vollständiger Reload statt
+    // clientseitigem Nachziehen.
+    if (langChanged || curChanged || taxCutoffChanged) {
+        if (selLang) I18N.setLanguage(selLang.value); // persistiert sofort in localStorage
+        if (curChanged) CURRENCY.setCurrency(selCur.value);
 
-    applyLang.then(() => {
-        if (typeof initFlatpickr === 'function') initFlatpickr();
-        if (curChanged) {
-            CURRENCY.setCurrency(selCur.value);
-            settingsModal.hide();
-            showToast('✓ ' + t('toast.currencyChanged', { currency: selCur.value }), 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            settingsModal.hide();
-            // loadTransactions()/txLoaded existieren nur auf der Hauptseite (depot.js) —
-            // auf den anderen 3 Seiten gibt es keine Transaktionstabelle, die neu
-            // geladen werden müsste.
-            if (langChanged && typeof txLoaded !== 'undefined' && txLoaded && typeof loadTransactions === 'function') {
-                loadTransactions();
-            }
-        }
-    });
+        const savePromise = taxCutoffChanged
+            ? fetch('/api/btc-tracking/settings', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ taxHoldingPeriodCutoffDate: taxCutoffValue || null })
+              })
+            : Promise.resolve();
+
+        savePromise
+            .catch(() => showToast('✗ ' + t('toast.error'), 'error'))
+            .then(() => {
+                settingsModal.hide();
+                showToast('✓ ' + t('toast.settingsReload'), 'success');
+                setTimeout(() => window.location.reload(), 600);
+            });
+        return;
+    }
+
+    settingsModal.hide();
 }
 
 // ── Send some Sats ──────────────────────────────────────────

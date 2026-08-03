@@ -29,6 +29,20 @@ const YEARLY_VALUE_COLOR   = '#1d9e75'; // green (matches --pos)
 const YEARLY_PRICE_COLOR   = '#7c5cff'; // violet — bewusst anders als Bestand/Wert, eigener Chart
 const YEARLY_TAX_FREE_DAYS = 365;       // DE Spekulationsfrist — rein informativ, keine Steuerberatung
 
+/** Steuerfrei, wenn Haltedauer >= 365 Tage UND das Kaufdatum des Lots vor
+ *  einem ggf. in den Einstellungen hinterlegten Stichtag liegt (siehe
+ *  _yearlyTaxCutoffDate) — ab dem Stichtag neu angeschaffte Coins sind immer
+ *  steuerpflichtig, unabhängig von der Haltedauer. Rein informativ, keine
+ *  Steuerberatung. */
+function _yearlyIsTaxFree(c) {
+    if (c.days < YEARLY_TAX_FREE_DAYS) return false;
+    if (_yearlyTaxCutoffDate && c.buyTx.date
+        && String(c.buyTx.date).substring(0, 10) >= _yearlyTaxCutoffDate) {
+        return false;
+    }
+    return true;
+}
+
 const YEARLY_MONTH_SHORT_DE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 let _yearlyChart          = null;
@@ -371,15 +385,23 @@ let _yearlyTilesSellMeta = new Map();
 let _yearlyTilesCurrency = 'EUR';
 let _yearlyTilesYearLabel = null; // für die leere-Liste-Meldung (Jahr vs. Gesamtansicht)
 
+// Stichtag (Settings, siehe navbar.js#saveSettings), ab dem die 365-Tage-
+// Regel für NEU angeschaffte Coins nicht mehr gilt (Kaufdatum >= Stichtag →
+// immer steuerpflichtig, egal wie lange gehalten). null/'' = deaktiviert.
+// Lazy geladen, gleicher Cache-Zyklus wie _yearlyAllTx.
+let _yearlyTaxCutoffDate = null;
+
 async function yearlyRenderTiles(year, currency, seq) {
     if (_yearlyAllTx == null) {
-        const [txs, priceRes] = await Promise.all([
+        const [txs, priceRes, settingsRes] = await Promise.all([
             fetch('/api/btc-tracking/transactions').then(r => r.json()),
-            fetch(`/api/btc-tracking/current-price?currency=${encodeURIComponent(currency)}`).then(r => r.json())
+            fetch(`/api/btc-tracking/current-price?currency=${encodeURIComponent(currency)}`).then(r => r.json()),
+            fetch('/api/btc-tracking/settings').then(r => r.json()).catch(() => ({}))
         ]);
         if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // Auswahl inzwischen gewechselt
-        _yearlyAllTx        = txs;
-        _yearlyCurrentPrice = Number(priceRes.price || 0);
+        _yearlyAllTx          = txs;
+        _yearlyCurrentPrice   = Number(priceRes.price || 0);
+        _yearlyTaxCutoffDate  = settingsRes.taxHoldingPeriodCutoffDate || null;
     }
 
     const { buyMeta, sellMeta } = _yearlyComputeFifo(_yearlyAllTx);
@@ -670,7 +692,7 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
     // hier nur pro Zeile statt aufsummiert.
     const sellQty = Number(tx.quantity) || 1;
     const lotsHtml = consumed.map(c => {
-        const taxFree = c.days >= YEARLY_TAX_FREE_DAYS;
+        const taxFree = _yearlyIsTaxFree(c);
         const taxBadge = `<span class="yearly-tax-badge ${taxFree ? 'tax-free' : 'tax-liable'}">${
             (typeof t === 'function') ? t(taxFree ? 'yearly.tax.free' : 'yearly.tax.liable') : (taxFree ? 'steuerfrei' : 'steuerpflichtig')
         }</span>`;

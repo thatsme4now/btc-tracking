@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.thatsme4now.depot.dto.PortfolioMetricsDTO;
 import com.thatsme4now.depot.dto.TransactionDTO;
+import com.thatsme4now.depot.entity.AppSettings;
 import com.thatsme4now.depot.entity.CurrentPrice;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.entity.PriceHistory;
@@ -307,7 +308,10 @@ public class DepotRestController {
             tx.setTransferId(uuid);
             Transaction txIn = new Transaction();
             txIn.setType(TransactionType.TRANSFER_IN);
-            txIn.setDate(req.getTransferInDate() != null ? req.getTransferInDate() : tx.getDate());
+            LocalDateTime transferInDateTime = req.getTransferInDate() != null
+                    ? csvImportService.getLocalDateTimeByString(req.getTransferInDate())
+                    : null;
+            txIn.setDate(transferInDateTime != null ? transferInDateTime : tx.getDate());
             txIn.setQuantity(req.getTransferInQuantity() != null ? req.getTransferInQuantity() : tx.getQuantity());
             txIn.setExchangeRate(BigDecimal.ONE);
             txIn.setCurrency(tx.getCurrency());
@@ -618,7 +622,27 @@ public class DepotRestController {
             "priceDate", cp.getPriceDate()
         ));
     }
-    
+
+    // ── App Settings ──────────────────────────────────────────────────────────
+
+    @GetMapping("/settings")
+    public ResponseEntity<Map<String, Object>> getSettings() {
+        AppSettings settings = depotService.getAppSettings();
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        return ResponseEntity.ok(body);
+    }
+
+    @PutMapping("/settings")
+    public ResponseEntity<Map<String, Object>> updateSettings(@RequestBody AppSettingsUpdateRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        settings.setTaxHoldingPeriodCutoffDate(req.getTaxHoldingPeriodCutoffDate());
+        depotService.saveAppSettings(settings);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
         return depotService.getPosition(id)
@@ -830,6 +854,11 @@ public class DepotRestController {
         private String               currency;
     }
 
+    @lombok.Data
+    public static class AppSettingsUpdateRequest {
+        private java.time.LocalDate taxHoldingPeriodCutoffDate;
+    }
+
 
     @lombok.Data
     public static class MappedImportRequest {
@@ -867,7 +896,7 @@ public class DepotRestController {
         private String comment;
         private String exchange;
         private String transferTarget;                    // Position-Label für TRANSFER_IN
-        private java.time.LocalDateTime transferInDate;   // optional, sonst = date
+        private String transferInDate;   // optional, sonst = date (Format wie "date": "yyyy-MM-dd HH:mm:ss")
         private java.math.BigDecimal transferInQuantity;  // optional, sonst = quantity
     }
     

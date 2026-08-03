@@ -35,6 +35,11 @@
                     <div id="fontOptions" class="d-flex flex-column gap-2">
                         <!-- rendered by JS -->
                     </div>
+                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.taxCutoff">Tax holding-period cutoff date</label>
+                    <input type="date" id="taxCutoffDateInput" class="form-control depot-input"/>
+                    <div class="form-text text-muted" style="font-size:.68rem" data-i18n="modal.settings.taxCutoff.hint">
+                        For coins bought on or after this date, the 1-year tax-free holding period no longer applies. Leave empty to disable. Informational only, not tax advice.
+                    </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
                     <button class="btn depot-btn-primary" onclick="saveSettings()" data-i18n="modal.settings.btn.save">Save</button>

@@ -156,3 +156,19 @@ CREATE INDEX IF NOT EXISTS idx_ih_imported_at ON import_history(imported_at);
 -- vor dem Löschen eines History-Eintrags applikationsseitig aufgelöst).
 ALTER TABLE `transaction` ADD COLUMN IF NOT EXISTS import_history_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_tx_import_history ON `transaction`(import_history_id);
+
+-- ============================================================
+-- App-weite Einstellungen (Singleton-Zeile, feste id=1)
+-- ============================================================
+
+-- tax_holding_period_cutoff_date: Stichtag, ab dem für neu angeschaffte
+-- Coins (Kaufdatum >= Stichtag) die 1-Jahres-Haltefrist-Steuerfreiheit
+-- (rein informativ, keine Steuerberatung) nicht mehr gilt — siehe
+-- AppSettings-Entity. NULL = deaktiviert (Standard), vom Nutzer über die
+-- Einstellungen setzbar.
+CREATE TABLE IF NOT EXISTS app_settings (
+    id                              BIGINT NOT NULL PRIMARY KEY,
+    tax_holding_period_cutoff_date  DATE
+);
+INSERT INTO app_settings (id, tax_holding_period_cutoff_date)
+    SELECT 1, NULL WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE id = 1);

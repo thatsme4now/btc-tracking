@@ -16,4 +16,10 @@ public interface ImportStagingRowRepository extends JpaRepository<ImportStagingR
     List<ImportStagingRow> findAllByOrderByRowIndexAsc();
 
     long countByDateParsedAndTypeAndQuantity(LocalDateTime dateParsed, TransactionType type, BigDecimal quantity);
+
+    /** Wie {@link #countByDateParsedAndTypeAndQuantity}, aber ohne die Zeile
+     *  selbst mitzuzählen — für das Neuberechnen des Duplikat-Flags beim
+     *  Einzel-Edit (sonst zählt jede Zeile sich immer selbst als "Duplikat"). */
+    long countByDateParsedAndTypeAndQuantityAndIdNot(LocalDateTime dateParsed, TransactionType type,
+                                                      BigDecimal quantity, Long id);
 }

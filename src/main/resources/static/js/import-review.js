@@ -15,7 +15,37 @@ function formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '–';
     return d.toLocaleString(I18N.currentLang() === 'de' ? 'de-DE' : 'en-GB', {
-        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+        year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+}
+
+// ── Flatpickr für das Datumsfeld im Bearbeiten-Modal — gleiche Konfiguration
+//    (inkl. Sekunden) wie beim normalen Add/Edit-Transaction-Modal in
+//    tx-form.js, damit Zeiten hier nicht auf Minutenauflösung gekappt werden.
+let _fpStagingEdit = null;
+
+function _stagingFpLocale() {
+    const locales = { de: 'de', th: 'th', es: 'es', fr: 'fr', it: 'it' };
+    const lang = I18N.currentLang();
+    return locales[lang] || 'default';
+}
+
+function initStagingEditFlatpickr() {
+    const el = document.getElementById('stagingEditDate');
+    if (!el) return;
+    const locale = _stagingFpLocale();
+    const isEn = locale === 'default';
+    if (_fpStagingEdit) { _fpStagingEdit.destroy(); _fpStagingEdit = null; }
+    _fpStagingEdit = flatpickr(el, {
+        enableTime:      true,
+        enableSeconds:   true,
+        time_24hr:       !isEn,
+        dateFormat:      'Y-m-d H:i:S',
+        altInput:        true,
+        altFormat:       isEn ? 'm/d/Y h:i:S K' : 'd.m.Y H:i:S',
+        locale:          locale,
+        allowInput:      true,
+        minuteIncrement: 1,
     });
 }
 
@@ -330,7 +360,18 @@ function openStagingEdit(id) {
     loadPositionsDatalist();
 
     document.getElementById('stagingEditId').value = id;
-    document.getElementById('stagingEditDate').value = row.dateParsed ? row.dateParsed.substring(0, 16) : '';
+    // Volle Präzision (inkl. Sekunden) übernehmen — vorher wurde hier mit
+    // substring(0, 16) auf Minuten gekappt, wodurch Sekunden beim Bearbeiten
+    // stillschweigend verloren gingen. Über Flatpickr setzen (dateFormat
+    // 'Y-m-d H:i:S'), damit sie wie im normalen Add/Edit-Modal erhalten bleiben.
+    if (_fpStagingEdit) {
+        if (row.dateParsed) _fpStagingEdit.setDate(row.dateParsed, true);
+        else _fpStagingEdit.clear();
+    } else {
+        document.getElementById('stagingEditDate').value = row.dateParsed
+            ? row.dateParsed.replace('T', ' ').substring(0, 19)
+            : '';
+    }
     document.getElementById('stagingEditType').value = row.type || 'BUY';
     document.getElementById('stagingEditExchange').value = row.positionLabel || '';
     document.getElementById('stagingEditQty').value = row.quantity != null ? row.quantity : '';
@@ -426,6 +467,7 @@ function confirmImport() {
 
 I18N.ready.then(() => {
     I18N.applyI18n();
+    initStagingEditFlatpickr();
     document.getElementById('reviewFilename').textContent =
         sessionStorage.getItem('depot-import-filename') || t('import.review.title');
 

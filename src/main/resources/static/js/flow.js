@@ -32,6 +32,11 @@ let _flowHoveredLinkId = null;
 // Historie braucht, siehe _flowLoadFifo/_flowComputeFifo.
 let _flowSellMeta = new Map(); // sellId (string) -> [{ buyTx, qty, days }]
 
+// Stichtag (Settings, siehe navbar.js#saveSettings), ab dem die 365-Tage-
+// Regel für NEU angeschaffte Coins nicht mehr gilt — siehe _flowIsTaxFree().
+// Lazy geladen zusammen mit der FIFO-Berechnung (_flowLoadFifo).
+let _flowTaxCutoffDate = null;
+
 async function initFlow() {
     if (typeof initFlatpickr === 'function') initFlatpickr();
     _wireFlowTxListEvents();
@@ -51,8 +56,12 @@ function onTxSaved() {
  *  synchron auf bereits aktuelle Daten zugreifen kann. */
 async function _flowLoadFifo() {
     try {
-        const allTx = await fetch('/api/btc-tracking/transactions').then(r => r.json());
-        _flowSellMeta = _flowComputeFifo(allTx);
+        const [allTx, settingsRes] = await Promise.all([
+            fetch('/api/btc-tracking/transactions').then(r => r.json()),
+            fetch('/api/btc-tracking/settings').then(r => r.json()).catch(() => ({}))
+        ]);
+        _flowSellMeta       = _flowComputeFifo(allTx);
+        _flowTaxCutoffDate  = settingsRes.taxHoldingPeriodCutoffDate || null;
     } catch (err) {
         console.warn('FIFO load failed', err.message);
         _flowSellMeta = new Map();
@@ -103,6 +112,20 @@ function _flowDaysBetween(dateA, dateB) {
 }
 
 const FLOW_TAX_FREE_DAYS = 365; // DE Spekulationsfrist — rein informativ, keine Steuerberatung
+
+/** Steuerfrei, wenn Haltedauer >= 365 Tage UND das Kaufdatum des Lots vor
+ *  einem ggf. in den Einstellungen hinterlegten Stichtag liegt (siehe
+ *  _flowTaxCutoffDate) — ab dem Stichtag neu angeschaffte Coins sind immer
+ *  steuerpflichtig, unabhängig von der Haltedauer. Rein informativ, keine
+ *  Steuerberatung. */
+function _flowIsTaxFree(c) {
+    if (c.days < FLOW_TAX_FREE_DAYS) return false;
+    if (_flowTaxCutoffDate && c.buyTx.date
+        && String(c.buyTx.date).substring(0, 10) >= _flowTaxCutoffDate) {
+        return false;
+    }
+    return true;
+}
 
 /** Gesamt-Kostenbasis eines Kaufs in der Anzeigewährung (inkl. Gebühren, währungskonvertiert). */
 function _flowBuyPaid(tx, displayCurrency) {
@@ -773,7 +796,7 @@ function _renderFlowTxCard(item) {
 
         const sellQty = Number(tx.quantity) || 1;
         const lotsHtml = consumed.map(c => {
-            const taxFree  = c.days >= FLOW_TAX_FREE_DAYS;
+            const taxFree  = _flowIsTaxFree(c);
             const taxBadge = `<span class="yearly-tax-badge ${taxFree ? 'tax-free' : 'tax-liable'}">${
                 esc(t(taxFree ? 'yearly.tax.free' : 'yearly.tax.liable'))
             }</span>`;
