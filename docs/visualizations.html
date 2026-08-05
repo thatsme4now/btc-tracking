@@ -84,11 +84,7 @@
   .back-link:hover{border-color:var(--accent); color:var(--accent);}
 
   .lang-switch{
-    position:fixed;
-    top:20px;
-    right:24px;
-    z-index:500;
-    display:flex;
+    display:inline-flex;
     gap:2px;
     background:var(--panel);
     border:1px solid var(--border);
@@ -97,6 +93,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     letter-spacing:0.06em;
+    margin-bottom:16px;
   }
   .lang-switch a{
     text-decoration:none;
@@ -110,9 +107,6 @@
     font-weight:600;
   }
   .lang-switch a:not(.active):hover{color:var(--text);}
-  @media (max-width:600px){
-    .lang-switch{top:12px; right:12px;}
-  }
 
   nav.steps{
     max-width:1100px;
@@ -350,12 +344,11 @@
 </head>
 <body>
 
-<div class="lang-switch">
-  <a href="de/visualizations.html">DE</a>
-  <a href="visualizations.html" class="active">EN</a>
-</div>
-
 <header class="hero">
+  <div class="lang-switch">
+    <a href="de/visualizations.html">DE</a>
+    <a href="visualizations.html" class="active">EN</a>
+  </div>
   <div class="hero-tag"><span class="dot"></span>Visualizations · English</div>
   <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Visualizations</h1>
   <p class="lead">
