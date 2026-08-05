@@ -3,9 +3,7 @@ package com.thatsme4now.depot.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.thatsme4now.depot.entity.CurrentPrice;
-import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.repository.CurrentPriceRepository;
-import com.thatsme4now.depot.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -15,15 +13,12 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CoinGeckoService {
 
-    private final PriceHistoryRepository priceHistoryRepo;
     private final CurrentPriceRepository currentPriceRepo;
 
     private final ObjectMapper  mapper       = new ObjectMapper();
@@ -82,6 +77,10 @@ public class CoinGeckoService {
 
     private String fetchJson(String currency) {
         String url = String.format(OHLC_URL_TEMPLATE, currency.toLowerCase());
+        return fetchUrl(url);
+    }
+
+    private String fetchUrl(String url) {
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.GET, defaultHeaders(), String.class);
@@ -99,6 +98,12 @@ public class CoinGeckoService {
             throw e;
         }
     }
+
+    // NB: monthly-history backfill (2013 → today) used to live here via CoinGecko's
+    // market_chart/range endpoint, but CoinGecko's free/demo tier now rejects any
+    // request for data older than 365 days (HTTP 401, error_code 10012) — discovered
+    // in production. That backfill now lives in KrakenService instead (no API key,
+    // no time-range restriction). See MonthlyPriceService#backfill.
 
     private HttpEntity<Void> defaultHeaders() {
         HttpHeaders headers = new HttpHeaders();

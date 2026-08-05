@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Visualizzazioni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-links{display:flex; flex-wrap:wrap; gap:12px;}
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    display:inline-flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    margin-bottom:16px;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step.single{grid-template-columns:1fr;}
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    margin:32px 0 12px;
+    color:var(--accent);
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  .swatch{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figure.missing img{display:none;}
+  .img-fallback{
+    display:none;
+    padding:56px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    line-height:1.9;
+  }
+  .img-fallback .path{color:var(--accent-dim);}
+  figure.missing .img-fallback{display:block;}
+  figcaption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  .roadmap-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+    margin:20px 0;
+  }
+  .roadmap-card ul.tight{margin:8px 0 0;}
+  .roadmap-card li.done::before{content:"✓ "; color:var(--green); font-family:'JetBrains Mono',monospace;}
+  .roadmap-card li.planned{color:var(--muted);}
+  .roadmap-card li.planned::before{content:"— "; font-family:'JetBrains Mono',monospace;}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="lang-switch">
+    <a href="../de/visualizations.html">DE</a>
+    <a href="../visualizations.html">EN</a>
+    <a href="../es/visualizations.html">ES</a>
+    <a href="../fr/visualizations.html">FR</a>
+    <a href="visualizations.html" class="active">IT</a>
+    <a href="../th/visualizations.html">TH</a>
+  </div>
+  <div class="hero-tag"><span class="dot"></span>Visualizzazioni · Italiano</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Visualizzazioni</h1>
+  <p class="lead">
+    Oltre alla vista tabellare del pannello, l'app offre visualizzazioni
+    dedicate per esplorare la cronologia del tuo portafoglio. Questa pagina è
+    volutamente aperta — attualmente descrive il <b>Diagramma di flusso</b>,
+    la <b>Vista Portafoglio</b> e la <b>Vista annuale</b>, e cresce con ogni
+    nuova visualizzazione.
+  </p>
+  <div class="back-links">
+    <a class="back-link" href="index.html">← Torna alla guida</a>
+    <a class="back-link" href="usage.html">Uso / Installazione →</a>
+  </div>
+</header>
+
+<nav class="steps">
+  <a href="#viz-flow"><span>01</span>Diagramma di flusso (Sankey)</a>
+  <a href="#viz-holdings"><span>02</span>Vista Portafoglio</a>
+  <a href="#viz-yearly"><span>03</span>Vista annuale</a>
+</nav>
+
+<main>
+
+  <section class="step" id="viz-flow">
+    <div class="step-text">
+      <div class="step-num">VISUALIZZAZIONE 01</div>
+      <h2>Diagramma di flusso (Sankey)</h2>
+      <p>
+        Accessibile dall'intestazione del pannello tramite
+        <b>«Visualizzazione» → «Diagramma di flusso»</b> (o direttamente su
+        <span class="inline-code">/btc-tracking/flow</span>). Disegna un
+        <b>diagramma di Sankey</b> di come si sono mossi i tuoi BTC nel
+        tempo: gli acquisti entrano da sinistra, le vendite e i prelievi
+        esterni escono a destra, e i trasferimenti tra i tuoi portafogli/
+        exchange appaiono come connessioni tra i nodi di posizione. Le
+        operazioni sono raggruppate per mese e per coppia origine/
+        destinazione affinché il diagramma resti leggibile anche con una
+        cronologia lunga.
+      </p>
+
+      <h3>Filtri</h3>
+      <table class="fields">
+        <tr><th>Filtro</th><th>Effetto</th></tr>
+        <tr><td class="field">Da / A</td><td class="desc">Limita il diagramma a un periodo</td></tr>
+        <tr><td class="field">Posizione</td><td class="desc">Ancora il diagramma a un portafoglio/exchange — segue i suoi BTC all'indietro (origine) e in avanti (destinazione)</td></tr>
+      </table>
+
+      <h3>Legenda dei colori</h3>
+      <ul class="tight">
+        <li><span class="swatch" style="background:var(--green)"></span><b>Acquisto</b> — BTC acquistati verso una posizione</li>
+        <li><span class="swatch" style="background:var(--red)"></span><b>Vendita</b> — BTC venduti da una posizione</li>
+        <li><span class="swatch" style="background:var(--accent)"></span><b>Trasferimento</b> — spostato tra due posizioni proprie</li>
+        <li><span class="swatch" style="background:var(--muted)"></span><b>Esterno</b> — deposito da, o prelievo verso, un indirizzo al di fuori delle posizioni tracciate</li>
+      </ul>
+
+      <h3>Pannello delle transazioni</h3>
+      <p>
+        Accanto al diagramma, un pannello mostra ogni operazione sottostante
+        come scheda (data, posizione, tipo, quantità BTC, prezzo,
+        commissioni, valuta, tasso di cambio, ID trasferimento, commento).
+        Acquisto, vendita e trasferimento in entrata/uscita ricevono
+        ciascuno un piccolo badge colorato. Un campo di ricerca sopra
+        l'elenco filtra per qualsiasi valore visibile sulle schede
+        (posizione, tipo, data, importi, commento, …) — indipendentemente
+        dal fatto che gli importi siano inseriti con punto o virgola. Su
+        schermi più stretti, il pannello scivola sotto il diagramma invece
+        che a lato.
+      </p>
+
+      <h3>Interazione nel diagramma</h3>
+      <table class="fields">
+        <tr><th>Azione</th><th>Risultato</th></tr>
+        <tr><td class="field">Passa il mouse su un nodo o un collegamento</td><td class="desc">Tooltip con l'importo esatto, il mese, il saldo della posizione e l'elenco delle singole operazioni dietro di esso</td></tr>
+        <tr><td class="field">Clicca su un nodo o un collegamento</td><td class="desc">Lo evidenzia e <b>filtra</b> il pannello delle transazioni solo alle operazioni correlate; il titolo del pannello cambia in «Filtrato: …» con un pulsante per ripristinare. Cliccando di nuovo sullo stesso elemento si ripristina, cliccando su un altro si cambia subito.</td></tr>
+      </table>
+
+      <h3>Interazione nel pannello delle transazioni</h3>
+      <table class="fields">
+        <tr><th>Azione</th><th>Risultato</th></tr>
+        <tr><td class="field">Passa il mouse su una scheda</td><td class="desc">Evidenziazione temporanea di anteprima del collegamento/nodi corrispondenti nel diagramma (solo finché non è attiva alcuna selezione nel diagramma)</td></tr>
+        <tr><td class="field">Clicca su una scheda</td><td class="desc"><b>Fissa</b> l'evidenziazione per esattamente quell'operazione nel diagramma — <i>senza</i> filtrare o ridurre l'elenco, e senza cambiare titolo/contatore del pannello. Cliccando di nuovo sulla stessa scheda si rimuove il fissaggio, cliccando su un'altra scheda si cambia subito l'evidenziazione.</td></tr>
+      </table>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Perché due comportamenti di clic diversi?</b> Un clic diretto nel <i>diagramma</i> serve a restringere («mostrami solo ciò che appartiene a questo nodo/collegamento»). Un clic su una <i>scheda</i> già visibile nell'elenco serve per una consultazione visiva rapida («dove si trova nel diagramma questa singola operazione?»), senza perdere la posizione nell'elenco completo.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/flowchart.png" alt="Diagramma di flusso con connessioni codificate per colore e il pannello delle transazioni"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot in arrivo<br><span class="path">images/flowchart.png</span></div>
+        <figcaption>Diagramma di flusso con il pannello delle transazioni a destra <span class="zoom-hint">Clicca per ingrandire ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">VISUALIZZAZIONE 02</div>
+      <h2>Vista Portafoglio</h2>
+      <p>
+        Accessibile dall'intestazione del pannello tramite
+        <b>«Visualizzazione» → «Vista Portafoglio»</b> (o direttamente su
+        <span class="inline-code">/btc-tracking/holdings</span>). Un pannello
+        completo composto da schede singole, incentrato su
+        <b>distribuzione del portafoglio, metriche chiave e performance
+        annuale</b> — incluso un dettaglio fino al livello di ogni singolo
+        acquisto. Come nella pagina panoramica, le schede possono essere
+        riordinate liberamente trascinando la maniglia (fino a 3 per riga,
+        pulsanti freccia su mobile), e «Reimposta layout» ripristina la
+        disposizione predefinita.
+      </p>
+
+      <h3>Allocazione e metriche</h3>
+      <p>
+        Un grafico a ciambella mostra la <b>distribuzione per portafoglio/
+        exchange</b> (quota del valore totale), accanto a una scheda con le
+        <b>metriche</b> centrali: BTC totale, valore totale, performance in
+        %, saldo in satoshi, importo investito, guadagno/perdita già
+        realizzato, guadagno/perdita totale e il numero di transazioni.
+      </p>
+
+      <h3>Grafici annuali</h3>
+      <p>
+        Tre grafici a barre indipendenti, una barra (o gruppo di barre) per
+        anno:
+      </p>
+      <table class="fields">
+        <tr><th>Grafico</th><th>Mostra</th></tr>
+        <tr><td class="field">Saldo BTC per anno</td><td class="desc">Saldo BTC totale sull'intero portafoglio al 31/12 di ogni anno (o adesso, per l'anno in corso), in arancione Bitcoin</td></tr>
+        <tr><td class="field">Acquisti e vendite per anno</td><td class="desc"><b>Acquisti</b>, impilati per portafoglio/exchange (ogni posizione con la propria tonalità blu/turchese), accanto a una barra separata di <b>Vendite</b> (viola) per lo stesso anno</td></tr>
+        <tr><td class="field">Guadagno/perdita realizzato per anno</td><td class="desc">Ricavo dalla vendita meno il costo medio ponderato di acquisizione dei BTC venduti — verde per guadagno, rosso/arancione per perdita</td></tr>
+        <tr><td class="field">Guadagno/perdita non realizzato per anno</td><td class="desc">Valore del saldo a fine anno meno il costo di acquisizione a quel punto. Usa il prezzo in tempo reale per l'anno in corso, e il prezzo di riferimento del 31/12 descritto sotto per gli anni passati — se ancora mancante, la barra resta vuota</td></tr>
+      </table>
+
+      <h3>Guadagno/perdita per acquisto</h3>
+      <p>
+        Altri due grafici (percentuale e importo assoluto) con <b>una barra
+        per ogni acquisto individuale</b>, ordinati cronologicamente. Il
+        colore combina il segno e lo stato FIFO — calcolato a livello di
+        intero portafoglio, quale acquisto è già stato (parzialmente)
+        «consumato» da vendite successive:
+      </p>
+      <ul class="tight">
+        <li><span class="swatch" style="background:#1d9e75"></span><b>Detenuto, in guadagno</b> / <span class="swatch" style="background:#d85a30"></span><b>detenuto, in perdita</b> — colore intenso, non ancora venduto</li>
+        <li><span class="swatch" style="background:#5fbf9e"></span><b>Parzialmente realizzato</b> — tonalità più tenue, parte già venduta</li>
+        <li><span class="swatch" style="background:#6f8f83"></span><b>Completamente realizzato</b> — il più pallido, venduto per intero</li>
+      </ul>
+      <p class="muted">
+        I grandi valori anomali vengono compressi (scala logaritmica
+        simmetrica oltre ±100%, o una soglia derivata automaticamente dai
+        dati per il grafico in valuta) affinché un singolo acquisto
+        estremamente alto o basso non renda insignificanti tutte le altre
+        barre sull'asse — il tooltip e i dettagli dell'acquisto mostrano
+        comunque il valore reale.
+      </p>
+
+      <h3>Dettagli dell'acquisto</h3>
+      <p>
+        Cliccando su una barra in uno dei due grafici guadagno/perdita per
+        acquisto si apre la scheda <b>Dettagli dell'acquisto</b>
+        corrispondente: data, posizione, quantità BTC, prezzo, importo
+        totale, commissioni, guadagno/perdita in % e importo, commento — per
+        gli acquisti parzialmente/completamente realizzati, anche le singole
+        vendite correlate con la parte di BTC consumata da ciascuna. Con i
+        tasti freccia <span class="inline-code">←</span>/<span class="inline-code">→</span>
+        puoi navigare cronologicamente all'acquisto precedente/successivo
+        mentre è attiva una selezione.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Prezzi di riferimento per anni passati:</b> l'app registra una volta in background un prezzo approssimativo di BTC a fine anno (31/12) per valuta per gli anni passati — è esattamente ciò che alimenta le barre non realizzate degli anni passati sopra. Una scheda dedicata permette di consultare e correggere tu stesso questi valori, e di aggiungere un anno che il seed in background non copre ancora (ad es. un anno appena concluso).</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/holdings.png" alt="Vista Portafoglio con ciambella di allocazione, metriche, grafici annuali e guadagno/perdita per acquisto"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot in arrivo<br><span class="path">images/holdings.png</span></div>
+        <figcaption>Ciambella di allocazione, metriche e saldo BTC per anno, sotto guadagno/perdita per acquisto <span class="zoom-hint">Clicca per ingrandire ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-yearly">
+    <div class="step-text">
+      <div class="step-num">VISUALIZZAZIONE 03</div>
+      <h2>Vista annuale</h2>
+      <p>
+        Accessibile dall'intestazione del pannello tramite
+        <b>«Visualizzazione» → «Vista annuale»</b> (o direttamente su
+        <span class="inline-code">/btc-tracking/yearly</span>). Un selettore
+        in alto alterna tra la <b>vista complessiva</b> e un <b>anno
+        singolo</b> (la scelta persiste tra i ricaricamenti) — tutte le
+        schede sottostanti si adattano di conseguenza. Anche qui le schede
+        possono essere riordinate liberamente (fino a 2 per riga), incluso
+        «Reimposta layout».
+      </p>
+
+      <h3>Saldo e andamento del valore</h3>
+      <p>
+        Un grafico a linee con due assi: <b>saldo</b> in BTC (arancione,
+        asse sinistro) e <b>valore</b> nella valuta di visualizzazione scelta
+        (verde, asse destro) — nella vista complessiva su tutta la
+        cronologia (marcature annuali sull'asse X), per un anno selezionato
+        suddiviso nei suoi 12 mesi.
+      </p>
+
+      <h3>Prezzo Bitcoin (storico)</h3>
+      <p>
+        Un grafico a linee autonomo (viola) con lo storico puro del prezzo
+        BTC nella valuta di visualizzazione scelta — indipendente dal
+        periodo limitato dalle transazioni del grafico saldo/valore sopra,
+        poiché mostra tutto lo storico mensile dei prezzi disponibile (o,
+        per un anno selezionato, solo i suoi 12 mesi). <b>«Carica
+        prezzi»</b> recupera automaticamente lo storico mancante tramite
+        CoinGecko (prezzo di chiusura, ultimo giorno del mese); <b>«Modifica
+        prezzi»</b> apre una finestra raggruppata per anno e comprimibile per
+        inserire/correggere manualmente singoli prezzi mensili — il mese in
+        corso usa lì sempre automaticamente il prezzo attualmente salvato e
+        non è modificabile.
+      </p>
+
+      <h3>Acquisti e vendite</h3>
+      <p>
+        Ogni transazione di acquisto/vendita del periodo selezionato come
+        scheda propria, con filtri indipendenti di mostra/nascondi per
+        acquisti e vendite. Le schede di acquisto mostrano data, quantità
+        BTC, prezzo, importo totale, commissioni e guadagno/perdita in % e
+        importo (incluso un badge «Parzialmente/Completamente realizzato»).
+        Le schede di vendita scompongono inoltre la <b>composizione dagli
+        acquisti storici</b> (FIFO — gli acquisti aperti più vecchi vengono
+        consumati per primi): per ogni lotto di acquisto consumato, la
+        quantità, la data di acquisto originale, il periodo di detenzione in
+        giorni, il guadagno/perdita proporzionale di quel lotto e un badge
+        <b>esente da imposte</b>/<b>soggetto a imposte</b> (un periodo di
+        detenzione ≥ 365 giorni è considerato esente da imposte, a meno che
+        una data limite impostata nelle Impostazioni non indichi
+        diversamente — solo informativo, non è consulenza fiscale).
+      </p>
+
+      <h3>Trasferimenti</h3>
+      <p>
+        Depositi e prelievi (<span class="inline-code">TRANSFER_IN</span>/
+        <span class="inline-code">TRANSFER_OUT</span>) del periodo
+        selezionato, anch'essi come schede con data e quantità BTC. Tre
+        filtri che si escludono a vicenda — <b>Tutti</b>, <b>Solo
+        coppie</b> (trasferimento tra due posizioni proprie, la contropartita
+        viene trovata automaticamente tramite l'ID di trasferimento condiviso
+        e mostrata come «Da»/«A») e <b>Solo singoli</b> (deposito/prelievo
+        senza contropartita — filtro predefinito).
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Calcolo FIFO indipendente:</b> la scomposizione in lotti e il periodo di detenzione in questa vista vengono calcolati indipendentemente dalla Vista Portafoglio — entrambe usano la stessa logica FIFO (gli acquisti più vecchi vengono consumati per primi, a livello di intero portafoglio e tutte le posizioni), ma sono implementate deliberatamente in modo separato.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/yearly_view.png" alt="Vista annuale con saldo e andamento del valore, storico del prezzo Bitcoin, acquisti/vendite e trasferimenti"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot in arrivo<br><span class="path">images/yearly_view.png</span></div>
+        <figcaption>Saldo e andamento del valore, storico del prezzo Bitcoin, sotto acquisti/vendite e trasferimenti <span class="zoom-hint">Clicca per ingrandire ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step single" style="border-bottom:none">
+    <div class="step-text">
+      <div class="step-num">ROADMAP</div>
+      <h2>Cosa c'è — e cosa arriva dopo</h2>
+      <p class="muted">
+        Questa pagina è volutamente lasciata aperta: ogni visualizzazione
+        riceve in alto una propria sezione numerata, e il menu
+        «Visualizzazione» dell'app riserva già un posto per futuri tipi di
+        grafico accanto al Diagramma di flusso.
+      </p>
+      <div class="roadmap-card">
+        <ul class="tight">
+          <li class="done">Diagramma di flusso (Sankey) — flusso di acquisti/vendite/trasferimenti nel tempo, con pannello delle transazioni filtrabile e ricercabile</li>
+          <li class="done">Vista Portafoglio — allocazione, metriche, acquisti/vendite annuali, guadagno/perdita realizzato/non realizzato e guadagno/perdita per singolo acquisto</li>
+          <li class="done">Vista annuale — saldo e andamento del valore, storico del prezzo Bitcoin, acquisti/vendite con scomposizione lotti FIFO e badge fiscali, trasferimenti</li>
+          <li class="planned">Altre visualizzazioni — saranno documentate qui non appena disponibili</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · Visualizzazioni · <a href="index.html" style="color:var(--muted)">← Torna alla guida</a>
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ Chiudi (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>

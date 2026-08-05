@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.thatsme4now.depot.dto.PortfolioMetricsDTO;
 import com.thatsme4now.depot.dto.TransactionDTO;
+import com.thatsme4now.depot.entity.AppSettings;
 import com.thatsme4now.depot.entity.CurrentPrice;
 import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.entity.PriceHistory;
@@ -30,6 +32,10 @@ import com.thatsme4now.depot.service.CsvImportService.ImportResult;
 import com.thatsme4now.depot.service.DataExportService;
 import com.thatsme4now.depot.service.DepotService;
 import com.thatsme4now.depot.service.FlowService;
+import com.thatsme4now.depot.service.HistoricalPriceService;
+import com.thatsme4now.depot.service.HoldingsYearlyService;
+import com.thatsme4now.depot.service.MonthlyOverviewService;
+import com.thatsme4now.depot.service.MonthlyPriceService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -45,8 +51,105 @@ public class DepotRestController {
     private final CsvEncryptionService csvEncryptionService;
     private final DataExportService dataExportService;
     private final FlowService flowService;
+    private final HoldingsYearlyService holdingsYearlyService;
+    private final HistoricalPriceService historicalPriceService;
+    private final MonthlyPriceService monthlyPriceService;
+    private final MonthlyOverviewService monthlyOverviewService;
 
-    
+    @GetMapping("/holdings/yearly")
+    public List<com.thatsme4now.depot.dto.YearlyHoldingsDTO> getYearlyHoldings(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return holdingsYearlyService.getYearlyHoldings(cur);
+    }
+
+    @GetMapping("/historical-prices")
+    public List<com.thatsme4now.depot.dto.HistoricalPriceDTO> getHistoricalPrices(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return historicalPriceService.getYearly(cur);
+    }
+
+    @PutMapping("/historical-prices")
+    public ResponseEntity<Map<String, Object>> upsertHistoricalPrice(@RequestBody HistoricalPriceUpdateRequest req) {
+        try {
+            com.thatsme4now.depot.dto.HistoricalPriceDTO dto =
+                    historicalPriceService.upsert(req.getYear(), req.getCurrency(), req.getPrice());
+            return ResponseEntity.ok(Map.of(
+                    "year", dto.getYear(),
+                    "currency", dto.getCurrency(),
+                    "price", dto.getPrice()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/monthly-prices")
+    public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPrices(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyPriceService.getMonthly(cur);
+    }
+
+    /** Reine Kurs-Historie (alle in monthly_price vorhandenen Monate + laufender Live-Kurs) für
+     *  den Bitcoin-Kurs-Chart der Jahresansicht-Gesamtansicht — siehe MonthlyPriceService#getPriceHistory. */
+    @GetMapping("/monthly-prices/history")
+    public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPriceHistory(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyPriceService.getPriceHistory(cur);
+    }
+
+    @PutMapping("/monthly-prices")
+    public ResponseEntity<Map<String, Object>> upsertMonthlyPrice(@RequestBody MonthlyPriceUpdateRequest req) {
+        try {
+            com.thatsme4now.depot.dto.MonthlyPriceDTO dto =
+                    monthlyPriceService.upsert(req.getYear(), req.getMonth(), req.getCurrency(), req.getPrice());
+            return ResponseEntity.ok(Map.of(
+                    "year", dto.getYear(),
+                    "month", dto.getMonth(),
+                    "currency", dto.getCurrency(),
+                    "price", dto.getPrice()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/monthly-prices/backfill")
+    public ResponseEntity<Map<String, Object>> backfillMonthlyPrices() {
+        try {
+            int inserted = monthlyPriceService.backfill();
+            return ResponseEntity.ok(Map.of("totalNew", inserted));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/yearly-overview")
+    public com.thatsme4now.depot.dto.YearlyOverviewDTO getYearlyOverview(
+            @RequestParam(required = false, name = "year") Integer year,
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return monthlyOverviewService.getOverview(year, cur);
+    }
+
     @GetMapping("/flow")
     public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
             @RequestParam(required = false, name = "from") String from,
@@ -205,7 +308,10 @@ public class DepotRestController {
             tx.setTransferId(uuid);
             Transaction txIn = new Transaction();
             txIn.setType(TransactionType.TRANSFER_IN);
-            txIn.setDate(req.getTransferInDate() != null ? req.getTransferInDate() : tx.getDate());
+            LocalDateTime transferInDateTime = req.getTransferInDate() != null
+                    ? csvImportService.getLocalDateTimeByString(req.getTransferInDate())
+                    : null;
+            txIn.setDate(transferInDateTime != null ? transferInDateTime : tx.getDate());
             txIn.setQuantity(req.getTransferInQuantity() != null ? req.getTransferInQuantity() : tx.getQuantity());
             txIn.setExchangeRate(BigDecimal.ONE);
             txIn.setCurrency(tx.getCurrency());
@@ -257,10 +363,12 @@ public class DepotRestController {
 		tx.setComment(req.getComment());
 	}
     
+	// "App zurücksetzen" (früher "Alle löschen") — leert dieselben Tabellen
+	// wie der App-Lock-Reset (siehe AppLockService#reset), damit die App
+	// danach exakt einer frischen Installation ohne Daten entspricht.
 	@DeleteMapping("/")
     public ResponseEntity<Void> deleteAllTransaction() {
-        depotService.deleteTransaction();
-        depotService.delete();
+        dataExportService.clearAll();
         return ResponseEntity.noContent().build();
     }
 	
@@ -479,6 +587,21 @@ public class DepotRestController {
 	    }
 	}
     
+    @GetMapping("/current-price")
+    public ResponseEntity<Map<String, Object>> getCurrentPriceValue(
+            @RequestParam(required = false, name = "currency") String currency) {
+        String cur = currency != null ? currency.toUpperCase() : "EUR";
+        // Nur price/currency zurückgeben (kein priceDate) — Map.of() erlaubt keine
+        // null-Werte, und priceDate ist hier nicht garantiert nötig/gesetzt.
+        BigDecimal price = depotService.getCurrentPrice(cur)
+            .map(CurrentPrice::getPrice)
+            .orElse(BigDecimal.ZERO);
+        return ResponseEntity.ok(Map.of(
+            "price",    price,
+            "currency", cur
+        ));
+    }
+
     @PutMapping("/current-price")
     public ResponseEntity<Map<String, Object>> setCurrentPrice(
             @RequestBody CurrentPriceRequest req) {
@@ -499,7 +622,27 @@ public class DepotRestController {
             "priceDate", cp.getPriceDate()
         ));
     }
-    
+
+    // ── App Settings ──────────────────────────────────────────────────────────
+
+    @GetMapping("/settings")
+    public ResponseEntity<Map<String, Object>> getSettings() {
+        AppSettings settings = depotService.getAppSettings();
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        return ResponseEntity.ok(body);
+    }
+
+    @PutMapping("/settings")
+    public ResponseEntity<Map<String, Object>> updateSettings(@RequestBody AppSettingsUpdateRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        settings.setTaxHoldingPeriodCutoffDate(req.getTaxHoldingPeriodCutoffDate());
+        depotService.saveAppSettings(settings);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
         return depotService.getPosition(id)
@@ -532,14 +675,45 @@ public class DepotRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @DeleteMapping("/positions/{id}")
+    public ResponseEntity<Map<String, Object>> deletePosition(@PathVariable("id") Long id) {
+        if (depotService.getPosition(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        long txCount = depotService.getTransactionCount(id);
+        if (txCount > 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Position has " + txCount + " transaction(s) — move or delete them first."
+            ));
+        }
+        depotService.delete(id);
+        return ResponseEntity.ok(Map.of("id", id));
+    }
+
     @GetMapping("/positions")
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
         return depotService.getAllPositions(currency).stream()
-            .map(p -> Map.<String, Object>of("id", p.getId(), "label", p.getLabel()))
+            .map(p -> Map.<String, Object>of(
+                "id", p.getId(),
+                "label", p.getLabel(),
+                "totalValue", p.getTotalValue() != null ? p.getTotalValue() : BigDecimal.ZERO,
+                "quantityInSats", p.getQuantityInSats() != null ? p.getQuantityInSats() : BigDecimal.ZERO))
             .collect(Collectors.toList());
     }
-    
+
+    // Portfolio-weite Kennzahlen (Kennzahlen-Kachel, Bestandsansicht) — geteilte Berechnung,
+    // siehe HoldingsYearlyService.computePortfolioMetrics für Details/Begründung.
+    @GetMapping("/metrics")
+    public PortfolioMetricsDTO getMetrics(
+            @RequestParam(required = false, name = "currency") String currency,
+            HttpServletRequest request) {
+        String cur = (currency != null && !currency.isBlank())
+                ? currency
+                : depotService.readCookie(request, "depot-currency", "EUR");
+        return holdingsYearlyService.computePortfolioMetrics(cur);
+    }
+
     @DeleteMapping("/transactions/bulk")
     public ResponseEntity<Map<String, Object>> bulkDelete(@RequestBody List<Long> ids) {
         ids.forEach(depotService::deleteTransaction);
@@ -646,7 +820,10 @@ public class DepotRestController {
                 ? req.getPassword() : null;
         byte[] data = dataExportService.exportFull(password);
 
-        String filename = password != null ? "btc-tracking_full_export.json.enc" : "btc-tracking_full_export.json";
+        String datePart = java.time.LocalDate.now().toString(); // ISO yyyy-MM-dd
+        String filename = password != null
+                ? "btc-tracking_backup_" + datePart + ".json.enc"
+                : "btc-tracking_backup_" + datePart + ".json";
         response.setContentType(password != null ? "application/octet-stream" : "application/json; charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=" + filename);
         response.getOutputStream().write(data);
@@ -675,6 +852,11 @@ public class DepotRestController {
         private java.math.BigDecimal price;
         private java.time.LocalDate  priceDate;
         private String               currency;
+    }
+
+    @lombok.Data
+    public static class AppSettingsUpdateRequest {
+        private java.time.LocalDate taxHoldingPeriodCutoffDate;
     }
 
 
@@ -714,7 +896,7 @@ public class DepotRestController {
         private String comment;
         private String exchange;
         private String transferTarget;                    // Position-Label für TRANSFER_IN
-        private java.time.LocalDateTime transferInDate;   // optional, sonst = date
+        private String transferInDate;   // optional, sonst = date (Format wie "date": "yyyy-MM-dd HH:mm:ss")
         private java.math.BigDecimal transferInQuantity;  // optional, sonst = quantity
     }
     
@@ -761,5 +943,20 @@ public class DepotRestController {
     @lombok.Data
     public static class BulkClearDuplicateRequest {
         private List<Long> ids;
+    }
+
+    @lombok.Data
+    public static class HistoricalPriceUpdateRequest {
+        private Integer year;
+        private String currency;
+        private java.math.BigDecimal price;
+    }
+
+    @lombok.Data
+    public static class MonthlyPriceUpdateRequest {
+        private Integer year;
+        private Integer month;
+        private String currency;
+        private java.math.BigDecimal price;
     }
 }

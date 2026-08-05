@@ -84,11 +84,7 @@
   .back-link:hover{border-color:var(--accent); color:var(--accent);}
 
   .lang-switch{
-    position:fixed;
-    top:20px;
-    right:24px;
-    z-index:500;
-    display:flex;
+    display:inline-flex;
     gap:2px;
     background:var(--panel);
     border:1px solid var(--border);
@@ -97,6 +93,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     letter-spacing:0.06em;
+    margin-bottom:16px;
   }
   .lang-switch a{
     text-decoration:none;
@@ -110,9 +107,6 @@
     font-weight:600;
   }
   .lang-switch a:not(.active):hover{color:var(--text);}
-  @media (max-width:600px){
-    .lang-switch{top:12px; right:12px;}
-  }
 
   nav.steps{
     max-width:1100px;
@@ -137,7 +131,6 @@
   }
   nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
   nav.steps a span{color:var(--accent); margin-right:6px;}
-  nav.steps a.soon{opacity:.45; cursor:default; pointer-events:none;}
 
   main{max-width:1100px; margin:0 auto; padding:24px;}
 
@@ -350,20 +343,23 @@
 </head>
 <body>
 
-<div class="lang-switch">
-  <a href="visualizations.html" class="active">DE</a>
-  <a href="../visualizations.html">EN</a>
-</div>
-
 <header class="hero">
+  <div class="lang-switch">
+    <a href="visualizations.html" class="active">DE</a>
+    <a href="../visualizations.html">EN</a>
+    <a href="../es/visualizations.html">ES</a>
+    <a href="../fr/visualizations.html">FR</a>
+    <a href="../it/visualizations.html">IT</a>
+    <a href="../th/visualizations.html">TH</a>
+  </div>
   <div class="hero-tag"><span class="dot"></span>Visualisierungen · Deutsch</div>
   <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Visualisierungen</h1>
   <p class="lead">
     Neben der tabellarischen Dashboard-Ansicht bietet die App eigene
     Visualisierungen, um die Portfolio-Historie zu erkunden. Diese Seite ist
-    bewusst offen gehalten — aktuell beschreibt sie das <b>Fluss-Diagramm</b>
-    und wächst mit jeder weiteren Visualisierung (in der App selbst ist im
-    Menü bereits ein „Bald verfügbar“-Platzhalter dafür reserviert).
+    bewusst offen gehalten — aktuell beschreibt sie das <b>Fluss-Diagramm</b>,
+    die <b>Bestandsansicht</b> und die <b>Jahresansicht</b>, und wächst mit
+    jeder weiteren Visualisierung.
   </p>
   <div class="back-links">
     <a class="back-link" href="index.html">← Zurück zur Anleitung</a>
@@ -373,7 +369,8 @@
 
 <nav class="steps">
   <a href="#viz-flow"><span>01</span>Fluss-Diagramm (Sankey)</a>
-  <a class="soon"><span>·</span>Weitere Visualisierungen — bald verfügbar</a>
+  <a href="#viz-holdings"><span>02</span>Bestandsansicht</a>
+  <a href="#viz-yearly"><span>03</span>Jahresansicht</a>
 </nav>
 
 <main>
@@ -450,6 +447,173 @@
     </div>
   </section>
 
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">VISUALISIERUNG 02</div>
+      <h2>Bestandsansicht</h2>
+      <p>
+        Aufrufbar im Dashboard-Header über <b>„Visualisierung“ → „Bestandsansicht“</b>
+        (oder direkt unter <span class="inline-code">/btc-tracking/holdings</span>).
+        Ein komplettes, aus einzelnen Kacheln zusammengesetztes Dashboard rund
+        um die <b>Portfolio-Verteilung, Kennzahlen und die Jahres-Performance</b> —
+        inklusive einer Aufschlüsselung bis auf die Ebene einzelner Käufe. Die
+        Kacheln lassen sich wie auf der Übersicht per Ziehen am Griff frei
+        anordnen (bis zu 3 pro Reihe, auf dem Handy per Pfeil-Buttons), „Layout
+        zurücksetzen“ stellt die Standardanordnung wieder her.
+      </p>
+
+      <h3>Allokation &amp; Kennzahlen</h3>
+      <p>
+        Ein Donut-Chart zeigt die <b>Verteilung nach Wallet/Börse</b> (Anteil am
+        Gesamtwert), daneben eine Kachel mit den zentralen <b>Kennzahlen</b>:
+        Gesamt-BTC, Gesamtwert, Performance in %, Bestand in Satoshi, investierter
+        Betrag, bereits realisierter Gewinn/Verlust und Gewinn/Verlust gesamt
+        sowie die Anzahl der Transaktionen.
+      </p>
+
+      <h3>Jahres-Diagramme</h3>
+      <p>
+        Drei unabhängige Balken-Diagramme, jeweils ein Balken (bzw. eine
+        Balkengruppe) pro Jahr:
+      </p>
+      <table class="fields">
+        <tr><th>Diagramm</th><th>Zeigt</th></tr>
+        <tr><td class="field">BTC-Bestand pro Jahr</td><td class="desc">Gesamter BTC-Bestand über das ganze Portfolio hinweg zum 31.12. jedes Jahres (bzw. jetzt, für das laufende Jahr), in Bitcoin-Orange</td></tr>
+        <tr><td class="field">Käufe &amp; Verkäufe pro Jahr</td><td class="desc"><b>Käufe</b>, gestapelt nach Wallet/Börse (jede Position ein eigener Blau-/Türkis-Ton), daneben ein separater <b>Verkäufe</b>-Balken (lila) für dasselbe Jahr</td></tr>
+        <tr><td class="field">Realisierter Gewinn/Verlust pro Jahr</td><td class="desc">Verkaufserlös abzüglich der gewichteten durchschnittlichen Anschaffungskosten der verkauften BTC — grün bei Gewinn, rot/orange bei Verlust</td></tr>
+        <tr><td class="field">Unrealisierter Gewinn/Verlust pro Jahr</td><td class="desc">Bestandswert zum Jahresende abzüglich Anschaffungskosten zu diesem Zeitpunkt. Nutzt für das laufende Jahr den Live-Kurs, für vergangene Jahre den unten beschriebenen 31.12.-Referenzkurs — fehlt der noch, bleibt der Balken leer</td></tr>
+      </table>
+
+      <h3>Gewinn/Verlust je Kauf</h3>
+      <p>
+        Zwei weitere Diagramme (Prozent und absoluter Betrag) mit <b>einem
+        Balken pro einzelner Kauf-Transaktion</b>, chronologisch sortiert. Die
+        Farbe kombiniert Vorzeichen und FIFO-Status — portfolioweit wird
+        errechnet, welcher Kauf durch spätere Verkäufe bereits (teilweise)
+        „verbraucht“ wurde:
+      </p>
+      <ul class="tight">
+        <li><span class="swatch" style="background:#1d9e75"></span><b>Gehalten, im Plus</b> / <span class="swatch" style="background:#d85a30"></span><b>gehalten, im Minus</b> — kräftige Farbe, noch nicht verkauft</li>
+        <li><span class="swatch" style="background:#5fbf9e"></span><b>Teilweise realisiert</b> — gedämpfter Ton, ein Teil wurde bereits verkauft</li>
+        <li><span class="swatch" style="background:#6f8f83"></span><b>Komplett realisiert</b> — am blassesten, vollständig verkauft</li>
+      </ul>
+      <p class="muted">
+        Große Ausreißer werden gestaucht dargestellt (symmetrisch-logarithmische
+        Skala oberhalb ±100 % bzw. eines automatisch aus den Daten hergeleiteten
+        Schwellenwerts für den €-Chart), damit ein einzelner extrem hoher oder
+        tiefer Kauf nicht alle anderen Balken auf der Achse winzig aussehen lässt —
+        Tooltip und Kauf-Details zeigen weiterhin den echten Wert.
+      </p>
+
+      <h3>Kauf-Details</h3>
+      <p>
+        Klick auf einen Balken in einem der beiden Gewinn/Verlust-je-Kauf-Diagramme
+        öffnet die zugehörige <b>Kauf-Details</b>-Kachel: Datum, Position, BTC-Menge,
+        Preis, Gesamtbetrag, Gebühren, Gewinn/Verlust in % und Betrag, Kommentar —
+        bei teilweise/komplett realisierten Käufen zusätzlich die einzelnen
+        zugehörigen Verkäufe mit dem jeweils daraus verbrauchten BTC-Anteil. Mit
+        den Pfeiltasten <span class="inline-code">←</span>/<span class="inline-code">→</span>
+        lässt sich chronologisch zum vorherigen/nächsten Kauf blättern, solange
+        eine Auswahl aktiv ist.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Referenzkurse für vergangene Jahre:</b> die App hinterlegt einmalig im Hintergrund einen ungefähren BTC-Jahresend-Kurs (31.12.) je Währung für vergangene Jahre — genau das treibt die Unrealisiert-Balken für vergangene Jahre oben an. Eine eigene Kachel erlaubt es, diese Werte selbst einzusehen und zu korrigieren sowie ein Jahr nachzutragen, das der Hintergrund-Seed noch nicht abdeckt (z. B. ein gerade erst zu Ende gegangenes Jahr).</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/holdings.png" alt="Bestandsansicht mit Allokations-Donut, Kennzahlen, Jahres-Diagrammen und Gewinn/Verlust je Kauf"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot folgt in Kürze<br><span class="path">images/holdings.png</span></div>
+        <figcaption>Allokations-Donut, Kennzahlen und BTC-Bestand pro Jahr, darunter Gewinn/Verlust je Kauf <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-yearly">
+    <div class="step-text">
+      <div class="step-num">VISUALISIERUNG 03</div>
+      <h2>Jahresansicht</h2>
+      <p>
+        Aufrufbar im Dashboard-Header über <b>„Visualisierung“ → „Jahresansicht“</b>
+        (oder direkt unter <span class="inline-code">/btc-tracking/yearly</span>).
+        Eine Auswahl oben schaltet zwischen <b>Gesamtansicht</b> und einem
+        <b>einzelnen Jahr</b> um (die Wahl bleibt über Neuladen hinweg erhalten) —
+        alle Kacheln darunter passen sich entsprechend an. Auch hier lassen sich
+        die Kacheln frei anordnen (bis zu 2 pro Reihe), inklusive „Layout
+        zurücksetzen“.
+      </p>
+
+      <h3>Bestand &amp; Wertentwicklung</h3>
+      <p>
+        Ein Liniendiagramm mit zwei Achsen: <b>Bestand</b> in BTC (orange, linke
+        Achse) und <b>Wertentwicklung</b> in der gewählten Anzeigewährung (grün,
+        rechte Achse) — in der Gesamtansicht über die komplette Historie
+        (Jahresmarken auf der X-Achse), für ein gewähltes Jahr aufgeschlüsselt
+        auf dessen 12 Monate.
+      </p>
+
+      <h3>Bitcoin-Kurs (Historie)</h3>
+      <p>
+        Ein eigenständiges Liniendiagramm (violett) mit dem reinen BTC-Kursverlauf
+        in der gewählten Anzeigewährung — unabhängig vom durch Transaktionen
+        begrenzten Zeitraum des Bestand/Wert-Diagramms oben, da es die komplette
+        vorhandene Monatskurs-Historie zeigt (bzw., für ein gewähltes Jahr, nur
+        dessen 12 Monate). Über <b>„Preise laden“</b> lässt sich fehlende Historie
+        per CoinGecko automatisch nachladen (Ultimo-Kurs, letzter Tag des Monats);
+        <b>„Preise anpassen“</b> öffnet einen nach Jahr gruppierten, einklappbaren
+        Dialog zum manuellen Eintragen/Korrigieren einzelner Monatskurse — der
+        laufende Monat nutzt dort immer automatisch den aktuell hinterlegten Kurs
+        und ist nicht editierbar.
+      </p>
+
+      <h3>Käufe &amp; Verkäufe</h3>
+      <p>
+        Jede Kauf-/Verkauf-Transaktion des gewählten Zeitraums als eigene Karte,
+        mit unabhängigen Ein-/Ausblenden-Filtern für Käufe und Verkäufe.
+        Kauf-Karten zeigen Datum, BTC-Menge, Preis, Gesamtbetrag, Gebühren sowie
+        Gewinn/Verlust in % und Betrag (inkl. „Teilweise/Komplett realisiert“-
+        Badge). Verkauf-Karten schlüsseln zusätzlich die <b>Zusammensetzung aus
+        historischen Käufen</b> auf (FIFO — älteste offene Käufe zuerst
+        verbraucht): pro verbrauchtem Kauf-Los die Menge, das ursprüngliche
+        Kaufdatum, die Haltedauer in Tagen, der anteilige Gewinn/Verlust dieses
+        Loses sowie ein <b>steuerfrei</b>/<b>steuerpflichtig</b>-Badge (Haltedauer
+        ≥ 365 Tage gilt als steuerfrei, sofern kein in den Einstellungen
+        hinterlegter Stichtag dagegenspricht — rein informativ, keine
+        Steuerberatung).
+      </p>
+
+      <h3>Transfers</h3>
+      <p>
+        Ein- und Auszahlungen (<span class="inline-code">TRANSFER_IN</span>/
+        <span class="inline-code">TRANSFER_OUT</span>) des gewählten Zeitraums,
+        ebenfalls als Karten mit Datum und BTC-Menge. Drei sich gegenseitig
+        ausschließende Filter — <b>Alle</b>, <b>Nur Paare</b> (Transfer zwischen
+        zwei eigenen Positionen, Gegenbuchung wird automatisch über die
+        gemeinsame Transfer-ID gefunden und als „Von“/„Nach“ angezeigt) und
+        <b>Nur Solo</b> (Ein-/Auszahlung ohne Gegenbuchung — voreingestellter
+        Standardfilter).
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Eigenständige FIFO-Berechnung:</b> die Los-Aufschlüsselung und Haltedauer in dieser Ansicht wird unabhängig von der Bestandsansicht berechnet — beide nutzen dieselbe FIFO-Logik (älteste Käufe zuerst verbraucht, portfolioweit über alle Positionen hinweg), sind aber bewusst getrennt implementiert.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/yearly_view.png" alt="Jahresansicht mit Bestand &amp; Wertentwicklung, Bitcoin-Kurs-Historie, Käufen/Verkäufen und Transfers"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot folgt in Kürze<br><span class="path">images/yearly_view.png</span></div>
+        <figcaption>Bestand &amp; Wertentwicklung sowie Bitcoin-Kurs-Historie, darunter Käufe/Verkäufe und Transfers <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
   <section class="step single" style="border-bottom:none">
     <div class="step-text">
       <div class="step-num">ROADMAP</div>
@@ -463,6 +627,8 @@
       <div class="roadmap-card">
         <ul class="tight">
           <li class="done">Fluss-Diagramm (Sankey) — Kauf/Verkauf/Transfer-Fluss über die Zeit, mit filter- und durchsuchbarem Transaktions-Panel</li>
+          <li class="done">Bestandsansicht — Allokation, Kennzahlen, jährliche Käufe/Verkäufe, realisierter/unrealisierter Gewinn/Verlust sowie Gewinn/Verlust je einzelnem Kauf</li>
+          <li class="done">Jahresansicht — Bestand &amp; Wertentwicklung, Bitcoin-Kurs-Historie, Käufe/Verkäufe mit FIFO-Loszusammensetzung und Steuer-Badges, Transfers</li>
           <li class="planned">Weitere Visualisierungen — werden hier dokumentiert, sobald verfügbar</li>
         </ul>
       </div>

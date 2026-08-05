@@ -30,7 +30,10 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "transaction_id", nullable = true, length = 36)
+    // 100 statt 36: echte Bitcoin-TXIDs (64 Hex-Zeichen) + ggf. "-in"/"-out"-Suffix
+    // (Selbst-Transfer-Paare, siehe ImportWizardService#buildSelfRows) sprengen
+    // die alte UUID-Länge (36) — siehe auch schema-h2.sql/depot.sql.
+    @Column(name = "transaction_id", nullable = true, length = 100)
     private String transactionId;
 
     //@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -99,6 +102,12 @@ public class Transaction {
     
     @Column(name = "is_duplicate", nullable = false)
     private boolean duplicate = false;
+
+    /** Herkunfts-Import (import_history.id) — NULL bei manuell angelegten
+     *  Transaktionen oder wenn der Herkunfts-Import-Eintrag inzwischen
+     *  gelöscht wurde. Bewusst kein FK-Constraint, siehe schema-h2.sql. */
+    @Column(name = "import_history_id")
+    private Long importHistoryId;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

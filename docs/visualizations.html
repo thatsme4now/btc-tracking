@@ -84,11 +84,7 @@
   .back-link:hover{border-color:var(--accent); color:var(--accent);}
 
   .lang-switch{
-    position:fixed;
-    top:20px;
-    right:24px;
-    z-index:500;
-    display:flex;
+    display:inline-flex;
     gap:2px;
     background:var(--panel);
     border:1px solid var(--border);
@@ -97,6 +93,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     letter-spacing:0.06em;
+    margin-bottom:16px;
   }
   .lang-switch a{
     text-decoration:none;
@@ -110,9 +107,6 @@
     font-weight:600;
   }
   .lang-switch a:not(.active):hover{color:var(--text);}
-  @media (max-width:600px){
-    .lang-switch{top:12px; right:12px;}
-  }
 
   nav.steps{
     max-width:1100px;
@@ -137,7 +131,6 @@
   }
   nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
   nav.steps a span{color:var(--accent); margin-right:6px;}
-  nav.steps a.soon{opacity:.45; cursor:default; pointer-events:none;}
 
   main{max-width:1100px; margin:0 auto; padding:24px;}
 
@@ -350,19 +343,23 @@
 </head>
 <body>
 
-<div class="lang-switch">
-  <a href="de/visualizations.html">DE</a>
-  <a href="visualizations.html" class="active">EN</a>
-</div>
-
 <header class="hero">
+  <div class="lang-switch">
+    <a href="de/visualizations.html">DE</a>
+    <a href="visualizations.html" class="active">EN</a>
+    <a href="es/visualizations.html">ES</a>
+    <a href="fr/visualizations.html">FR</a>
+    <a href="it/visualizations.html">IT</a>
+    <a href="th/visualizations.html">TH</a>
+  </div>
   <div class="hero-tag"><span class="dot"></span>Visualizations · English</div>
   <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Visualizations</h1>
   <p class="lead">
-    Beyond the dashboard's table view, the app offers dedicated visualizations
-    for exploring your portfolio's history. This page is a living reference —
-    it currently covers the <b>Flow Diagram</b> and will grow as more chart
-    types are added (a “Coming soon” slot already exists in the app itself).
+    Besides the tabular dashboard view, the app offers dedicated
+    visualizations to explore your portfolio history. This page is
+    deliberately kept open-ended — it currently covers the <b>Flow Diagram</b>,
+    the <b>Holdings View</b>, and the <b>Yearly View</b>, and grows with every
+    new visualization.
   </p>
   <div class="back-links">
     <a class="back-link" href="index.html">← Back to Guide</a>
@@ -372,7 +369,8 @@
 
 <nav class="steps">
   <a href="#viz-flow"><span>01</span>Flow Diagram (Sankey)</a>
-  <a class="soon"><span>·</span>More visualizations — coming soon</a>
+  <a href="#viz-holdings"><span>02</span>Holdings View</a>
+  <a href="#viz-yearly"><span>03</span>Yearly View</a>
 </nav>
 
 <main>
@@ -382,68 +380,231 @@
       <div class="step-num">VISUALIZATION 01</div>
       <h2>Flow Diagram (Sankey)</h2>
       <p>
-        Open it from the dashboard header via <b>“Visualization” → “Flow Diagram”</b>
-        (or directly at <span class="inline-code">/btc-tracking/flow</span>). It draws
-        a <b>Sankey diagram</b> of how your BTC moved over time: purchases flow in
-        from the left, sales and external withdrawals flow out to the right, and
-        transfers between your own wallets/exchanges are shown as connections
-        between position nodes. Bookings are bundled per month and per
-        source/target pair so the diagram stays readable even with a long history.
+        Accessible from the dashboard header via <b>“Visualization” → “Flow
+        Diagram”</b> (or directly at <span class="inline-code">/btc-tracking/flow</span>).
+        It draws a <b>Sankey diagram</b> of how your own BTC has moved over
+        time: purchases flow in from the left, sales and external withdrawals
+        flow out to the right, and transfers between your own wallets/exchanges
+        appear as connections between the position nodes. Bookings are
+        grouped by month and by source/target pair so the diagram stays
+        readable even with a long history.
       </p>
 
       <h3>Filters</h3>
       <table class="fields">
         <tr><th>Filter</th><th>Effect</th></tr>
-        <tr><td class="field">From / To</td><td class="desc">Restrict the diagram to a date range</td></tr>
-        <tr><td class="field">Position</td><td class="desc">Anchor the diagram on one wallet/exchange — traces its BTC upstream (where it came from) and downstream (where it went)</td></tr>
+        <tr><td class="field">From / To</td><td class="desc">Limit the diagram to a time range</td></tr>
+        <tr><td class="field">Position</td><td class="desc">Anchor the diagram to a wallet/exchange — traces its BTC backwards (origin) and forwards (destination)</td></tr>
       </table>
 
-      <h3>Color legend</h3>
+      <h3>Color Legend</h3>
       <ul class="tight">
         <li><span class="swatch" style="background:var(--green)"></span><b>Buy</b> — BTC purchased into a position</li>
-        <li><span class="swatch" style="background:var(--red)"></span><b>Sell</b> — BTC sold out of a position</li>
+        <li><span class="swatch" style="background:var(--red)"></span><b>Sell</b> — BTC sold from a position</li>
         <li><span class="swatch" style="background:var(--accent)"></span><b>Transfer</b> — moved between two of your own positions</li>
         <li><span class="swatch" style="background:var(--muted)"></span><b>External</b> — deposit from, or withdrawal to, an address outside your tracked positions</li>
       </ul>
 
-      <h3>Transaction panel</h3>
+      <h3>Transaction Panel</h3>
       <p>
-        Next to the diagram is a transaction panel listing every underlying
-        booking as a card (date, position, type, BTC amount, price, fees,
-        currency, exchange rate, transfer ID, comment). Buy, sell and transfer
-        in/out each get a small colored badge. A search box above the list
-        filters by any value shown on the cards (position, type, date, amounts,
-        comment, …) — regardless of whether you type amounts with a dot or a
-        comma. On narrower screens the panel moves below the diagram instead
-        of sitting beside it.
+        Alongside the diagram, a panel shows every underlying booking as a
+        card (date, position, type, BTC amount, price, fees, currency,
+        exchange rate, transfer ID, comment). Buy, sell, and transfer
+        in/out each get a small colored badge. A search field above the list
+        filters by any value visible on the cards (position, type, date,
+        amounts, comment, …) — regardless of whether amounts are entered with
+        a dot or a comma. On narrower screens, the panel slides below the
+        diagram instead of sitting next to it.
       </p>
 
-      <h3>Interacting with the diagram</h3>
+      <h3>Interaction in the Diagram</h3>
       <table class="fields">
         <tr><th>Action</th><th>Result</th></tr>
-        <tr><td class="field">Hover a link or node</td><td class="desc">Tooltip with the exact amount, month, position balance and the list of individual bookings behind it</td></tr>
-        <tr><td class="field">Click a node or link</td><td class="desc">Highlights it and <b>filters</b> the transaction panel down to only the related bookings; the panel title switches to “Filtered: …” with a button to show all again. Clicking the same element again clears the filter; clicking a different one switches immediately.</td></tr>
+        <tr><td class="field">Hover a node or link</td><td class="desc">Tooltip with the exact amount, month, position balance, and the list of individual bookings behind it</td></tr>
+        <tr><td class="field">Click a node or link</td><td class="desc">Highlights it and <b>filters</b> the transaction panel to only the related bookings; the panel title switches to “Filtered: …” with a reset button. Clicking the same element again resets it, clicking another one switches immediately.</td></tr>
       </table>
 
-      <h3>Interacting with the transaction panel</h3>
+      <h3>Interaction in the Transaction Panel</h3>
       <table class="fields">
         <tr><th>Action</th><th>Result</th></tr>
         <tr><td class="field">Hover a transaction card</td><td class="desc">Temporary preview highlight of the matching link/nodes in the diagram (only while no diagram selection is active)</td></tr>
-        <tr><td class="field">Click a transaction card</td><td class="desc"><b>Pins</b> the highlight for that exact booking in the diagram — <i>without</i> filtering or collapsing the list, and without changing the panel title/count. Click the same card again to unpin; click a different card to switch the highlight immediately.</td></tr>
+        <tr><td class="field">Click a transaction card</td><td class="desc"><b>Pins</b> the highlight for exactly this booking in the diagram — <i>without</i> filtering or shrinking the list, and without changing the panel title/count. Clicking the same card again removes the pin, clicking another card switches the highlight immediately.</td></tr>
       </table>
 
       <div class="note">
         <span>ℹ</span>
-        <span><b>Why two different click behaviors?</b> Clicking directly in the <i>diagram</i> is meant for drilling down (“show me only what belongs to this node/link”). Clicking a <i>card</i> in the already-visible list is meant for quick visual lookup (“where in the diagram is this one booking?”) without losing your place in the full list.</span>
+        <span><b>Why two different click behaviors?</b> Clicking directly in the <i>diagram</i> is for narrowing down (“show me only what belongs to this node/link”). Clicking an already visible <i>card</i> in the list is for quick visual lookup (“where in the diagram is this one booking?”), without losing your place in the full list.</span>
       </div>
     </div>
     <div class="step-media">
       <figure>
-        <img src="images/flowchart.png" alt="Flow diagram with color-coded links and the transaction panel"
+        <img src="images/flowchart.png" alt="Flow diagram with color-coded connections and the transaction panel"
              onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
              onerror="this.onerror=null;this.parentElement.classList.add('missing')">
         <div class="img-fallback">🖼 Screenshot coming soon<br><span class="path">images/flowchart.png</span></div>
         <figcaption>Flow diagram with the transaction panel on the right <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">VISUALIZATION 02</div>
+      <h2>Holdings View</h2>
+      <p>
+        Accessible from the dashboard header via <b>“Visualization” →
+        “Holdings View”</b> (or directly at <span class="inline-code">/btc-tracking/holdings</span>).
+        A full dashboard built from individual tiles, centered on
+        <b>portfolio distribution, key metrics, and yearly performance</b> —
+        including a breakdown down to the level of individual purchases. Like
+        on the overview page, tiles can be freely rearranged by dragging the
+        handle (up to 3 per row, arrow buttons on mobile), and “Reset layout”
+        restores the default arrangement.
+      </p>
+
+      <h3>Allocation &amp; Metrics</h3>
+      <p>
+        A donut chart shows the <b>distribution by wallet/exchange</b> (share
+        of total value), next to a tile with the central <b>metrics</b>: total
+        BTC, total value, performance in %, holdings in satoshi, invested
+        amount, already-realized gain/loss, total gain/loss, and the number
+        of transactions.
+      </p>
+
+      <h3>Yearly Charts</h3>
+      <p>
+        Three independent bar charts, one bar (or bar group) per year:
+      </p>
+      <table class="fields">
+        <tr><th>Chart</th><th>Shows</th></tr>
+        <tr><td class="field">BTC holdings per year</td><td class="desc">Total BTC holdings across the whole portfolio as of Dec 31 of each year (or now, for the current year), in Bitcoin orange</td></tr>
+        <tr><td class="field">Buys &amp; sells per year</td><td class="desc"><b>Buys</b>, stacked by wallet/exchange (each position its own blue/teal shade), next to a separate <b>Sells</b> bar (purple) for the same year</td></tr>
+        <tr><td class="field">Realized gain/loss per year</td><td class="desc">Sale proceeds minus the weighted average cost basis of the sold BTC — green for gain, red/orange for loss</td></tr>
+        <tr><td class="field">Unrealized gain/loss per year</td><td class="desc">Holdings value at year end minus cost basis at that point. Uses the live price for the current year, and the Dec 31 reference price described below for past years — if that's still missing, the bar stays empty</td></tr>
+      </table>
+
+      <h3>Gain/Loss per Purchase</h3>
+      <p>
+        Two more charts (percentage and absolute amount) with <b>one bar per
+        individual buy transaction</b>, sorted chronologically. The color
+        combines sign and FIFO status — computed portfolio-wide, which
+        purchase has already been (partially) “consumed” by later sales:
+      </p>
+      <ul class="tight">
+        <li><span class="swatch" style="background:#1d9e75"></span><b>Held, in profit</b> / <span class="swatch" style="background:#d85a30"></span><b>held, at a loss</b> — bold color, not yet sold</li>
+        <li><span class="swatch" style="background:#5fbf9e"></span><b>Partially realized</b> — muted shade, part of it already sold</li>
+        <li><span class="swatch" style="background:#6f8f83"></span><b>Fully realized</b> — palest, fully sold</li>
+      </ul>
+      <p class="muted">
+        Large outliers are compressed (symmetric log scale above ±100%, or a
+        threshold automatically derived from the data for the currency chart)
+        so that a single extremely high or low purchase doesn't shrink every
+        other bar on the axis to invisibility — the tooltip and purchase
+        details still show the real value.
+      </p>
+
+      <h3>Purchase Details</h3>
+      <p>
+        Clicking a bar in either of the two gain/loss-per-purchase charts
+        opens the corresponding <b>Purchase Details</b> tile: date, position,
+        BTC amount, price, total amount, fees, gain/loss in % and amount,
+        comment — for partially/fully realized purchases, also the
+        individual related sales with the BTC portion consumed from each. Use
+        the arrow keys <span class="inline-code">←</span>/<span class="inline-code">→</span>
+        to browse chronologically to the previous/next purchase while a
+        selection is active.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Reference prices for past years:</b> the app seeds an approximate BTC year-end price (Dec 31) per currency for past years in the background once — that's exactly what drives the unrealized bars for past years above. A dedicated tile lets you inspect and correct these values yourself, and fill in a year the background seed doesn't yet cover (e.g. a year that just ended).</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/holdings.png" alt="Holdings View with allocation donut, metrics, yearly charts, and gain/loss per purchase"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot coming soon<br><span class="path">images/holdings.png</span></div>
+        <figcaption>Allocation donut, metrics, and BTC holdings per year, below that gain/loss per purchase <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-yearly">
+    <div class="step-text">
+      <div class="step-num">VISUALIZATION 03</div>
+      <h2>Yearly View</h2>
+      <p>
+        Accessible from the dashboard header via <b>“Visualization” →
+        “Yearly View”</b> (or directly at <span class="inline-code">/btc-tracking/yearly</span>).
+        A selector at the top switches between the <b>overall view</b> and a
+        <b>single year</b> (the choice persists across reloads) — all tiles
+        below adjust accordingly. Here too, tiles can be freely rearranged
+        (up to 2 per row), including “Reset layout”.
+      </p>
+
+      <h3>Holdings &amp; Value Over Time</h3>
+      <p>
+        A line chart with two axes: <b>holdings</b> in BTC (orange, left
+        axis) and <b>value</b> in the selected display currency (green, right
+        axis) — for the overall view across the full history (year marks on
+        the X axis), for a selected year broken down into its 12 months.
+      </p>
+
+      <h3>Bitcoin Price (History)</h3>
+      <p>
+        A standalone line chart (purple) with the pure BTC price history in
+        the selected display currency — independent of the transaction-bound
+        time range of the holdings/value chart above, since it shows the
+        complete available monthly price history (or, for a selected year,
+        just its 12 months). <b>“Load Prices”</b> fetches missing history
+        automatically via CoinGecko (ultimo price, last day of the month);
+        <b>“Edit Prices”</b> opens a year-grouped, collapsible dialog for
+        manually entering/correcting individual monthly prices — the current
+        month there always uses the currently stored price automatically and
+        isn't editable.
+      </p>
+
+      <h3>Buys &amp; Sells</h3>
+      <p>
+        Every buy/sell transaction in the selected period as its own card,
+        with independent show/hide filters for buys and sells. Buy cards show
+        date, BTC amount, price, total amount, fees, and gain/loss in % and
+        amount (including a “Partially/Fully realized” badge). Sell cards
+        additionally break down the <b>composition from historical
+        purchases</b> (FIFO — oldest open purchases consumed first): per
+        consumed purchase lot, the amount, the original purchase date, the
+        holding period in days, that lot's proportional gain/loss, and a
+        <b>tax-free</b>/<b>taxable</b> badge (holding period ≥ 365 days counts
+        as tax-free, unless a cutoff date set in Settings says otherwise —
+        informational only, not tax advice).
+      </p>
+
+      <h3>Transfers</h3>
+      <p>
+        Deposits and withdrawals (<span class="inline-code">TRANSFER_IN</span>/
+        <span class="inline-code">TRANSFER_OUT</span>) of the selected period,
+        also shown as cards with date and BTC amount. Three mutually
+        exclusive filters — <b>All</b>, <b>Paired only</b> (transfer between
+        two of your own positions, the counter-booking is found automatically
+        via the shared transfer ID and shown as “From”/“To”), and <b>Solo
+        only</b> (deposit/withdrawal without a counter-booking — the default
+        filter).
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Independent FIFO calculation:</b> the lot breakdown and holding period in this view are calculated independently of the Holdings View — both use the same FIFO logic (oldest purchases consumed first, portfolio-wide across all positions), but are deliberately implemented separately.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="images/yearly_view.png" alt="Yearly View with holdings &amp; value over time, Bitcoin price history, buys/sells, and transfers"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 Screenshot coming soon<br><span class="path">images/yearly_view.png</span></div>
+        <figcaption>Holdings &amp; value over time and Bitcoin price history, below that buys/sells and transfers <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
       </figure>
     </div>
   </section>
@@ -453,14 +614,17 @@
       <div class="step-num">ROADMAP</div>
       <h2>What's here — and what's next</h2>
       <p class="muted">
-        This page is intentionally kept open-ended: each visualization gets its
-        own numbered section above, and the in-app “Visualization” menu reserves
-        a slot for upcoming chart types alongside the Flow Diagram.
+        This page is deliberately kept open-ended: every visualization gets
+        its own numbered section up top, and the app's “Visualization” menu
+        already reserves a spot for upcoming chart types alongside the Flow
+        Diagram.
       </p>
       <div class="roadmap-card">
         <ul class="tight">
-          <li class="done">Flow Diagram (Sankey) — buy/sell/transfer flow over time, with a filterable/searchable transaction panel</li>
-          <li class="planned">Further visualizations — to be documented here as they ship</li>
+          <li class="done">Flow Diagram (Sankey) — buy/sell/transfer flow over time, with a filterable and searchable transaction panel</li>
+          <li class="done">Holdings View — allocation, metrics, yearly buys/sells, realized/unrealized gain/loss, and gain/loss per individual purchase</li>
+          <li class="done">Yearly View — holdings &amp; value over time, Bitcoin price history, buys/sells with FIFO lot breakdown and tax badges, transfers</li>
+          <li class="planned">More visualizations — will be documented here as they become available</li>
         </ul>
       </div>
     </div>

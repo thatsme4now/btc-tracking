@@ -22,13 +22,25 @@ class Launcher {
             return;
         }
 
+        Console.Title = "BtcTracking";
+
         var p = new Process();
         p.StartInfo.FileName        = java;
-        p.StartInfo.Arguments       = $"-Xmx256m -Dfile.encoding=UTF-8 -jar \"{jar}\" --depot.db=h2file";
+        p.StartInfo.Arguments       = "-Xmx256m -Dfile.encoding=UTF-8 -jar \"" + jar + "\" --depot.db=h2file";
         p.StartInfo.UseShellExecute = false;
-        p.StartInfo.CreateNoWindow  = false;
         p.Start();
 
+        // Wait for Spring Boot to initialize before opening the browser
         Thread.Sleep(5000);
+
+        var browser = new Process();
+        browser.StartInfo.FileName        = "http://localhost:8080/";
+        browser.StartInfo.UseShellExecute = true;
+        browser.Start();
+
+        Console.WriteLine();
+        Console.WriteLine("BtcTracking laeuft. Dieses Fenster schliessen oder Strg+C druecken, um den Server zu beenden.");
+
+        p.WaitForExit();
     }
 }

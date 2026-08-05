@@ -50,6 +50,13 @@ public class CsvImportService {
     private static final DateTimeFormatter DATE_FMT_EN_WITHOUT_SEC = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm");
     public static final DateTimeFormatter ISO_LOCAL_FMT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     public static final DateTimeFormatter ISO_INSTANT_FMT = DateTimeFormatter.ISO_INSTANT;
+    // Wallet-Exports (Sparrow, BlueWallet, ...) liefern oft ISO-8601 MIT
+    // Zeitzonen-Offset, z.B. "2022-01-13T15:56:20-03:00" — ISO_LOCAL_FMT allein
+    // scheitert daran (unparsed "-03:00"-Rest). LocalDateTime.parse(...) mit
+    // diesem Formatter übernimmt einfach die im String stehenden lokalen
+    // Datum/Zeit-Anteile und verwirft den Offset, konsistent dazu, dass auch
+    // alle anderen Formate hier ohne jede Zeitzonen-Umrechnung behandelt werden.
+    public static final DateTimeFormatter ISO_OFFSET_FMT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
     public static final DateTimeFormatter ISO_CUSTOM_FORMAT = DateTimeFormatter.ofPattern("yyy-MM-dd HH:mm:ss");
@@ -66,7 +73,8 @@ public class CsvImportService {
             DATE_FMT_FLEX_WITHOUT_SEC,
             DATE_FMT_EN_WITHOUT_SEC,
             ISO_LOCAL_FMT,
-            RFC_1123_FMT, 
+            ISO_OFFSET_FMT,
+            RFC_1123_FMT,
             DATE_FMT_EN_12H,
             ISO_CUSTOM_FORMAT
     ));

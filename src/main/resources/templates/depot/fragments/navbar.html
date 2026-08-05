@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Shared top navbar — used by all 4 pages (overview, flow, holdings, yearly) for a
+  consistent look. The "Aktionen" dropdown (Add Transaction, CSV/DB Import/Export)
+  stays exclusive to the main page (showActions=true there, false everywhere else) —
+  those bulk-management actions only make sense from the main transaction table.
+  "Visualisierung" links to all 4 pages including "Übersicht" (main page) itself,
+  replacing the old page-specific "Zurück" button.
+  Requires on the including page: bootstrap.bundle.min.js, i18n.js, currency.js,
+  theme.js, offline.js, applock.js, navbar.js (price badge / settings / sats / help
+  logic) — plus the navbar-modals fragment (settings/sats/applock/offline-confirm).
+  pageTitleKey: i18n-Key für den Seitennamen hinter Titel/Version (z.B.
+  "nav.btn.holdings"), reuse der bestehenden Visualisierung-Dropdown-Keys,
+  damit keine neuen Übersetzungen nötig sind. Leerstring ('') unterdrückt den
+  Suffix (z.B. auf den Import-Assistent-Seiten).
+-->
+<div th:fragment="navbar(showActions, pageTitleKey)">
+    <nav class="navbar depot-navbar">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand depot-brand" th:href="@{/btc-tracking/holdings}">
+                <i class="bi bi-currency-bitcoin me-1"></i><span data-i18n="nav.brand">BITCOIN PORTFOLIO</span>
+                <span th:if="${appVersion != null and !#strings.isEmpty(appVersion)}"
+                      class="depot-brand-suffix" th:text="${appVersion}"></span>
+                <span th:if="${pageTitleKey != null and !#strings.isEmpty(pageTitleKey)}"
+                      class="depot-brand-suffix">- <span th:attr="data-i18n=${pageTitleKey}"></span></span>
+            </a>
+        </div>
+        <div class="container-fluid px-4">
+            <div class="d-flex align-items-left gap-3">
+                <!-- Hamburger: nur Tablet/Handy -->
+                <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
+                        type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
+                        aria-controls="navbarActionsOffcanvas" title="Menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <!-- Live BTC price badge — clientseitig geladen (initNavbarPriceBadge in navbar.js),
+                     damit sie auf allen 4 Seiten gleich funktioniert, ohne dass jede
+                     Controller-Methode eigene Model-Attribute braucht. -->
+                <span class="btc-price-badge d-none" onclick="openPriceEdit()" style="cursor:pointer" id="btcPriceBadge">
+                    BTC
+                    <span class="text-pos" id="btcPriceDisplay"></span>
+                    <i class="bi bi-pencil ms-1" style="font-size:.65rem;opacity:.5"></i>
+                </span>
+                <span id="btcPriceEditor" class="d-none align-items-center gap-1">
+                    <input type="number" id="btcPriceInput"
+                           class="form-control depot-input"
+                           style="width:140px;font-size:.75rem;padding:.25rem .5rem"
+                           step="1" min="1"
+                           onkeydown="if(event.key==='Enter') savePriceEdit()"/>
+                    <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                    <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </span>
+                <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
+                    <i class="bi bi-arrow-clockwise me-1"></i><span class="refresh-text" data-i18n="nav.btn.refresh">Refresh</span>
+                </button>
+            </div>
+
+            <!-- Nur sichtbar bei aktivem Einundzwanzig-Modus (body.mode-21), siehe
+                 depot.css .mode21-ticker. Track-Inhalt bewusst dupliziert (2x dieselbe
+                 Sequenz), damit die Endlosschleife (translateX(-50%) in @keyframes
+                 mode21Marquee) nahtlos wirkt statt sichtbar neu zu starten. -->
+            <div class="mode21-ticker" aria-hidden="true">
+                <div class="mode21-ticker-track">
+                    <span data-i18n="ticker.tax">Steuern sind Raub!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Have fun staying poor!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Stay humble stack Sats!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Afuera!</span><span class="mode21-ticker-sep">//</span>
+                    <span data-i18n="ticker.tax">Steuern sind Raub!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Have fun staying poor!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Stay humble stack Sats!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Afuera!</span><span class="mode21-ticker-sep">//</span>
+                </div>
+            </div>
+
+            <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
+                <div class="dropdown" th:if="${showActions}">
+                    <button class="btn depot-btn-outline dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-lightning-charge me-1"></i><span data-i18n="nav.btn.actions">Aktionen</span>
+                    </button>
+                    <ul class="dropdown-menu depot-dropdown-menu">
+                        <li><button class="dropdown-item" onclick="removeAll()">
+                            <i class="bi bi-trash me-2"></i><span data-i18n="nav.btn.removeAll">Reset app</span>
+                        </button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <label class="dropdown-item mb-0" style="cursor:pointer">
+                                <i class="bi bi-upload me-2"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+                                <input type="file" id="csvFileInput" accept=".csv,.enc"
+                                       style="display:none" onchange="onCsvFileSelected(this)"/>
+                            </label>
+                        </li>
+                        <li><button class="dropdown-item" onclick="openExportModal()">
+                            <i class="bi bi-download me-2"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+                        </button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item" onclick="openDbExportModal()">
+                            <i class="bi bi-database-down me-2"></i><span data-i18n="nav.btn.dbExport">Backup erstellen</span>
+                        </button></li>
+                        <li>
+                            <label class="dropdown-item mb-0" style="cursor:pointer">
+                                <i class="bi bi-database-up me-2"></i><span data-i18n="nav.btn.dbImport">Backup einspielen</span>
+                                <input type="file" id="dbImportFileInput" accept=".json,.enc"
+                                       style="display:none" onchange="onDbImportFileSelected(this)"/>
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="dropdown">
+                    <button class="btn depot-btn-outline dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bar-chart-line me-1"></i><span data-i18n="nav.btn.visualization">Visualisierung</span>
+                    </button>
+                    <ul class="dropdown-menu depot-dropdown-menu">
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking/holdings}">
+                            <i class="bi bi-bar-chart-steps me-2"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
+                        </a></li>
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking/yearly}">
+                            <i class="bi bi-calendar3 me-2"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
+                        </a></li>
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking/flow}">
+                            <i class="bi bi-diagram-3 me-2"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+                        </a></li>
+                        <li><a class="dropdown-item" th:href="@{/btc-tracking}">
+                            <i class="bi bi-database me-2"></i><span data-i18n="nav.btn.overview">Datenverwaltung</span>
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="ms-2 d-flex align-items-right gap-3">
+                <button class="btn depot-btn-icon px-2" id="btnAppLock"
+                        onclick="AppLock.onIconClick()" data-i18n-title="applock.icon.lock.title" title="Lock app">
+                    <i class="bi bi-unlock-fill" id="appLockIcon"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" id="btnLightning"
+                        onclick="sendSomeSats()" title="Send some sats!">
+                    <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
+                </button>
+                <button class="btn depot-btn-offline px-2" id="btnOffline"
+                        onclick="OFFLINE.toggle()" title="Online mode">
+                    <i class="bi bi-wifi" id="offlineIcon"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="toggleMode21()" id="btnMode21"
+                        data-i18n-title="nav.btn.mode21" title="Einundzwanzig-Modus">
+                    <span class="mode21-label">21</span>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="toggleTheme()" id="btnTheme"
+                        data-i18n-title="nav.btn.settings" title="Toggle light/dark mode">
+                    <i class="bi bi-moon-fill" id="themeIcon"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="cycleDensity()" id="btnDensity"
+                        data-i18n-title="nav.btn.density" title="Text size">
+                    <i class="bi bi-type" id="densityIcon"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="openSettings()"
+                        data-i18n-title="nav.btn.settings" title="Settings">
+                    <i class="bi bi-gear-fill"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="openHelp()"
+                        data-i18n-title="nav.btn.help" title="Help">
+                    <i class="bi bi-question-circle"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="offcanvas offcanvas-end depot-offcanvas" tabindex="-1" id="navbarActionsOffcanvas">
+        <div class="offcanvas-header" style="border-bottom:1px solid var(--border)">
+            <span class="depot-card-header mb-0" data-i18n="nav.btn.menu">Menu</span>
+            <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-2">
+            <th:block th:if="${showActions}">
+                <div class="depot-card-header mb-1" data-i18n="nav.btn.actions">Aktionen</div>
+                <button class="btn depot-btn-outline w-100" onclick="openAddTx()">
+                    <i class="bi bi-plus-circle me-1"></i><span data-i18n="nav.btn.addTransaction">Add Transaction</span>
+                </button>
+                <button class="btn depot-btn-outline w-100" onclick="removeAll()">
+                    <i class="bi bi-trash me-1"></i><span data-i18n="nav.btn.removeAll">Reset app</span>
+                </button>
+                <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+                    <i class="bi bi-upload me-1"></i><span data-i18n="nav.btn.importCsv">Import CSV</span>
+                    <input type="file" id="csvFileInputMobile" accept=".csv,.enc"
+                           style="display:none" onchange="onCsvFileSelected(this)"/>
+                </label>
+                <button class="btn depot-btn-outline w-100" onclick="openExportModal()">
+                    <i class="bi bi-download me-1"></i><span data-i18n="nav.btn.exportCsv">Export CSV</span>
+                </button>
+                <button class="btn depot-btn-outline w-100" onclick="openDbExportModal()">
+                    <i class="bi bi-database-down me-1"></i><span data-i18n="nav.btn.dbExport">Backup erstellen</span>
+                </button>
+                <label class="btn depot-btn-outline w-100 mb-0" style="cursor:pointer">
+                    <i class="bi bi-database-up me-1"></i><span data-i18n="nav.btn.dbImport">Backup einspielen</span>
+                    <input type="file" id="dbImportFileInputMobile" accept=".json,.enc"
+                           style="display:none" onchange="onDbImportFileSelected(this)"/>
+                </label>
+            </th:block>
+
+            <div class="depot-card-header mb-1 mt-2" data-i18n="nav.btn.visualization">Visualisierung</div>
+            <a th:href="@{/btc-tracking}" class="btn depot-btn-outline w-100">
+                <i class="bi bi-database me-1"></i><span data-i18n="nav.btn.overview">Datenverwaltung</span>
+            </a>
+            <a th:href="@{/btc-tracking/flow}" class="btn depot-btn-outline w-100">
+                <i class="bi bi-diagram-3 me-1"></i><span data-i18n="nav.btn.flow">Fluss-Diagramm</span>
+            </a>
+            <a th:href="@{/btc-tracking/holdings}" class="btn depot-btn-outline w-100">
+                <i class="bi bi-bar-chart-steps me-1"></i><span data-i18n="nav.btn.holdings">Bestandsansicht</span>
+            </a>
+            <a th:href="@{/btc-tracking/yearly}" class="btn depot-btn-outline w-100">
+                <i class="bi bi-calendar3 me-1"></i><span data-i18n="nav.btn.yearly">Jahresansicht</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -93,6 +93,25 @@ function onExchangeSelectChange(prefix) {
     if (isNew) input.focus();
 }
 
+// ── Live-Umrechnung unter dem Wechselkurs-Feld ────────────
+// Fiat-Betrag × Wechselkurs = Wert in der aktuell gewählten Anzeigewährung
+// (siehe DepotService#getAllPositions, gleiche Formel wie dort) — zeigt
+// sofort, ob ein angepasster Kurs plausibel ist, ohne erst zu speichern.
+function _updateTxExchangeRatePreview(prefix) {
+    const previewEl = document.getElementById(prefix + 'TxExchangeRatePreview');
+    if (!previewEl) return;
+
+    const qtyFiat = parseFloat(document.getElementById(prefix + 'TxQuantityFiat').value);
+    const rate    = parseFloat(document.getElementById(prefix + 'TxExchangeRate').value);
+
+    if (!qtyFiat || !rate) {
+        previewEl.textContent = '';
+        return;
+    }
+    const converted = qtyFiat * rate;
+    previewEl.textContent = '= ' + converted.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + CURRENCY.current();
+}
+
 function _showExchangeNewInput(prefix) {
     document.getElementById(prefix + 'TxExchange').classList.remove('d-none');
 }
@@ -121,8 +140,10 @@ function updateRelevantFields() {
     const selected = document.getElementById('addTxType').value;
     const isTrade  = selected === 'BUY' || selected === 'SELL';
     const isOut    = selected === 'TRANSFER_OUT';
+    const isIn     = selected === 'TRANSFER_IN';
 
     document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
+    document.querySelectorAll('.fee-field').forEach(el => el.classList.toggle('d-none', isIn));
     const transferSection = document.getElementById('transferPairSection');
     if (transferSection) transferSection.classList.toggle('d-none', !isOut);
 
@@ -194,6 +215,7 @@ async function openAddTx(tx) {
         _setExchangeValue('add', '');
     }
     updateRelevantFields();
+    _updateTxExchangeRatePreview('add');
     if (!txModalAdd) txModalAdd = new bootstrap.Modal(document.getElementById('txModalAdd'));
     txModalAdd.show();
 }
@@ -219,6 +241,8 @@ async function openEditTx(tx) {
     document.getElementById('editTxType').disabled = true;
     const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
     document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
+    document.querySelectorAll('.fee-field').forEach(el => el.classList.toggle('d-none', tx.type === 'TRANSFER_IN'));
+    _updateTxExchangeRatePreview('edit');
 
     if (!txModal) txModal = new bootstrap.Modal(document.getElementById('txModal'));
     txModal.show();
@@ -238,7 +262,7 @@ function saveOrAddTx(isAdd) {
         type:         txType,
         quantity:     parseFloat(document.getElementById(pref + 'TxQty').value) || 0,
         quantityFiat: parseFloat(document.getElementById(pref + 'TxQuantityFiat').value) || 0,
-        fees:         parseFloat(document.getElementById(pref + 'TxFees').value) || 0,
+        fees:         txType === 'TRANSFER_IN' ? 0 : (parseFloat(document.getElementById(pref + 'TxFees').value) || 0),
         feesCurrency: isTrade ? (document.getElementById(pref + 'TxFeesCurrency').value || CURRENCY.current()) : null,
         currency:     isTrade ? (document.getElementById(pref + 'TxCurrency').value || CURRENCY.current()) : null,
         exchangeRate: isTrade ? (parseFloat(document.getElementById(pref + 'TxExchangeRate').value) || 1) : null,

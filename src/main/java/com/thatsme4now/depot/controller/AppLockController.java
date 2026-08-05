@@ -57,6 +57,16 @@ public class AppLockController {
         }
     }
 
+    @PostMapping("/lock/reset")
+    public ResponseEntity<Map<String, Object>> reset(@RequestBody ResetRequest req) {
+        try {
+            appLockService.reset(req.getConfirm());
+            return ResponseEntity.ok(Map.of("reset", true));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @lombok.Data
     public static class LockRequest {
         private String password;
@@ -66,5 +76,10 @@ public class AppLockController {
     @lombok.Data
     public static class UnlockRequest {
         private String password;
+    }
+
+    @lombok.Data
+    public static class ResetRequest {
+        private String confirm;
     }
 }

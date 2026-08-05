@@ -144,9 +144,62 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-width: 0; /* erlaubt dem Flex-Item, unter seine Inhaltsbreite zu schrumpfen —
+                     sonst weitet ein langer Wert (z.B. Kommentar) die ganze Karte
+                     unnötig auf, statt abgeschnitten zu werden. */
+}
+/* Kommentar-Feld: linksbündig statt rechtsbündig wie die übrigen Werte (siehe
+   _yearlyTruncateComment()/_yearlyFieldRow in yearly.js) — Text soll direkt
+   neben dem Label beginnen, nicht am rechten Rand. */
+.flow-tx-field-value.align-left {
+    text-align: left;
+    margin-right: auto;
 }
 
 .flow-tx-card.warning-duplicate { border-color: var(--warn-duplicate, #b8860b); }
+
+/* ── Verkauf-Card: FIFO-Lot-Aufschlüsselung ────────────────
+   Gleiche Klassennamen/Optik wie auf der Jahresansicht (yearly.css), hier
+   aber eigenständig definiert — yearly.css wird auf dieser Seite nicht
+   geladen. Siehe flow.js _flowComputeFifo für die eigenständige, unabhängige
+   Berechnung (bewusst nicht mit yearly.js/holdings.js geteilt). */
+.yearly-lots-title {
+    font-size: .64rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-muted);
+    margin: .6rem 0 .3rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--border);
+}
+.yearly-lots-list {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+}
+.yearly-lot-row {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .66rem;
+    color: var(--text);
+    flex-wrap: wrap;
+}
+.yearly-lot-qty  { font-family: 'IBM Plex Mono', monospace; color: var(--text-muted); flex: 0 0 auto; }
+.yearly-lot-date { flex: 0 0 auto; }
+.yearly-lot-days { color: var(--text-muted); flex: 1 1 auto; }
+.yearly-lot-gain { font-family: 'IBM Plex Mono', monospace; flex: 0 0 auto; }
+
+.yearly-tax-badge {
+    font-size: .58rem;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: .05rem .35rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+}
+.yearly-tax-badge.tax-free   { background: rgba(29, 158, 117, .18); color: var(--pos); }
+.yearly-tax-badge.tax-liable { background: rgba(216, 90, 48, .18); color: var(--neg); }
 
 /* ── Responsive: gestapelt statt nebeneinander ───────────── */
 @media (max-width: 991px) {

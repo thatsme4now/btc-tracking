@@ -83,11 +83,7 @@
   .back-link:hover{border-color:var(--accent); color:var(--accent);}
 
   .lang-switch{
-    position:fixed;
-    top:20px;
-    right:24px;
-    z-index:500;
-    display:flex;
+    display:inline-flex;
     gap:2px;
     background:var(--panel);
     border:1px solid var(--border);
@@ -96,6 +92,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     letter-spacing:0.06em;
+    margin-bottom:16px;
   }
   .lang-switch a{
     text-decoration:none;
@@ -109,9 +106,6 @@
     font-weight:600;
   }
   .lang-switch a:not(.active):hover{color:var(--text);}
-  @media (max-width:600px){
-    .lang-switch{top:12px; right:12px;}
-  }
 
   nav.steps{
     max-width:1100px;
@@ -323,17 +317,23 @@
 </head>
 <body>
 
-<div class="lang-switch">
-  <a href="index.html" class="active">DE</a>
-  <a href="../index.html">EN</a>
-</div>
-
 <header class="hero">
+  <div class="lang-switch">
+    <a href="index.html" class="active">DE</a>
+    <a href="../index.html">EN</a>
+    <a href="../es/index.html">ES</a>
+    <a href="../fr/index.html">FR</a>
+    <a href="../it/index.html">IT</a>
+    <a href="../th/index.html">TH</a>
+  </div>
   <div class="hero-tag"><span class="dot"></span>Anleitung · Deutsch</div>
   <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Anleitung</h1>
   <p class="lead">
     Kurzanleitung zu den zentralen Funktionen der BTC-Tracking App:
-    CSV-Import, Transaktionen erfassen, das Dashboard lesen und per CSV exportieren.
+    CSV-Import per 3-Schritte-Assistent, Transaktionen &amp; Positionen in der
+    Datenverwaltung pflegen und per CSV exportieren. Die App startet auf der
+    Bestandsansicht — für Import, Transaktionen und Positionen oben im
+    Menü <b>„Visualisierung“</b> auf <b>„Datenverwaltung“</b> wechseln.
   </p>
   <div style="display:flex;flex-wrap:wrap;gap:12px">
     <a class="back-link" href="usage.html">Nutzung / Setup — Download &amp; Installation →</a>
@@ -344,46 +344,75 @@
 <nav class="steps">
   <a href="#step-1"><span>01</span>CSV Import</a>
   <a href="#step-2"><span>02</span>CSV-Format</a>
-  <a href="#step-3"><span>03</span>Transaktion hinzufügen</a>
+  <a href="#step-3"><span>03</span>Datenverwaltung</a>
   <a href="#step-4"><span>04</span>App sperren</a>
-  <a href="#step-5"><span>05</span>Dashboard</a>
-  <a href="#step-6"><span>06</span>CSV Export</a>
+  <a href="#step-5"><span>05</span>CSV Export</a>
+  <a href="#step-6"><span>06</span>Weitere Funktionen</a>
+  <a href="#step-7"><span>07</span>Einundzwanzig-Modus</a>
 </nav>
 
 <main>
 
-  <section class="step" id="step-1">
-    <div class="step-text">
-      <div class="step-num">01 / 06</div>
+  <section class="step" id="step-1" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">01 / 07</div>
       <h2>CSV importieren</h2>
       <p>
-        Über <b>„CSV importieren“</b> eine Datei auswählen. Die App erkennt die
-        Spalten automatisch und schlägt eine Zuordnung vor — z. B. für
-        CoinTracking-Exporte oder eigene Dateien mit abweichenden Spaltennamen.
+        Über <b>„CSV importieren“</b> eine Datei auswählen. Der Import läuft als
+        Assistent mit drei Schritten: <b>Mapping</b>, <b>Review</b> und <b>Status</b>.
       </p>
 
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">1. Mapping</h3>
+      <p>
+        Die App erkennt die Spalten automatisch und schlägt eine Zuordnung vor —
+        z. B. für CoinTracking-Exporte, Wallet-Exportformate oder eigene Dateien
+        mit abweichenden Spaltennamen. Eine Live-Vorschau zeigt sofort, wie die
+        erkannten Zeilen interpretiert werden.
+      </p>
       <ul class="tight">
         <li><b>Pflichtfelder</b> (mit *): Typ, Datum, Wallets &amp; Börsen, Kauf-Wert, Kauf-Währung, Verkauf-Wert, Verkauf-Währung müssen einer CSV-Spalte zugeordnet sein.</li>
-        <li><b>Feste Wallet / Börse:</b> überschreibt die Spaltenzuordnung und setzt für <i>alle</i> Zeilen dieselbe Position — sinnvoll bei Dateien, die nur eine Börse abdecken.</li>
+        <li><b>Feste Wallet / Börse:</b> überschreibt die Spaltenzuordnung und setzt für <i>alle</i> Zeilen dieselbe Position — sinnvoll bei Dateien, die nur eine Börse abdecken. Ist keine Börse zugeordnet, wird der Bereich farblich hervorgehoben.</li>
         <li><b>Typ-Wertzuordnung:</b> jeder in der Datei vorkommende Rohwert (z. B. <span class="inline-code">Auszahlung</span>, <span class="inline-code">Staking</span>) wird gezielt einem internen Typ zugeordnet — oder auf <span class="inline-code">– ignorieren –</span> gesetzt, um diese Zeilen beim Import zu überspringen.</li>
       </ul>
+      <figure>
+        <img src="../images/csv_import_step_1.png" alt="Schritt 1: Mapping-Dialog zur CSV-Spaltenzuordnung mit Auto-Mapping" onclick="openLightbox(this)">
+        <figcaption>Schritt 1 — Mapping: automatischer Vorschlag zur Spaltenzuordnung <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">2. Review</h3>
+      <p>
+        Jede erkannte Zeile wird vor dem eigentlichen Import einzeln geprüft.
+        Farbig markierte Zeilen zeigen an, wo eine Prüfung sinnvoll ist —
+        z. B. mögliche Duplikate oder ungültige Werte. Über Mehrfachauswahl
+        lassen sich Zeilen gesammelt bestätigen, korrigieren oder von diesem
+        Import ausschließen.
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_2.png" alt="Schritt 2: Review-Tabelle mit farblich markierten Zeilenzuständen" onclick="openLightbox(this)">
+        <figcaption>Schritt 2 — Review: Zeilen vor dem Import einzeln prüfen <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">3. Status</h3>
+      <p>
+        Zusammenfassung des Imports: wie viele Zeilen importiert, übersprungen
+        oder als Duplikat erkannt wurden. Von hier geht es zurück in die
+        Datenverwaltung, wo die importierten Transaktionen sofort sichtbar sind.
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_3.png" alt="Schritt 3: Status-Zusammenfassung des Imports" onclick="openLightbox(this)">
+        <figcaption>Schritt 3 — Status: Ergebnis des Imports auf einen Blick <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
 
       <div class="note">
         <span>ℹ</span>
-        <span><b>Tipp:</b> Vor dem endgültigen Import lohnt ein Blick auf die Anzahl erkannter Zeilen oben im Dialog — stimmt sie nicht mit der Quelldatei überein, prüfen ob Trennzeichen oder Kopfzeile korrekt erkannt wurden.</span>
+        <span><b>Tipp:</b> Vor dem endgültigen Import lohnt im Mapping-Schritt ein Blick auf die Anzahl erkannter Zeilen — stimmt sie nicht mit der Quelldatei überein, prüfen ob Trennzeichen oder Kopfzeile korrekt erkannt wurden.</span>
       </div>
-    </div>
-    <div class="step-media">
-      <figure>
-        <img src="../images/import_with_auto_mapping_for_cointracking.png" alt="Dialog zur CSV-Spaltenzuordnung mit Auto-Mapping" onclick="openLightbox(this)">
-        <figcaption>313 erkannte Zeilen mit automatischem Vorschlag zur Spaltenzuordnung <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
-      </figure>
     </div>
   </section>
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 06</div>
+      <div class="step-num">02 / 07</div>
       <h2>Eigenes CSV-Format</h2>
       <p>
         Ohne CoinTracking-Option exportiert die App im eigenen Format. Das ist
@@ -397,6 +426,11 @@
 <span class="v">"Trade"</span>,"19.07.2026 16:53:26","21 Bitcoin","0.01000000","BTC","500.00","EUR","0.00000000","EUR","Example transaction"</pre>
 
       <p class="muted">Wichtig: <span class="inline-code">typ</span> steuert die Buchungsart (Einzahlung / Auszahlung / Trade), <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> und <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> beschreiben jeweils, was gekauft bzw. verkauft wurde.</p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Flexible Erkennung:</b> Das Mapping in Schritt 1 erkennt auch abweichende Spaltennamen aus anderen Exportformaten (z. B. <span class="inline-code">Time</span>, <span class="inline-code">Unit</span>, <span class="inline-code">Fee Unit</span>, <span class="inline-code">Transaction ID</span>, <span class="inline-code">Note</span>), Mengenangaben in Satoshi werden automatisch in BTC umgerechnet, und Datumswerte mit Zeitzonen-Offset (z. B. <span class="inline-code">2026-07-20T16:53:27-03:00</span>) werden korrekt geparst.</span>
+      </div>
     </div>
     <div class="step-media">
       <figure>
@@ -406,15 +440,29 @@
     </div>
   </section>
 
-  <section class="step" id="step-3">
-    <div class="step-text">
-      <div class="step-num">03 / 06</div>
-      <h2>Transaktion manuell hinzufügen</h2>
+  <section class="step" id="step-3" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">03 / 07</div>
+      <h2>Datenverwaltung</h2>
       <p>
-        Über <b>„Transaktion hinzufügen“</b> im Dashboard-Header öffnet sich ein
-        Formular für eine einzelne Buchung.
+        Positionen und Transaktionen werden auf der Seite <b>„Datenverwaltung“</b>
+        gepflegt. Die Kacheln lassen sich per Ziehpunkt neu anordnen und ein-
+        bzw. ausklappen — die Reihenfolge wird gespeichert.
       </p>
 
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Wallets &amp; Börsen</h3>
+      <p>
+        Tabelle aller Positionen. Über <b>„Wallet/Börse hinzufügen“</b> eine neue
+        Position anlegen — jede Börse/Wallet muss vor der ersten Buchung einmal
+        angelegt werden. Eine Zeile anklicken filtert die Transaktionsliste auf
+        diese Position; ein Filter blendet Positionen ohne Bestand aus.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Alle Transaktionen</h3>
+      <p>
+        Vollständige Liste aller Buchungen. Über <b>„Transaktion hinzufügen“</b>
+        öffnet sich ein Formular für eine einzelne Buchung:
+      </p>
       <table class="fields">
         <tr><th>Feld</th><th>Bedeutung</th></tr>
         <tr><td class="field">Menge (BTC)</td><td class="desc">Gehandelte BTC-Menge, z. B. <span class="inline-code">0.1</span></td></tr>
@@ -426,23 +474,64 @@
         <tr><td class="field">Börse</td><td class="desc">Bestehende Position wählen oder über <span class="inline-code">+ New position…</span> neu anlegen</td></tr>
         <tr><td class="field">Gebühren / Währung (Gebühren)</td><td class="desc">Handelsgebühr inkl. eigener Währung</td></tr>
       </table>
-
-      <div class="note">
-        <span>ℹ</span>
-        <span><b>Tipp:</b> Jede Börse/Wallet muss vor der ersten Buchung einmal als Position angelegt werden — entweder direkt im Formular oder über „Wallet/Börse hinzufügen“ im Dashboard.</span>
-      </div>
-    </div>
-    <div class="step-media">
       <figure>
         <img src="../images/add_manually_transaction.png" alt="Formular: Transaktion hinzufügen" onclick="openLightbox(this)">
         <figcaption>Beispiel: 0.1 BTC BUY für 5.000 EUR über die Börse „21 Bitcoin“ <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+
+      <p>Eine oder mehrere Zeilen per Checkbox auswählen, um das Aktionsmenü zu öffnen:</p>
+      <table class="fields">
+        <tr><th>Aktion</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Auswahl exportieren</td><td class="desc">Nur die markierten Zeilen als CSV exportieren</td></tr>
+        <tr><td class="field">Transfer paaren</td><td class="desc">Zwei Zeilen (Ein-/Auszahlung) als zusammengehörigen Wallet-Transfer verknüpfen</td></tr>
+        <tr><td class="field">Wallet/Börse anpassen</td><td class="desc">Position nachträglich ändern</td></tr>
+        <tr><td class="field">Wechselkurs anpassen</td><td class="desc">Kurs zur Anzeigewährung korrigieren</td></tr>
+        <tr><td class="field">Kein Duplikat</td><td class="desc">Als Duplikat erkannte Zeile bestätigen und Markierung entfernen</td></tr>
+        <tr><td class="field">Als Solo-Transfer markieren</td><td class="desc">Ein-/Auszahlung ohne Gegenbuchung bewusst so kennzeichnen</td></tr>
+        <tr><td class="field">Löschen</td><td class="desc">Ausgewählte Transaktionen entfernen</td></tr>
+      </table>
+
+      <h4 style="font-family:'JetBrains Mono',monospace;font-size:14px;margin:24px 0 10px;color:var(--text)">Farbige Zeilen-Markierung</h4>
+      <p class="muted">Die Hintergrundfarbe einer Zeile in der Transaktionsliste zeigt automatisch einen von vier Zuständen an:</p>
+      <table class="fields">
+        <tr><th>Farbe</th><th>Bedeutung</th></tr>
+        <tr><td class="field">🟠 Orange</td><td class="desc">Fremdwährung ohne Wechselkurs — Transaktion in einer anderen Währung als der Anzeigewährung, Wechselkurs steht noch auf 1. Über „Wechselkurs anpassen“ korrigieren.</td></tr>
+        <tr><td class="field">🟣 Violett</td><td class="desc">Mögliches Duplikat — Datum, Typ und Menge stimmen mit einer bereits vorhandenen Transaktion überein. Prüfen und ggf. über „Kein Duplikat“ bestätigen oder die Zeile löschen.</td></tr>
+        <tr><td class="field">🔵 Blau</td><td class="desc">Solo-Transfer — Ein- oder Auszahlung ohne Gegenbuchung auf einer anderen Position, bewusst als Einzelbuchung markiert.</td></tr>
+        <tr><td class="field">🔴 Dunkelrot</td><td class="desc">Kürzlich importiert — Zeile stammt aus dem CSV-Import der aktuellen Sitzung, zur schnellen Kontrolle nach dem Import.</td></tr>
+      </table>
+      <p class="muted">Die Legende direkt über der Tabelle zeigt dieselben vier Farben zur schnellen Referenz.</p>
+      <figure>
+        <img src="../images/transaction_highlighting.png" alt="Farbige Zeilen-Markierung in der Transaktionsliste" onclick="openLightbox(this)">
+        <figcaption>Beispiel aller vier Markierungen: kürzlich importiert, Solo-Transfer, Fremdwährung ohne Wechselkurs, mögliches Duplikat <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Import-Historie</h3>
+      <p>
+        Kachel mit allen bisherigen CSV-Importen: Datum, Dateiname, Gesamtzahl
+        der Zeilen sowie wie viele davon importiert, als Duplikat erkannt oder
+        fehlerhaft waren. Einzelne Importe lassen sich von hier aus löschen.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Kennzahlen &amp; Charts:</b> Performance, Bestand, Allokation und Gewinn/Verlust je Kauf werden nicht mehr hier, sondern in der <a href="visualizations.html" style="color:var(--accent)">Bestandsansicht</a> dargestellt.</span>
+      </div>
+
+      <figure>
+        <img src="../images/data_management.png" alt="Datenverwaltung: Wallets &amp; Börsen sowie Transaktionsliste" onclick="openLightbox(this)">
+        <figcaption>Datenverwaltung: Wallets &amp; Börsen, Transaktionsliste mit Zeilen-Aktionen <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="../images/data_management_with_cards.png" alt="Datenverwaltung in der Karten-Ansicht auf schmalen Bildschirmen" onclick="openLightbox(this)">
+        <figcaption>Responsive Karten-Ansicht auf schmalen Bildschirmen statt Tabellenzeilen <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
     </div>
   </section>
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 06</div>
+      <div class="step-num">04 / 07</div>
       <h2>App sperren</h2>
       <p>
         Das Schloss-Symbol im Header (neben „Aktionen“ / „Visualisierung“)
@@ -468,65 +557,33 @@
         <span>⚠</span>
         <span><b>Wichtig:</b> Es gibt keine Passwort-Wiederherstellung. Geht das Passwort verloren, können die verschlüsselten Daten nicht wiederhergestellt werden.</span>
       </div>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Entsperren</h3>
+      <p>
+        Bei gesperrter App erscheint bei jedem Aufruf der Dialog <b>„App gesperrt“</b>
+        mit einem Passwortfeld. Nach korrekter Eingabe werden die Daten entschlüsselt
+        und wiederhergestellt.
+      </p>
+      <div class="note">
+        <span>♻</span>
+        <span><b>Passwort verloren:</b> Über <span class="inline-code">Reset app</span> im Entsperren-Dialog lässt sich die App zurücksetzen, falls das Passwort nicht mehr bekannt ist. Dabei werden alle verschlüsselten Daten unwiderruflich gelöscht und die App startet wie eine Neuinstallation. Zur Bestätigung muss <span class="inline-code">DELETE</span> eingetippt werden.</span>
+      </div>
     </div>
     <div class="step-media">
       <figure>
         <img src="../images/lock_app.png" alt="Dialog zum Sperren der App mit Passwortfeldern" onclick="openLightbox(this)">
         <figcaption>„App sperren“-Dialog, geöffnet über das Schloss-Symbol im Header <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
+      <figure>
+        <img src="../images/unlock.png" alt="Dialog „App gesperrt“ zum Entsperren mit Passwort oder Reset app" onclick="openLightbox(this)">
+        <figcaption>„App gesperrt“-Dialog: Passwort eingeben oder über „Reset app“ zurücksetzen <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
     </div>
   </section>
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 06</div>
-      <h2>Dashboard lesen und bedienen</h2>
-      <p>Das Dashboard gliedert sich in drei Bereiche:</p>
-
-      <ul class="tight">
-        <li><b>Kennzahlen:</b> Performance, Sats gesamt, Investiert, Realisiert, Anzahl Transaktionen.</li>
-        <li><b>Positionen &amp; Allokation:</b> Tabelle aller Wallets/Börsen mit Bestand, Wert und Gewinn/Verlust — Zeile anklicken filtert die Transaktionsliste. Das Donut-Diagramm zeigt die Aufteilung nach Wallet/Börse.</li>
-        <li><b>Alle Transaktionen:</b> Vollständige Liste. Eine oder mehrere Zeilen per Checkbox auswählen, um das Aktionsmenü zu öffnen.</li>
-      </ul>
-
-      <p>Zeilen-Aktionen bei ausgewählten Transaktionen:</p>
-      <table class="fields">
-        <tr><th>Aktion</th><th>Bedeutung</th></tr>
-        <tr><td class="field">Auswahl exportieren</td><td class="desc">Nur die markierten Zeilen als CSV exportieren</td></tr>
-        <tr><td class="field">Transfer paaren</td><td class="desc">Zwei Zeilen (Ein-/Auszahlung) als zusammengehörigen Wallet-Transfer verknüpfen</td></tr>
-        <tr><td class="field">Wallet/Börse anpassen</td><td class="desc">Position nachträglich ändern</td></tr>
-        <tr><td class="field">Wechselkurs anpassen</td><td class="desc">Kurs zur Anzeigewährung korrigieren</td></tr>
-        <tr><td class="field">Kein Duplikat</td><td class="desc">Als Duplikat erkannte Zeile bestätigen und Markierung entfernen</td></tr>
-        <tr><td class="field">Als Solo-Transfer markieren</td><td class="desc">Ein-/Auszahlung ohne Gegenbuchung bewusst so kennzeichnen</td></tr>
-        <tr><td class="field">Löschen</td><td class="desc">Ausgewählte Transaktionen entfernen</td></tr>
-      </table>
-
-      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Farbige Zeilen-Markierung</h3>
-      <p class="muted">Die Hintergrundfarbe einer Zeile in der Transaktionsliste zeigt automatisch einen von vier Zuständen an:</p>
-      <table class="fields">
-        <tr><th>Farbe</th><th>Bedeutung</th></tr>
-        <tr><td class="field">🟠 Orange</td><td class="desc">Fremdwährung ohne Wechselkurs — Transaktion in einer anderen Währung als der Anzeigewährung, Wechselkurs steht noch auf 1. Über „Wechselkurs anpassen“ korrigieren.</td></tr>
-        <tr><td class="field">🟣 Violett</td><td class="desc">Mögliches Duplikat — Datum, Typ und Menge stimmen mit einer bereits vorhandenen Transaktion überein. Prüfen und ggf. über „Kein Duplikat“ bestätigen oder die Zeile löschen.</td></tr>
-        <tr><td class="field">🔵 Blau</td><td class="desc">Solo-Transfer — Ein- oder Auszahlung ohne Gegenbuchung auf einer anderen Position, bewusst als Einzelbuchung markiert.</td></tr>
-        <tr><td class="field">🔴 Dunkelrot</td><td class="desc">Kürzlich importiert — Zeile stammt aus dem CSV-Import der aktuellen Sitzung, zur schnellen Kontrolle nach dem Import.</td></tr>
-      </table>
-      <p class="muted">Die Legende direkt über der Tabelle im Dashboard zeigt dieselben vier Farben zur schnellen Referenz.</p>
-    </div>
-    <div class="step-media">
-      <figure>
-        <img src="../images/dashboard_with_row_actions.png" alt="Dashboard mit Kennzahlen, Positionen und Zeilen-Aktionen" onclick="openLightbox(this)">
-        <figcaption>Kennzahlen (oben), Positionen &amp; Allokation (Mitte), Transaktionsliste mit Zeilen-Aktionen (unten) <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
-      </figure>
-      <figure>
-        <img src="../images/transaction_highlighting.png" alt="Farbige Zeilen-Markierung in der Transaktionsliste" onclick="openLightbox(this)">
-        <figcaption>Beispiel aller vier Markierungen: kürzlich importiert, Solo-Transfer, Fremdwährung ohne Wechselkurs, mögliches Duplikat <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="step" id="step-6">
-    <div class="step-text">
-      <div class="step-num">06 / 06</div>
+      <div class="step-num">05 / 07</div>
       <h2>CSV exportieren</h2>
       <p>
         Über <b>„CSV exportieren“</b> im Header lassen sich alle oder — nach
@@ -544,6 +601,85 @@
         <img src="../images/export_with_password_or_as_cointracking.png" alt="Export-Dialog mit CoinTracking-Format und optionalem Passwort" onclick="openLightbox(this)">
         <figcaption>Export-Dialog: Format wählen und optional per Passwort verschlüsseln <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
       </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-6" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">06 / 07</div>
+      <h2>Weitere Funktionen</h2>
+      <p>
+        Die Icon-Leiste rechts im Header bündelt globale Einstellungen und
+        Werkzeuge, die auf allen Seiten verfügbar sind.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Einstellungen</h3>
+      <p>Über das Zahnrad-Symbol öffnet sich der Einstellungen-Dialog:</p>
+      <table class="fields">
+        <tr><th>Feld</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Sprache</td><td class="desc">Oberflächensprache der App</td></tr>
+        <tr><td class="field">Anzeigewährung</td><td class="desc">Fiat-Währung für alle berechneten Werte (Bestand, Gewinn/Verlust, …)</td></tr>
+        <tr><td class="field">Schriftart</td><td class="desc">Im Einundzwanzig-Modus fest auf Inconsolata gestellt und nicht änderbar</td></tr>
+        <tr><td class="field">Steuer-Stichtag (Haltefrist-Wegfall)</td><td class="desc">Für Coins, die ab diesem Datum gekauft werden, gilt die 1-Jahres-Steuerfreiheit nicht mehr. Leer lassen zum Deaktivieren. Rein informativ, keine Steuerberatung.</td></tr>
+      </table>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">BTC-Kurs</h3>
+      <p>
+        Die Kurs-Anzeige links im Header lässt sich per Klick auf den Wert
+        manuell überschreiben — praktisch, wenn kein aktueller Kurs geladen
+        werden kann. Der <b>„Aktualisieren“</b>-Button lädt den Kurs neu von
+        CoinGecko. Ist der Offline-Modus aktiv, erscheint zuvor eine
+        Bestätigungsabfrage.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Offline-Modus</h3>
+      <p>
+        Das WLAN-Symbol schaltet den Offline-Modus um. Ist er aktiv, ruft die
+        App keine Kursdaten automatisch aus dem Internet ab — der Kurs lässt
+        sich weiterhin manuell setzen. Die Einstellung wird lokal im Browser
+        gespeichert.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Aktionen-Menü: Backup &amp; Reset</h3>
+      <p>
+        Neben CSV-Import/-Export enthält das <b>„Aktionen“</b>-Menü ein
+        vollständiges Datenbank-Backup, unabhängig vom CSV-Export:
+      </p>
+      <table class="fields">
+        <tr><th>Aktion</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Backup erstellen</td><td class="desc">Sichert Positionen, Transaktionen, Import-Historie sowie alle Kurs-Daten (Tages-, Monats- und Jahreskurse) als JSON. Passwort optional — leer lassen für eine unverschlüsselte Datei.</td></tr>
+        <tr><td class="field">Backup einspielen</td><td class="desc">Löscht ALLE aktuellen Positionen, Transaktionen, die Import-Historie sowie alle Kurs-Daten und ersetzt sie durch das eingespielte Backup. Kann nicht rückgängig gemacht werden.</td></tr>
+      </table>
+      <figure>
+        <img src="../images/nav_bar_menu.png" alt="Aktionen-Menü mit Reset app, Import/Export CSV und Backup erstellen/einspielen" onclick="openLightbox(this)">
+        <figcaption>Aktionen-Menü: Reset app, CSV Import/Export, Backup erstellen/einspielen <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>Vorsicht bei „Reset app“:</b> Der Eintrag im Aktionen-Menü löscht nach einer einfachen Bestätigung sofort alle Daten — anders als der Reset im „App gesperrt“-Dialog (siehe Schritt 04), der zur Bestätigung das Wort <span class="inline-code">delete</span> erfordert. Vor dem Klick lohnt sich ggf. vorher ein Backup.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-7" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">07 / 07</div>
+      <h2>Einundzwanzig-Modus</h2>
+      <p>
+        Das „21“-Symbol im Header schaltet ein alternatives Farbschema mit
+        eigener Schriftart (Inconsolata) und einem durchlaufenden Ticker mit
+        Bitcoiner-Sprüchen ein. Solange der Modus aktiv ist, sind der normale
+        Hell/Dunkel-Umschalter und die Schriftart-Auswahl in den Einstellungen
+        gesperrt.
+      </p>
+      <figure>
+        <img src="../images/21_mode.png" alt="Einundzwanzig-Modus mit eigenem Farbschema und Ticker" onclick="openLightbox(this)">
+        <figcaption>Einundzwanzig-Modus: eigenes Farbschema, Schriftart und Ticker im Header <span class="zoom-hint">Klicken zum Vergrößern ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>₿</span>
+        <span>Benannt nach und inspiriert vom deutschsprachigen Bitcoin-Podcast <a href="https://einundzwanzig.space/" target="_blank" rel="noopener" style="color:var(--accent)">einundzwanzig.space</a>.</span>
+      </div>
     </div>
   </section>
 

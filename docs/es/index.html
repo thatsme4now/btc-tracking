@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Guía</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    display:inline-flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    margin-bottom:16px;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figcaption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  pre.csv{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    overflow-x:auto;
+    color:var(--text);
+    line-height:1.7;
+  }
+  pre.csv .v{color:var(--green);}
+  pre.csv .c{color:var(--muted);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="lang-switch">
+    <a href="../de/index.html">DE</a>
+    <a href="../index.html">EN</a>
+    <a href="index.html" class="active">ES</a>
+    <a href="../fr/index.html">FR</a>
+    <a href="../it/index.html">IT</a>
+    <a href="../th/index.html">TH</a>
+  </div>
+  <div class="hero-tag"><span class="dot"></span>Guía · Español</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Guía</h1>
+  <p class="lead">
+    Guía rápida de las funciones principales de la app BTC-Tracking:
+    importación CSV mediante el asistente de 3 pasos, gestión de
+    transacciones y posiciones en Gestión de datos, y exportación CSV. La app
+    arranca en la Vista de Cartera — para importar, gestionar transacciones y
+    posiciones, cambia a <b>«Gestión de datos»</b> en el menú
+    <b>«Visualización»</b> arriba.
+  </p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a class="back-link" href="usage.html">Uso / Instalación — Descarga e instalación →</a>
+    <a class="back-link" href="visualizations.html">Visualizaciones →</a>
+  </div>
+</header>
+
+<nav class="steps">
+  <a href="#step-1"><span>01</span>Importar CSV</a>
+  <a href="#step-2"><span>02</span>Formato CSV</a>
+  <a href="#step-3"><span>03</span>Gestión de datos</a>
+  <a href="#step-4"><span>04</span>Bloquear app</a>
+  <a href="#step-5"><span>05</span>Exportar CSV</a>
+  <a href="#step-6"><span>06</span>Más funciones</a>
+  <a href="#step-7"><span>07</span>Modo Einundzwanzig</a>
+</nav>
+
+<main>
+
+  <section class="step" id="step-1" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">01 / 07</div>
+      <h2>Importar CSV</h2>
+      <p>
+        Selecciona un archivo con <b>«Importar CSV»</b>. La importación se
+        ejecuta como un asistente de tres pasos: <b>Asignación</b>,
+        <b>Revisión</b> y <b>Estado</b>.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">1. Asignación</h3>
+      <p>
+        La app detecta las columnas automáticamente y propone una asignación
+        — por ejemplo para exportaciones de CoinTracking, formatos de
+        exportación de carteras o archivos propios con nombres de columna
+        distintos. Una vista previa en vivo muestra de inmediato cómo se
+        interpretarán las filas detectadas.
+      </p>
+      <ul class="tight">
+        <li><b>Campos obligatorios</b> (con *): Tipo, Fecha, Carteras y exchanges, Importe de compra, Moneda de compra, Importe de venta, Moneda de venta deben asignarse cada uno a una columna CSV.</li>
+        <li><b>Cartera / Exchange fijo:</b> sobrescribe la asignación de columnas y fija la misma posición para <i>todas</i> las filas — útil en archivos que cubren un solo exchange. Si no hay ningún exchange asignado, la zona se resalta.</li>
+        <li><b>Asignación de valores de tipo:</b> cada valor distinto que aparece en el archivo (p. ej. <span class="inline-code">Retiro</span>, <span class="inline-code">Staking</span>) se asigna a un tipo interno concreto — o se pone en <span class="inline-code">– ignorar –</span> para omitir esas filas en la importación.</li>
+      </ul>
+      <figure>
+        <img src="../images/csv_import_step_1.png" alt="Paso 1: diálogo de asignación de columnas CSV con auto-mapeo" onclick="openLightbox(this)">
+        <figcaption>Paso 1 — Asignación: propuesta automática de asignación de columnas <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">2. Revisión</h3>
+      <p>
+        Cada fila detectada se revisa individualmente antes de la
+        importación definitiva. Las filas con color indican dónde conviene
+        revisar — p. ej. posibles duplicados o valores no válidos. La
+        selección múltiple permite confirmar, corregir o excluir filas de
+        esta importación en bloque.
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_2.png" alt="Paso 2: tabla de revisión con estados de fila codificados por color" onclick="openLightbox(this)">
+        <figcaption>Paso 2 — Revisión: revisa las filas individualmente antes de importar <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">3. Estado</h3>
+      <p>
+        Resumen de la importación: cuántas filas se importaron, se omitieron
+        o se detectaron como duplicado. Desde aquí vuelves a Gestión de
+        datos, donde las transacciones importadas ya son visibles.
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_3.png" alt="Paso 3: resumen del estado de la importación" onclick="openLightbox(this)">
+        <figcaption>Paso 3 — Estado: resultado de la importación de un vistazo <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Consejo:</b> Antes de la importación definitiva conviene revisar en el paso de Asignación el número de filas detectadas — si no coincide con el archivo original, comprueba si el separador o la fila de encabezado se detectaron correctamente.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-2">
+    <div class="step-text">
+      <div class="step-num">02 / 07</div>
+      <h2>Formato CSV propio</h2>
+      <p>
+        Sin la opción CoinTracking, la app exporta en su propio formato. Es
+        también el formato que espera una importación CSV manual sin
+        auto-mapeo de CoinTracking.
+      </p>
+
+      <pre class="csv"><span class="c">"typ","date","exchange","buyQty","buyCur","sellQty","sellCur","fee","feeCur","comment"</span>
+<span class="v">"Ingreso"</span>,"20.07.2026 16:53:27","Bitbox02","0.00490000","BTC","","","","EUR","Example transfer to own wallet"
+<span class="v">"Retiro"</span>,"20.07.2026 16:53:26","21 Bitcoin","","","0.00500000","BTC","0.00010000","BTC","Example transfer to own wallet"
+<span class="v">"Trade"</span>,"19.07.2026 16:53:26","21 Bitcoin","0.01000000","BTC","500.00","EUR","0.00000000","EUR","Example transaction"</pre>
+
+      <p class="muted">Importante: <span class="inline-code">typ</span> controla el tipo de operación (Ingreso / Retiro / Trade), <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> y <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> describen respectivamente lo que se compró y lo que se vendió.</p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Detección flexible:</b> La asignación del paso 1 también reconoce nombres de columna distintos de otros formatos de exportación (p. ej. <span class="inline-code">Time</span>, <span class="inline-code">Unit</span>, <span class="inline-code">Fee Unit</span>, <span class="inline-code">Transaction ID</span>, <span class="inline-code">Note</span>), los importes en satoshi se convierten a BTC automáticamente, y las fechas con desfase horario (p. ej. <span class="inline-code">2026-07-20T16:53:27-03:00</span>) se interpretan correctamente.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/example_csv.png" alt="Ejemplo de un archivo CSV exportado" onclick="openLightbox(this)">
+        <figcaption>Filas CSV de ejemplo: ingreso, retiro, trade <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-3" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">03 / 07</div>
+      <h2>Gestión de datos</h2>
+      <p>
+        Las posiciones y transacciones se gestionan en la página
+        <b>«Gestión de datos»</b>. Las tarjetas se pueden reordenar arrastrando
+        el asa y contraer/expandir — el orden se guarda.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Carteras y exchanges</h3>
+      <p>
+        Tabla de todas las posiciones. Usa <b>«Añadir cartera / exchange»</b>
+        para crear una nueva posición — cada cartera/exchange debe crearse una
+        vez antes de la primera operación. Al hacer clic en una fila se
+        filtra la lista de transacciones a esa posición; un filtro oculta las
+        posiciones sin saldo.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Todas las transacciones</h3>
+      <p>
+        Lista completa de todas las operaciones. <b>«Añadir transacción»</b>
+        abre un formulario para una sola operación:
+      </p>
+      <table class="fields">
+        <tr><th>Campo</th><th>Significado</th></tr>
+        <tr><td class="field">Cantidad (BTC)</td><td class="desc">Cantidad de BTC negociada, p. ej. <span class="inline-code">0.1</span></td></tr>
+        <tr><td class="field">Fecha y hora</td><td class="desc">Momento de la transacción</td></tr>
+        <tr><td class="field">Tipo</td><td class="desc"><span class="inline-code">BUY</span> o <span class="inline-code">SELL</span></td></tr>
+        <tr><td class="field">Importe fiat</td><td class="desc">Contravalor en la moneda de negociación, p. ej. <span class="inline-code">5000</span></td></tr>
+        <tr><td class="field">Moneda</td><td class="desc">Moneda de negociación, p. ej. EUR o USDT</td></tr>
+        <tr><td class="field">Tipo de cambio a moneda de visualización</td><td class="desc">Solo relevante si la moneda de negociación y la de visualización difieren</td></tr>
+        <tr><td class="field">Exchange</td><td class="desc">Elige una posición existente o crea una nueva con <span class="inline-code">+ New position…</span></td></tr>
+        <tr><td class="field">Comisiones / Moneda (comisiones)</td><td class="desc">Comisión de la operación incluida su propia moneda</td></tr>
+      </table>
+      <figure>
+        <img src="../images/add_manually_transaction.png" alt="Formulario: añadir transacción" onclick="openLightbox(this)">
+        <figcaption>Ejemplo: 0.1 BTC BUY por 5.000 EUR en el exchange «21 Bitcoin» <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+
+      <p>Selecciona una o varias filas con la casilla para abrir el menú de acciones:</p>
+      <table class="fields">
+        <tr><th>Acción</th><th>Significado</th></tr>
+        <tr><td class="field">Exportar seleccionados</td><td class="desc">Exportar solo las filas marcadas como CSV</td></tr>
+        <tr><td class="field">Emparejar transferencias</td><td class="desc">Vincular dos filas (ingreso/retiro) como una transferencia entre carteras relacionada</td></tr>
+        <tr><td class="field">Cambiar cartera o exchange</td><td class="desc">Modificar la posición a posteriori</td></tr>
+        <tr><td class="field">Establecer tipo de cambio</td><td class="desc">Corregir el tipo de cambio a la moneda de visualización</td></tr>
+        <tr><td class="field">No es duplicado</td><td class="desc">Confirmar una fila detectada como duplicado y quitar la marca</td></tr>
+        <tr><td class="field">Marcar como transferencia individual</td><td class="desc">Señalar deliberadamente un ingreso/retiro sin contrapartida</td></tr>
+        <tr><td class="field">Eliminar</td><td class="desc">Eliminar las transacciones seleccionadas</td></tr>
+      </table>
+
+      <h4 style="font-family:'JetBrains Mono',monospace;font-size:14px;margin:24px 0 10px;color:var(--text)">Marcado de filas por color</h4>
+      <p class="muted">El color de fondo de una fila en la lista de transacciones indica automáticamente uno de cuatro estados:</p>
+      <table class="fields">
+        <tr><th>Color</th><th>Significado</th></tr>
+        <tr><td class="field">🟠 Naranja</td><td class="desc">Moneda extranjera sin tipo de cambio — transacción en una moneda distinta de la de visualización, el tipo de cambio sigue en 1. Corrígelo con «Establecer tipo de cambio».</td></tr>
+        <tr><td class="field">🟣 Violeta</td><td class="desc">Posible duplicado — fecha, tipo e importe coinciden con una transacción ya existente. Revisa y confirma con «No es duplicado» o elimina la fila.</td></tr>
+        <tr><td class="field">🔵 Azul</td><td class="desc">Transferencia individual — ingreso o retiro sin contrapartida en otra posición, marcado deliberadamente como operación individual.</td></tr>
+        <tr><td class="field">🔴 Rojo oscuro</td><td class="desc">Importado recientemente — la fila proviene de la importación CSV de la sesión actual, para revisión rápida tras importar.</td></tr>
+      </table>
+      <p class="muted">La leyenda justo encima de la tabla muestra los mismos cuatro colores como referencia rápida.</p>
+      <figure>
+        <img src="../images/transaction_highlighting.png" alt="Marcado de filas por color en la lista de transacciones" onclick="openLightbox(this)">
+        <figcaption>Ejemplo de las cuatro marcas: importado recientemente, transferencia individual, moneda extranjera sin tipo de cambio, posible duplicado <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Historial de importaciones</h3>
+      <p>
+        Tarjeta con todas las importaciones CSV anteriores: fecha, nombre de
+        archivo, número total de filas y cuántas de ellas se importaron, se
+        detectaron como duplicado o dieron error. Las importaciones
+        individuales se pueden eliminar desde aquí.
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Métricas y gráficos:</b> el rendimiento, el saldo, la asignación y la ganancia/pérdida por compra ya no se muestran aquí, sino en la <a href="visualizations.html" style="color:var(--accent)">Vista de Cartera</a>.</span>
+      </div>
+
+      <figure>
+        <img src="../images/data_management.png" alt="Gestión de datos: carteras y exchanges, y lista de transacciones" onclick="openLightbox(this)">
+        <figcaption>Gestión de datos: carteras y exchanges, lista de transacciones con acciones por fila <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="../images/data_management_with_cards.png" alt="Gestión de datos en vista de tarjetas en pantallas estrechas" onclick="openLightbox(this)">
+        <figcaption>Vista de tarjetas adaptable en pantallas estrechas en lugar de filas de tabla <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-4">
+    <div class="step-text">
+      <div class="step-num">04 / 07</div>
+      <h2>Bloquear app</h2>
+      <p>
+        El icono de candado en el encabezado (junto a «Acciones» /
+        «Visualización») cifra todas las posiciones y transacciones con una
+        contraseña y elimina los datos en texto plano de la base de datos.
+        Útil si la app queda desatendida o el equipo no es totalmente de
+        confianza.
+      </p>
+      <table class="fields">
+        <tr><th>Campo</th><th>Significado</th></tr>
+        <tr><td class="field">Contraseña</td><td class="desc">Contraseña de cifrado — necesaria para desbloquear más tarde</td></tr>
+        <tr><td class="field">Confirmar contraseña</td><td class="desc">Debe coincidir exactamente, si no el bloqueo se rechaza</td></tr>
+      </table>
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>Qué ocurre al bloquear:</b> Todas las posiciones y transacciones se cifran con la contraseña y se eliminan de la base de datos. A partir de entonces la app muestra en cada visita un diálogo bloqueante «App bloqueada» hasta que se introduce de nuevo la contraseña correcta — lo que también restaura los datos. Los intentos fallidos se ralentizan con una espera creciente.</span>
+      </div>
+      <div class="note">
+        <span>🔒</span>
+        <span><b>Cifrado:</b> <span class="inline-code">AES-256-GCM</span>, la clave se deriva de la contraseña con <span class="inline-code">PBKDF2WithHmacSHA256</span> con 310.000 iteraciones y una sal aleatoria de 16 bytes. Cada cifrado usa un nonce GCM aleatorio de 12 bytes; la etiqueta de autenticación de 128 bits detecta al desbloquear una contraseña incorrecta o datos manipulados.</span>
+      </div>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>Importante:</b> No existe recuperación de contraseña. Si se pierde la contraseña, los datos cifrados no se pueden recuperar.</span>
+      </div>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Desbloquear</h3>
+      <p>
+        Con la app bloqueada, en cada visita aparece el diálogo <b>«App
+        bloqueada»</b> con un campo de contraseña. Tras introducir la
+        contraseña correcta, los datos se descifran y se restauran.
+      </p>
+      <div class="note">
+        <span>♻</span>
+        <span><b>Contraseña perdida:</b> Con <span class="inline-code">Restablecer app</span> en el diálogo de desbloqueo puedes restablecer la app si ya no recuerdas la contraseña. Esto elimina de forma irreversible todos los datos cifrados y la app arranca como una instalación nueva. Para confirmar hay que escribir <span class="inline-code">DELETE</span>.</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/lock_app.png" alt="Diálogo para bloquear la app con campos de contraseña" onclick="openLightbox(this)">
+        <figcaption>Diálogo «Bloquear app», abierto con el icono de candado del encabezado <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="../images/unlock.png" alt="Diálogo «App bloqueada» para desbloquear con contraseña o restablecer la app" onclick="openLightbox(this)">
+        <figcaption>Diálogo «App bloqueada»: introducir contraseña o restablecer con «Restablecer app» <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-5">
+    <div class="step-text">
+      <div class="step-num">05 / 07</div>
+      <h2>Exportar CSV</h2>
+      <p>
+        Con <b>«Exportar CSV»</b> en el encabezado puedes exportar todas las
+        transacciones o — tras seleccionar filas en la tabla — solo algunas.
+      </p>
+
+      <table class="fields">
+        <tr><th>Opción</th><th>Significado</th></tr>
+        <tr><td class="field">Formato CoinTracking</td><td class="desc">Activa la casilla para exportar en el formato compatible con CoinTracking en lugar del formato propio</td></tr>
+        <tr><td class="field">Contraseña (opcional)</td><td class="desc">Déjala vacía → exportación como <span class="inline-code">.csv</span> en texto plano. Establece una contraseña → archivo <span class="inline-code">.enc</span> cifrado</td></tr>
+      </table>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/export_with_password_or_as_cointracking.png" alt="Diálogo de exportación con formato CoinTracking y contraseña opcional" onclick="openLightbox(this)">
+        <figcaption>Diálogo de exportación: elegir formato y cifrar opcionalmente con contraseña <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-6" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">06 / 07</div>
+      <h2>Más funciones</h2>
+      <p>
+        La barra de iconos a la derecha del encabezado agrupa ajustes
+        globales y herramientas disponibles en todas las páginas.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Ajustes</h3>
+      <p>El icono del engranaje abre el diálogo de ajustes:</p>
+      <table class="fields">
+        <tr><th>Campo</th><th>Significado</th></tr>
+        <tr><td class="field">Idioma</td><td class="desc">Idioma de la interfaz de la app</td></tr>
+        <tr><td class="field">Moneda de visualización</td><td class="desc">Moneda fiat para todos los valores calculados (saldo, ganancia/pérdida, …)</td></tr>
+        <tr><td class="field">Fuente</td><td class="desc">Fija en Inconsolata y no modificable mientras el Modo Einundzwanzig está activo</td></tr>
+        <tr><td class="field">Fecha límite fiscal (fin de la exención)</td><td class="desc">Para las monedas compradas a partir de esta fecha, ya no se aplica la exención fiscal tras 1 año. Déjalo vacío para desactivarlo. Solo informativo, no es asesoría fiscal.</td></tr>
+      </table>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Precio de BTC</h3>
+      <p>
+        El precio mostrado a la izquierda del encabezado se puede sobrescribir
+        manualmente haciendo clic en el valor — útil cuando no se puede cargar
+        un precio actual. El botón <b>«Actualizar»</b> recarga el precio desde
+        CoinGecko. Si el modo sin conexión está activo, aparece antes una
+        confirmación.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Modo sin conexión</h3>
+      <p>
+        El icono de wifi activa o desactiva el modo sin conexión. Mientras
+        está activo, la app no consulta precios automáticamente por internet
+        — el precio se puede seguir estableciendo manualmente. El ajuste se
+        guarda localmente en el navegador.
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">Menú Acciones: copia de seguridad y restablecimiento</h3>
+      <p>
+        Además de importar/exportar CSV, el menú <b>«Acciones»</b> contiene
+        una copia de seguridad completa de la base de datos, independiente de
+        la exportación CSV:
+      </p>
+      <table class="fields">
+        <tr><th>Acción</th><th>Significado</th></tr>
+        <tr><td class="field">Exportar BD</td><td class="desc">Guarda posiciones, transacciones, historial de importaciones y todos los datos de precios (diarios, mensuales y anuales) como JSON. Contraseña opcional — déjala vacía para un archivo sin cifrar.</td></tr>
+        <tr><td class="field">Importar BD</td><td class="desc">Elimina TODAS las posiciones, transacciones, el historial de importaciones y los datos de precios actuales, y los sustituye por la copia de seguridad restaurada. No se puede deshacer.</td></tr>
+      </table>
+      <figure>
+        <img src="../images/nav_bar_menu.png" alt="Menú de acciones con eliminar todo, importar/exportar CSV y exportar/importar BD" onclick="openLightbox(this)">
+        <figcaption>Menú Acciones: eliminar todo, importar/exportar CSV, exportar/importar BD <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>Cuidado con «Eliminar todo»:</b> Esta opción del menú Acciones borra inmediatamente todos los datos tras una simple confirmación — a diferencia del restablecimiento en el diálogo «App bloqueada» (ver paso 04), que exige escribir la palabra <span class="inline-code">delete</span> para confirmar. Conviene hacer antes una copia de seguridad.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-7" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">07 / 07</div>
+      <h2>Modo Einundzwanzig</h2>
+      <p>
+        El icono «21» del encabezado activa un esquema de color alternativo
+        con tipografía propia (Inconsolata) y un ticker en movimiento con
+        frases de la cultura Bitcoiner. Mientras el modo está activo, el
+        interruptor normal de claro/oscuro y el selector de fuente en Ajustes
+        quedan bloqueados.
+      </p>
+      <figure>
+        <img src="../images/21_mode.png" alt="Modo Einundzwanzig con esquema de color y ticker propios" onclick="openLightbox(this)">
+        <figcaption>Modo Einundzwanzig: esquema de color, tipografía y ticker propios en el encabezado <span class="zoom-hint">Clic para ampliar ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>₿</span>
+        <span>Su nombre está inspirado en el pódcast de Bitcoin en alemán <a href="https://einundzwanzig.space/" target="_blank" rel="noopener" style="color:var(--accent)">einundzwanzig.space</a> («einundzwanzig» significa «veintiuno» en alemán).</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · Guía
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ Cerrar (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>

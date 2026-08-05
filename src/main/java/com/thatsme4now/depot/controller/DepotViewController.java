@@ -1,21 +1,21 @@
 package com.thatsme4now.depot.controller;
 
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.thatsme4now.depot.dto.PositionDTO;
-import com.thatsme4now.depot.entity.Position;
 import com.thatsme4now.depot.service.DepotService;
+import com.thatsme4now.depot.service.ImportWizardService;
+import com.thatsme4now.depot.service.ImportWizardService.UploadResult;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,15 +25,26 @@ import lombok.RequiredArgsConstructor;
 public class DepotViewController {
 
     private final DepotService depotService;
+    private final ImportWizardService importWizardService;
 
     @GetMapping("/")
     public String root() {
-    	return "redirect:/btc-tracking";
+    	return "redirect:/btc-tracking/holdings";
     }
     
     @GetMapping("/btc-tracking/flow")
     public String flow() {
         return "depot/flow";
+    }
+
+    @GetMapping("/btc-tracking/holdings")
+    public String holdings() {
+        return "depot/holdings";
+    }
+
+    @GetMapping("/btc-tracking/yearly")
+    public String yearly() {
+        return "depot/yearly";
     }
 
     @GetMapping("/btc-tracking")
@@ -43,44 +54,7 @@ public class DepotViewController {
 
         List<PositionDTO> positions = depotService.getAllPositions(currency);
 
-        BigDecimal totalValue = positions.stream()
-            .map(PositionDTO::getTotalValue)
-            .filter(v -> v != null)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal invested = positions.stream()
-            .map(PositionDTO::getInvested)
-            .filter(v -> v != null)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalBtc = positions.stream()
-            .map(PositionDTO::getQuantity)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal realized = positions.stream()
-        		.map(PositionDTO::getRealized)
-        		.filter(v -> v != null)
-        		.reduce(BigDecimal.ZERO, BigDecimal::add);
-        
-        BigDecimal gainLoss = totalValue.subtract(invested).add(realized);
-        BigDecimal performancePct = invested.compareTo(BigDecimal.ZERO) > 0
-            ? gainLoss.divide(invested, 4, RoundingMode.HALF_UP)
-                      .multiply(BigDecimal.valueOf(100))
-                      .setScale(2, RoundingMode.HALF_UP)
-            : BigDecimal.ZERO;
-
-
-        BigDecimal totalSats = totalBtc.multiply(BigDecimal.valueOf(100_000_000))
-            .setScale(0, RoundingMode.HALF_UP);
-
         model.addAttribute("positions",      positions);
-        model.addAttribute("totalValue",     totalValue);
-        model.addAttribute("invested",       invested);
-        model.addAttribute("realized",       realized);
-        model.addAttribute("gainLoss",       gainLoss);
-        model.addAttribute("performancePct", performancePct);
-        model.addAttribute("totalBtc",       totalBtc);
-        model.addAttribute("totalSats",      totalSats);
         model.addAttribute("currency",       currency);
 
         // BTC price for header badge – from selected currency
@@ -101,34 +75,48 @@ public class DepotViewController {
         boolean noPriceAvailable = positions.stream()
             .allMatch(p -> p.getCurrentPrice() == null);
         model.addAttribute("noPriceAvailable", noPriceAvailable);
-        
-        model.addAttribute("transactionCount", depotService.getTransactionCount());
+
+        // Import-Historie-Kachel — einfache Liste, siehe ImportWizardService#getHistory
+        model.addAttribute("importHistory", importWizardService.getHistory(20));
+
         return "depot/overview";
     }
 
-    @GetMapping("/btc-tracking/new")
-    public String newForm(Model model) {
-        model.addAttribute("position", new Position());
-        return "depot/position-form";
+    // ── Import-Assistent (3 Steps) ─────────────────────────────────────────
+
+    /**
+     * Step 1: Datei-Upload → serverseitiges Parsen (ersetzt PapaParse für
+     * diesen Schritt) → Mapping-Seite mit eingebetteten Rohdaten. Kein Redirect
+     * (die Daten leben nur im Response, nicht serverseitig zwischengespeichert) —
+     * Mapping-Änderungen laufen danach komplett clientseitig gegen die
+     * eingebetteten Daten, siehe import-mapping.js.
+     */
+    @PostMapping("/btc-tracking/import/mapping")
+    public String importMapping(@RequestParam("file") MultipartFile file, Model model) {
+        UploadResult result;
+        try {
+            result = importWizardService.parseUpload(file);
+        } catch (IOException e) {
+            model.addAttribute("uploadError", e.getMessage());
+            model.addAttribute("filename", "");
+            model.addAttribute("headers", List.of());
+            model.addAttribute("rows", List.of());
+            return "depot/import-mapping";
+        }
+        model.addAttribute("filename", result.filename);
+        model.addAttribute("headers", result.headers);
+        model.addAttribute("rows", result.rows);
+        return "depot/import-mapping";
     }
 
-    @GetMapping("/btc-tracking/edit/{id}")
-    public String editForm(@PathVariable(name = "id") Long id, Model model) {
-        Position p = depotService.getPosition(id)
-            .orElseThrow(() -> new IllegalArgumentException("Position not found: " + id));
-        model.addAttribute("position", p);
-        return "depot/position-form";
+    @GetMapping("/btc-tracking/import/review")
+    public String importReview() {
+        return "depot/import-review";
     }
 
-    @PostMapping("/btc-tracking/save")
-    public String save(@ModelAttribute Position position) {
-        depotService.save(position);
-        return "redirect:/depot";
+    @GetMapping("/btc-tracking/import/status")
+    public String importStatus() {
+        return "depot/import-status";
     }
 
-    @GetMapping("/btc-tracking/delete/{id}")
-    public String delete(@PathVariable(name = "id") Long id) {
-        depotService.delete(id);
-        return "redirect:/depot";
-    }
 }

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title data-i18n="yearly.title">Jahresansicht</title>
+    <link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/flatpickr.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+    <link rel="stylesheet" th:href="@{/css/flow.css}"/>
+    <link rel="stylesheet" th:href="@{/css/yearly.css}"/>
+</head>
+<body class="depot-body">
+
+<div th:replace="~{depot/fragments/navbar :: navbar(false, 'nav.btn.yearly')}"></div>
+<div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
+
+<main class="container-fluid px-4 py-4">
+    <div class="depot-card mb-3">
+        <div class="depot-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span data-i18n="yearly.title">Jahresansicht</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <select id="yearlyYearSelect" class="form-select form-select-sm yearly-year-select"></select>
+                <button id="yearlyLoadPricesBtn" class="btn btn-xs depot-btn-outline" onclick="yearlyLoadPrices()">
+                    <i class="bi bi-cloud-download me-1"></i><span data-i18n="yearly.btn.loadPrices">Preise laden</span>
+                </button>
+                <button id="yearlyEditPricesBtn" class="btn btn-xs depot-btn-outline" data-bs-toggle="modal" data-bs-target="#yearlyPriceModal">
+                    <i class="bi bi-pencil me-1"></i><span data-i18n="yearly.btn.editPrices">Preise anpassen</span>
+                </button>
+                <button id="yearlyResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetYearlyLayout()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="yearlyLoading" style="color:var(--text-muted);padding:1rem" data-i18n="holdings.loading">Lade Daten…</div>
+        <div id="yearlyEmpty" class="d-none" style="color:var(--text-muted);padding:1rem" data-i18n="holdings.empty">Keine Daten vorhanden.</div>
+
+        <div id="yearlyContent" class="d-none">
+            <p class="yearly-layout-hint d-none" id="yearlyLayoutHint" data-i18n="yearly.layout.hint">
+                Ziehe die Kacheln am Griff, um sie neu anzuordnen — bis zu 2 pro Reihe. Auf dem Handy nutze stattdessen die Pfeil-Buttons.
+            </p>
+
+            <div id="yearlyGrid" class="yearly-grid">
+                <div class="yearly-grid-row" id="yearly-row-0" data-row="0">
+                    <span class="yearly-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+                    <div class="yearly-chart-block yearly-draggable" id="yearly-block-chart">
+                        <div class="yearly-chart-title">
+                            <i class="bi bi-grip-vertical yearly-drag-handle"></i>
+                            <span class="yearly-chart-title-text" data-i18n="yearly.chart.blockTitle">Bestand &amp; Wertentwicklung</span>
+                            <span class="yearly-block-actions">
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-chart', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-chart', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="yearlyChart"></div>
+                    </div>
+
+                    <div class="yearly-chart-block yearly-draggable d-none" id="yearly-block-pricechart">
+                        <div class="yearly-chart-title">
+                            <i class="bi bi-grip-vertical yearly-drag-handle"></i>
+                            <span class="yearly-chart-title-text" id="yearlyPriceChartTitle" data-i18n="yearly.priceChart.title">Bitcoin-Kurs (Historie)</span>
+                            <span class="yearly-block-actions">
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-pricechart', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-pricechart', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="yearlyPriceChart"></div>
+                    </div>
+                </div>
+
+                <div class="yearly-grid-row" id="yearly-row-1" data-row="1">
+                    <span class="yearly-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+                    <div class="yearly-chart-block yearly-draggable d-none" id="yearly-block-tiles">
+                        <div class="yearly-chart-title">
+                            <i class="bi bi-grip-vertical yearly-drag-handle"></i>
+                            <span class="yearly-chart-title-text" data-i18n="yearly.tiles.title">Käufe &amp; Verkäufe</span>
+                            <span class="yearly-chart-title-count" id="yearlyTilesCount"></span>
+                            <span class="yearly-tiles-filter">
+                                <button type="button" class="yearly-tiles-filter-btn buy is-active" data-type="buy"
+                                        onclick="event.stopPropagation(); yearlyToggleTilesFilter('buy')" data-i18n="yearly.tiles.filter.buy">Käufe</button>
+                                <button type="button" class="yearly-tiles-filter-btn sell is-active" data-type="sell"
+                                        onclick="event.stopPropagation(); yearlyToggleTilesFilter('sell')" data-i18n="yearly.tiles.filter.sell">Verkäufe</button>
+                            </span>
+                            <span class="yearly-block-actions">
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-tiles', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-tiles', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="yearlyTilesEmpty" class="d-none" style="color:var(--text-muted);padding:.5rem 0" data-i18n="yearly.tiles.empty">
+                            Keine Transaktionen in diesem Jahr.
+                        </div>
+                        <div id="yearlyTilesGrid" class="yearly-tile-grid"></div>
+                    </div>
+                </div>
+
+                <div class="yearly-grid-row" id="yearly-row-2" data-row="2">
+                    <span class="yearly-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+
+                    <div class="yearly-chart-block yearly-draggable d-none" id="yearly-block-transfers">
+                        <div class="yearly-chart-title">
+                            <i class="bi bi-grip-vertical yearly-drag-handle"></i>
+                            <span class="yearly-chart-title-text" data-i18n="yearly.transfers.title">Transfers</span>
+                            <span class="yearly-chart-title-count" id="yearlyTransfersCount"></span>
+                            <span class="yearly-transfers-filter">
+                                <button type="button" class="yearly-transfers-filter-btn" data-mode="all"
+                                        onclick="event.stopPropagation(); yearlyToggleTransfersFilter('all')" data-i18n="yearly.transfers.filter.all">Alle</button>
+                                <button type="button" class="yearly-transfers-filter-btn" data-mode="paired"
+                                        onclick="event.stopPropagation(); yearlyToggleTransfersFilter('paired')" data-i18n="yearly.transfers.filter.paired">Nur Paare</button>
+                                <button type="button" class="yearly-transfers-filter-btn is-active" data-mode="solo"
+                                        onclick="event.stopPropagation(); yearlyToggleTransfersFilter('solo')" data-i18n="yearly.transfers.filter.solo">Nur Solo</button>
+                            </span>
+                            <span class="yearly-block-actions">
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-transfers', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="yearly-block-move-btn" onclick="moveYearlyBlock('yearly-block-transfers', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                            </span>
+                        </div>
+                        <div id="yearlyTransfersEmpty" class="d-none" style="color:var(--text-muted);padding:.5rem 0" data-i18n="yearly.transfers.empty">
+                            Keine Transfers in diesem Jahr.
+                        </div>
+                        <div id="yearlyTransfersGrid" class="yearly-tile-grid"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="statusToast" class="depot-toast d-none"></div>
+
+<!-- Edit Transaction Modal (shared fragment, same dialog as the main dashboard) -->
+<div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
+
+<!-- Offline Confirm Modal (shared pattern with overview.html's price refresh) -->
+<div class="modal fade" id="yearlyOfflineConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0">
+                    <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
+                    <span data-i18n="modal.offline.title">Offline Mode</span>
+                </span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
+                    Offline mode is active. Fetch current price from internet anyway?
+                </p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border)">
+                <button class="btn depot-btn-primary" onclick="yearlyConfirmOfflineLoadPrices()">
+                    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
+                </button>
+                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual monthly price editor: grouped by year, collapsible, newest year first -->
+<div class="modal fade" id="yearlyPriceModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0" data-i18n="yearly.priceModal.title">Monatskurse anpassen</span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="yearly-price-modal-hint" data-i18n="yearly.priceModal.hint">
+                    Ultimo-Kurs (letzter Tag des Monats). Der laufende Monat nutzt immer den aktuell hinterlegten Kurs und ist hier nicht editierbar.
+                </p>
+                <div id="yearlyPriceModalBody" class="yearly-price-accordion"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/vendor/js/apexcharts.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr.min.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-de.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-th.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
+<script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
+<!-- load order: i18n → currency → theme → offline → applock → navbar → tx-form → yearly -->
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/currency.js}"></script>
+<script th:src="@{/js/theme.js}"></script>
+<script th:src="@{/js/offline.js}"></script>
+<script th:src="@{/js/applock.js}"></script>
+<script th:src="@{/js/navbar.js}"></script>
+<script th:src="@{/js/tx-form.js}"></script>
+<script th:src="@{/js/yearly.js}"></script>
+<script>
+    I18N.ready.then(() => { I18N.applyI18n(); OFFLINE.init(); initFlatpickr(); initYearly(); });
+</script>
+</body>
+</html>

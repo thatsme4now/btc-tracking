@@ -83,6 +83,36 @@ public class AppLockService {
         return new UnlockResult(summary.positions, summary.transactions);
     }
 
+    /**
+     * "Passwort vergessen"-Reset: Die verschlüsselte Lock-Datei kann ohne
+     * Passwort nicht entschlüsselt werden, die darin gesicherten Daten sind
+     * damit unwiderruflich verloren. Löscht die Lock-Datei und leert
+     * vorsorglich nochmal alle Tabellen (falls durch eine ältere Lock-Datei
+     * oder einen inkonsistenten Zwischenzustand noch Reste vorhanden wären),
+     * sodass die App danach wie eine frische Installation dasteht.
+     *
+     * Erwartet den literalen Bestätigungstext "delete" (sprachunabhängig,
+     * siehe applock.reset.* im Frontend) als zusätzliche Absicherung gegen
+     * versehentliche/direkte API-Aufrufe — die App hat keine eigene
+     * Login-Authentifizierung, die UI-Bestätigung allein ist keine echte
+     * Sicherheitsgrenze.
+     */
+    public void reset(String confirm) {
+        if (!"delete".equals(confirm)) {
+            throw new IllegalArgumentException("Confirmation text must be 'delete'.");
+        }
+        if (isLocked()) {
+            try {
+                Files.delete(LOCK_FILE);
+            } catch (IOException e) {
+                throw new RuntimeException("Could not delete lock file: " + e.getMessage(), e);
+            }
+        }
+        dataExportService.clearAll();
+        resetRateLimit();
+        log.warn("App reset — lock file discarded and all data cleared (password forgotten).");
+    }
+
     // ── Rate limiting (in-memory, single-user) ────────────────
 
     private void checkRateLimit() {

@@ -1,238 +1,339 @@
-// ── Theme Toggle ──────────────────────────────────────────
-(function initTheme() {
-    const saved = localStorage.getItem('depot-theme') || 'dark';
-    applyTheme(saved);
-})();
-
-function toggleTheme() {
-    const current = document.body.classList.contains('light') ? 'light' : 'dark';
-    const next    = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem('depot-theme', next);
-}
-
-function applyTheme(theme) {
-    document.body.classList.toggle('light', theme === 'light');
-    const icon = document.getElementById('themeIcon');
-    if (icon) {
-        icon.className = theme === 'light' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-    }
-}
-
 'use strict';
+// Theme (Dark/Light) init/toggle/apply now lives in theme.js (shared with flow.html/holdings.html).
+// Hinweis Sticky-Suche (siehe depot.css): #posTable_wrapper/#txTable_wrapper sind
+// bereits eigene Scroll-Container (max-height + overflow-y:auto), daher genügt dort
+// top:0 für die sticky Such-/Length-Zeile — kein Navbar-Höhen-Offset per JS nötig.
 
-const CHART_COLORS = [
-    '#F7931A','#1D9E75','#378ADD','#534AB7','#D85A30',
-    '#BA7517','#185FA5','#0F6E56','#3C3489','#993C1D'
-];
-
-const APEX_DEFAULTS = {
-    chart:   { background: 'transparent', fontFamily: "'IBM Plex Mono', monospace" },
-    theme:   { mode: 'dark' },
-    tooltip: {
-        theme: 'dark',
-        style: { fontFamily: "'IBM Plex Mono', monospace", fontSize: '12px' }
-    },
-    grid: { borderColor: '#252830' }
-};
-// ── Density Toggle ────────────────────────────────────────
-const DENSITY_CYCLE = ['default', 'comfortable'];
-const DENSITY_ICONS = { default: 'bi-type', comfortable: 'bi-type-bold'};
-const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
-const FONTS = [
-    { key: 'ibm',   label: 'IBM Plex Mono', family: "'IBM Plex Mono', 'Courier New', monospace" },
-    { key: 'inter', label: 'Inter',          family: "'Inter', sans-serif" },
-    { key: 'roboto',label: 'Roboto',         family: "'Roboto', sans-serif" },
-];
-
-(function initFont() {
-    const saved = localStorage.getItem('depot-font') || 'ibm';
-    applyFont(saved);
-})();
-
-function applyFont(key) {
-    const font = FONTS.find(f => f.key === key) || FONTS[0];
-    document.documentElement.style.setProperty('--font', font.family);
-    localStorage.setItem('depot-font', key);
-}
-
-(function initDensity() {
-    const saved = localStorage.getItem('depot-density') || 'default';
-    applyDensity(saved);
-})();
-
-
-function cycleDensity() {
-    const current = localStorage.getItem('depot-density') || 'default';
-    const next    = DENSITY_CYCLE[(DENSITY_CYCLE.indexOf(current) + 1) % DENSITY_CYCLE.length];
-    applyDensity(next);
-    localStorage.setItem('depot-density', next);
-}
-
-function applyDensity(density) {
-    document.body.classList.remove('density-comfortable', 'density-spacious');
-    if (density !== 'default') {
-        document.body.classList.add('density-' + density);
-    }
-    const icon = document.getElementById('densityIcon');
-    if (icon) icon.className = DENSITY_ICONS[density] || 'bi-type';
-    const btn = document.getElementById('btnDensity');
-    if (btn) btn.title = 'Size: ' + (DENSITY_LABELS[density] || 'A');
-}
-
-// ── Card Collapse State (persisted like Theme) ────────────
-const CARD_STORAGE_KEY = 'depot-card-collapsed';
-const CARD_IDS = ['positionsCardBody', 'txCardBody', 'metricsCardBody', 'walletsSubBody', 'donutSubBody'];
-
-function _getCardState() {
-    try {
-        return JSON.parse(localStorage.getItem(CARD_STORAGE_KEY)) || {};
-    } catch (e) {
-        return {};
-    }
-}
-
-function _setCardState(id, collapsed) {
-    const state = _getCardState();
-    state[id] = collapsed;
-    localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(state));
-}
-
-// Diese Sub-Cards existieren nur als eigenständig klappbare Bereiche im Mobile-Viewport.
-// Im Desktop-Viewport werden sie immer angezeigt, unabhängig vom gespeicherten Zustand.
-const MOBILE_ONLY_CARD_IDS = ['walletsSubBody', 'donutSubBody'];
-const MOBILE_BREAKPOINT = 991;
-
-function _isMobileViewport() {
-    return window.innerWidth <= MOBILE_BREAKPOINT;
-}
-
-function _applyCardState(id) {
-    const body = document.getElementById(id);
-    if (!body) return;
-
-    const isMobileOnlyCard = MOBILE_ONLY_CARD_IDS.includes(id);
-    const collapsed = (isMobileOnlyCard && !_isMobileViewport())
-        ? false
-        : !!_getCardState()[id];
-
-    body.classList.toggle('d-none', collapsed);
-
-    const btn = document.querySelector(`[onclick*="toggleCard('${id}'"]`);
-    const icon = btn ? btn.querySelector('i') : document.getElementById('txToggleIcon');
-    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-}
-
-(function initCardStates() {
-    CARD_IDS.forEach(_applyCardState);
-
-    let _resizeTimeout = null;
-    window.addEventListener('resize', () => {
-        clearTimeout(_resizeTimeout);
-        _resizeTimeout = setTimeout(() => {
-            MOBILE_ONLY_CARD_IDS.forEach(_applyCardState);
-        }, 150);
-    });
-})();
+// ── Font + Density Toggle: jetzt in theme.js (siehe dort) ──
+// Auf allen 4 Seiten geladen statt nur hier, damit die Einstellung überall wirkt.
 
 // ── Flatpickr Date Pickers / Add-Edit-Transaction modal ───
 // Moved to tx-form.js (shared with the Flow Diagram page): FLATPICKR_LOCALES,
 // _fpAdd/_fpEdit/_fpTransferIn, _fpLocale(), initFlatpickr().
 
-// ── Section Reordering (Native Drag&Drop Desktop, Up/Down Buttons Mobile) ─
-const SECTION_ORDER_KEY = 'depot-section-order';
-const DEFAULT_SECTION_ORDER = ['metrics', 'positions', 'transactions'];
+// ── Kachel-Grid (Drag&Drop Desktop, Pfeil-Buttons Mobile) ──
+// Eigenständige, unabhängige Implementierung — ersetzt das frühere einfache
+// Auf/Ab-Sortieren einer flachen Liste (SECTION_ORDER_KEY) durch ein echtes
+// Grid: 4 Reihen, max. 3 Slots pro Reihe (wie Bestandsansicht), analog zum
+// Muster auf Jahresansicht/Bestandsansicht (siehe yearly.js/holdings.js),
+// aber eigener Namensraum/Key (bewusst nicht geteilt).
+const OVERVIEW_LAYOUT_KEY = 'overview-layout-v2';
+const OVERVIEW_MAX_COLS   = 3;
+// 3 Reihen — die Übersicht ist reine Daten-Verwaltung (Kennzahlen und
+// Aufteilung nach Wallet/Börse leben jetzt auf der Bestandsansicht, siehe
+// holdings.js' HOLDINGS_DEFAULT_LAYOUT). Reihe 1: Wallets & Börsen (füllt
+// allein). Reihe 2: Alle Transaktionen (füllt allein). Reihe 3: leer, für
+// künftige Kacheln reserviert (z.B. Import).
+const OVERVIEW_DEFAULT_LAYOUT = [
+    ['overview-block-wallets'],
+    ['transactionsPanel'],
+    ['overview-block-import-history']
+];
 
-function _getSectionOrder() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(SECTION_ORDER_KEY));
-        if (Array.isArray(saved) && saved.length === DEFAULT_SECTION_ORDER.length
-            && DEFAULT_SECTION_ORDER.every(id => saved.includes(id))) {
-            return saved;
-        }
-    } catch (e) {}
-    return DEFAULT_SECTION_ORDER;
+// Tablet/Phone (≤991px, siehe App-weite Konvention): Wallets- und Transaktions-
+// Kachel dürfen dort nur gemeinsam in EINER Row stehen (kein Drag & Drop auf
+// Mobile, aber Pfeil-Buttons könnten sie sonst in getrennte Rows schieben).
+const OVERVIEW_LAYOUT_MOBILE_BREAKPOINT = 991;
+
+function _isOverviewMobileLayout() {
+    return window.innerWidth <= OVERVIEW_LAYOUT_MOBILE_BREAKPOINT;
 }
 
-function _setSectionOrder(order) {
-    localStorage.setItem(SECTION_ORDER_KEY, JSON.stringify(order));
-}
+/** Führt Rows zusammen, in denen Wallets- und Transaktions-Kachel getrennt
+ *  stehen (z.B. ein auf Desktop gespeichertes Layout) — Ziel-Row ist die mit
+ *  dem kleineren Index, Reihenfolge der Blöcke bleibt erhalten. Kein Effekt,
+ *  wenn beide bereits in derselben Row sind. */
+function _enforceOverviewMobileRowMerge(layout) {
+    const rowIdxOf = id => layout.findIndex(row => row.includes(id));
+    const rowIdxs = [...new Set(OVERVIEW_COLLAPSIBLE_BLOCKS.map(rowIdxOf).filter(i => i !== -1))];
+    if (rowIdxs.length <= 1) return layout;
 
-function _persistCurrentOrder(container) {
-    const newOrder = [...container.querySelectorAll('.sortable-section')]
-        .map(el => el.dataset.sectionId);
-    _setSectionOrder(newOrder);
-}
-
-function initSectionOrder() {
-    const container = document.getElementById('sortableSectionsContainer');
-    if (!container) return;
-
-    _getSectionOrder().forEach(id => {
-        const el = container.querySelector(`.sortable-section[data-section-id="${id}"]`);
-        if (el) container.appendChild(el);
+    const merged = layout.map(row => row.slice());
+    const targetIdx = Math.min(...rowIdxs);
+    rowIdxs.forEach(i => {
+        if (i === targetIdx) return;
+        merged[targetIdx] = merged[targetIdx].concat(merged[i]);
+        merged[i] = [];
     });
+    return merged;
+}
 
-    let dragEl = null;
+/** Wendet die Mobile-Row-Regel auf ein Layout an, sofern gerade Tablet/Phone
+ *  aktiv ist — zentrale Stelle, die von Load, Reset UND Resize genutzt wird. */
+function _overviewLayoutForBreakpoint(layout) {
+    return _isOverviewMobileLayout() ? _enforceOverviewMobileRowMerge(layout) : layout;
+}
 
-    container.querySelectorAll('.sortable-section').forEach(section => {
-        section.querySelectorAll('.drag-handle').forEach(handle => {
-            handle.addEventListener('mousedown', () => section.setAttribute('draggable', 'true'));
+let _overviewDragEl = null;
+
+function initOverviewLayout() {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+
+    applyOverviewLayout(grid, _loadOverviewLayout());
+    wireOverviewDragAndDrop(grid);
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
+    _applyOverviewCollapseState();
+
+    const hint = document.getElementById('overviewLayoutHint');
+    if (hint) hint.classList.remove('d-none');
+    const resetBtn = document.getElementById('overviewResetLayoutBtn');
+    if (resetBtn) resetBtn.classList.remove('d-none');
+}
+
+function _loadOverviewLayout() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OVERVIEW_LAYOUT_KEY));
+        if (Array.isArray(saved)) {
+            const savedIds   = saved.flat();
+            const defaultIds = OVERVIEW_DEFAULT_LAYOUT.flat();
+            if (savedIds.length === defaultIds.length && defaultIds.every(id => savedIds.includes(id))) {
+                return _overviewLayoutForBreakpoint(saved);
+            }
+        }
+    } catch (e) { /* ignore malformed storage */ }
+    return _overviewLayoutForBreakpoint(OVERVIEW_DEFAULT_LAYOUT);
+}
+
+function _saveOverviewLayout(grid) {
+    const rows = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(row => Array.from(row.querySelectorAll('.overview-draggable')).map(el => el.id));
+    localStorage.setItem(OVERVIEW_LAYOUT_KEY, JSON.stringify(layout));
+}
+
+function applyOverviewLayout(grid, layout) {
+    const rows = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    layout.forEach((rowIds, i) => {
+        const row = rows[i];
+        if (!row) return;
+        rowIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) row.appendChild(el);
+        });
+    });
+}
+
+function updateOverviewRowCols(grid) {
+    grid.querySelectorAll('.overview-grid-row').forEach(row => {
+        const blocks = Array.from(row.querySelectorAll('.overview-draggable'));
+        const count = blocks.length;
+        row.style.setProperty('--cols', Math.max(count, 1));
+        blocks.forEach(b => b.style.setProperty('--span', 1));
+        row.classList.toggle('empty', count === 0);
+    });
+}
+
+/**
+ * Nach updateOverviewRowCols() geänderte --cols/--span-Werte ändern die tatsächliche
+ * Container-Breite des Donut-Charts per CSS — ApexCharts misst seine SVG-Breite aber
+ * nur beim (Neu-)Rendern bzw. bei einem window "resize"-Event, nicht bei reinen
+ * CSS-Grid-Änderungen (siehe derselbe, bereits einmal auf der Jahresansicht behobene
+ * Bug-Fall in yearly.js). Vorsorglich hier ebenfalls nach jeder Layout-Änderung ein
+ * synthetisches resize-Event auslösen.
+ */
+function _overviewTriggerChartResize() {
+    window.dispatchEvent(new Event('resize'));
+}
+
+function resetOverviewLayout() {
+    localStorage.removeItem(OVERVIEW_LAYOUT_KEY);
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+    applyOverviewLayout(grid, _overviewLayoutForBreakpoint(OVERVIEW_DEFAULT_LAYOUT));
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
+}
+
+// ── Zuklapp-Feature für Kacheln (nur Tablet/Phone ≤991px, siehe depot.css) ──
+// Eigener Namensraum/Key, unabhängig vom Layout-Key (Kollabieren betrifft nur
+// die Sichtbarkeit des Kachel-Inhalts, nicht die Grid-Reihenfolge).
+const OVERVIEW_COLLAPSE_KEY = 'overview-collapse-v1';
+const OVERVIEW_COLLAPSIBLE_BLOCKS = ['overview-block-wallets', 'transactionsPanel', 'overview-block-import-history'];
+
+function _loadOverviewCollapseState() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(OVERVIEW_COLLAPSE_KEY));
+        if (saved && typeof saved === 'object') return saved;
+    } catch (e) { /* ignore malformed storage */ }
+    return {};
+}
+
+function _setOverviewCollapseIcon(id, collapsed) {
+    const icon = document.querySelector(`#${id}-collapseBtn i`);
+    if (icon) icon.className = collapsed ? 'bi bi-plus-square' : 'bi bi-dash-square';
+}
+
+function _applyOverviewCollapseState() {
+    const state = _loadOverviewCollapseState();
+    OVERVIEW_COLLAPSIBLE_BLOCKS.forEach(id => {
+        const block = document.getElementById(id);
+        const collapsed = !!state[id];
+        if (block) block.classList.toggle('collapsed', collapsed);
+        _setOverviewCollapseIcon(id, collapsed);
+    });
+}
+
+function toggleOverviewBlockCollapse(id) {
+    const block = document.getElementById(id);
+    if (!block) return;
+    const collapsed = block.classList.toggle('collapsed');
+    _setOverviewCollapseIcon(id, collapsed);
+    const state = _loadOverviewCollapseState();
+    state[id] = collapsed;
+    localStorage.setItem(OVERVIEW_COLLAPSE_KEY, JSON.stringify(state));
+    _overviewTriggerChartResize();
+}
+
+function wireOverviewDragAndDrop(grid) {
+    grid.querySelectorAll('.overview-draggable').forEach(el => {
+        el.querySelectorAll('.overview-drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', () => el.setAttribute('draggable', 'true'));
         });
 
-        section.addEventListener('dragstart', (e) => {
-            dragEl = section;
-            section.classList.add('dragging');
+        el.addEventListener('dragstart', (e) => {
+            _overviewDragEl = el;
+            el.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
         });
 
-        section.addEventListener('dragover', (e) => {
+        el.addEventListener('dragend', () => {
+            el.removeAttribute('draggable');
+            el.classList.remove('dragging');
+            _overviewDragEl = null;
+            grid.querySelectorAll('.overview-grid-row.drag-over').forEach(r => r.classList.remove('drag-over'));
+            updateOverviewRowCols(grid);
+            _overviewTriggerChartResize();
+            _overviewApplyTxViewMode();
+            _overviewApplyPosViewMode();
+            _overviewApplyHistoryViewMode();
+            _saveOverviewLayout(grid);
+        });
+    });
+
+    grid.querySelectorAll('.overview-grid-row').forEach(row => {
+        row.addEventListener('dragover', (e) => {
+            if (!_overviewDragEl) return;
             e.preventDefault();
-            if (!dragEl || dragEl === section) return;
-            const rect  = section.getBoundingClientRect();
-            const after = (e.clientY - rect.top) > rect.height / 2;
-            container.insertBefore(dragEl, after ? section.nextSibling : section);
+
+            const countExcludingDragged = Array.from(row.querySelectorAll('.overview-draggable'))
+                .filter(b => b !== _overviewDragEl).length;
+            if (countExcludingDragged >= OVERVIEW_MAX_COLS) {
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+            e.dataTransfer.dropEffect = 'move';
+            row.classList.add('drag-over');
+
+            const after = _getOverviewDragAfterElement(row, e.clientX);
+            if (after == null) row.appendChild(_overviewDragEl);
+            else row.insertBefore(_overviewDragEl, after);
+            updateOverviewRowCols(grid);
         });
 
-        section.addEventListener('drop', (e) => e.preventDefault());
-
-        section.addEventListener('dragend', () => {
-            section.removeAttribute('draggable');
-            section.classList.remove('dragging');
-            dragEl = null;
-            _persistCurrentOrder(container);
+        row.addEventListener('dragleave', (e) => {
+            if (e.target === row) row.classList.remove('drag-over');
         });
+
+        row.addEventListener('drop', (e) => e.preventDefault());
     });
 
     document.addEventListener('mouseup', () => {
-        container.querySelectorAll('.sortable-section[draggable="true"]').forEach(s => {
-            if (!s.classList.contains('dragging')) s.removeAttribute('draggable');
+        grid.querySelectorAll('.overview-draggable[draggable="true"]').forEach(el => {
+            if (!el.classList.contains('dragging')) el.removeAttribute('draggable');
         });
     });
 }
 
-// Mobile: Up/Down Buttons
-function moveSectionUp(btn) {
-    const section = btn.closest('.sortable-section');
-    const container = document.getElementById('sortableSectionsContainer');
-    const prev = section.previousElementSibling;
-    if (prev && prev.classList.contains('sortable-section')) {
-        container.insertBefore(section, prev);
-        _persistCurrentOrder(container);
-    }
+function _getOverviewDragAfterElement(row, x) {
+    const els = [...row.querySelectorAll('.overview-draggable:not(.dragging)')];
+    return els.reduce((closest, child) => {
+        const box    = child.getBoundingClientRect();
+        const offset = x - box.left - box.width / 2;
+        if (offset < 0 && offset > closest.offset) return { offset, element: child };
+        return closest;
+    }, { offset: -Infinity, element: null }).element;
 }
 
-function moveSectionDown(btn) {
-    const section = btn.closest('.sortable-section');
-    const container = document.getElementById('sortableSectionsContainer');
-    const next = section.nextElementSibling;
-    if (next && next.classList.contains('sortable-section')) {
-        container.insertBefore(next, section);
-        _persistCurrentOrder(container);
+/** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
+ *  links nach rechts) — für Mobile/Touch, wo natives Drag & Drop fehlt bzw.
+ *  über die Pfeil-Buttons in .overview-block-actions angesteuert wird. */
+/**
+ * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
+ * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
+ * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
+ * (< OVERVIEW_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter
+ * → wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
+ * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
+ * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
+ * die 3-Slot-Grenze "anstoßen" und der Pfeil täte nichts.
+ * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
+ * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos.)
+ */
+function moveOverviewBlock(id, direction) {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid) return;
+
+    const rows   = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
+
+    let rowIdx = -1, posInRow = -1;
+    layout.forEach((rowIds, i) => {
+        const p = rowIds.indexOf(id);
+        if (p !== -1) { rowIdx = i; posInRow = p; }
+    });
+    if (rowIdx === -1) return;
+
+    const targetPosInRow = posInRow + direction;
+
+    if (targetPosInRow >= 0 && targetPosInRow < layout[rowIdx].length) {
+        // Innerhalb der Row: einfacher Tausch mit dem Nachbarn.
+        [layout[rowIdx][posInRow], layout[rowIdx][targetPosInRow]] =
+            [layout[rowIdx][targetPosInRow], layout[rowIdx][posInRow]];
+    } else {
+        // Row-Grenze überschritten.
+        const targetRowIdx = rowIdx + direction;
+        if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
+
+        // Tablet/Phone (≤991px): Wallets- und Transaktions-Kachel dürfen die
+        // gemeinsame Row nicht verlassen (siehe OVERVIEW_LAYOUT_MOBILE_BREAKPOINT) —
+        // Pfeil tut in diesem Fall bewusst nichts, statt sie zu trennen.
+        if (_isOverviewMobileLayout() && OVERVIEW_COLLAPSIBLE_BLOCKS.includes(id)) return;
+
+        if (layout[targetRowIdx].length < OVERVIEW_MAX_COLS) {
+            layout[rowIdx].splice(posInRow, 1);
+            if (direction > 0) layout[targetRowIdx].unshift(id);
+            else layout[targetRowIdx].push(id);
+        } else {
+            const boundaryIdx = direction > 0 ? 0 : layout[targetRowIdx].length - 1;
+            const boundaryId  = layout[targetRowIdx][boundaryIdx];
+            layout[targetRowIdx][boundaryIdx] = id;
+            layout[rowIdx][posInRow] = boundaryId;
+        }
     }
+
+    layout.forEach((rowIds, i) => {
+        rowIds.forEach(blockId => {
+            const el = document.getElementById(blockId);
+            if (el) rows[i].appendChild(el);
+        });
+    });
+
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _overviewApplyTxViewMode();
+    _overviewApplyPosViewMode();
+    _overviewApplyHistoryViewMode();
+    _saveOverviewLayout(grid);
 }
 
-document.addEventListener('DOMContentLoaded', initSectionOrder);
+document.addEventListener('DOMContentLoaded', initOverviewLayout);
 
 
 // ── Exchange Dropdown / Add-Edit-Transaction helpers ──────
@@ -260,193 +361,102 @@ I18N.ready.then(() => {
         }
     }
 
-    initDonut();
 	initFlatpickr();
-	loadTransactions();
+	// Tabellen-/Kartenansicht (Transaktionen + Wallets) nach dem Laden erneut
+	// anwenden: initOverviewLayout() lief bereits bei DOMContentLoaded, ggf.
+	// bevor der Viewport (window.innerWidth) am Handy zuverlässig feststand —
+	// führte dazu, dass am Handy nach einem frischen Reload fälschlich die
+	// Tabelle (statt der Kartenansicht) stehen blieb, bis irgendeine Aktion
+	// (z.B. Filtern) zufällig einen weiteren Umschalt-Aufruf auslöste. Nach dem
+	// Laden ist der Viewport garantiert stabil, hier daher sicherheitshalber
+	// erneut prüfen/umschalten.
+	loadTransactions().then(() => {
+	    _overviewApplyTxViewMode();
+	    _overviewApplyPosViewMode();
+	    _overviewApplyHistoryViewMode();
+	});
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
         $('#posTable').DataTable().destroy();
     }
 
     $('#posTable').DataTable({
-        order:      [[2, 'desc']],
+        order:      [[3, 'desc']],
         pageLength: 100,
 		paging:     false,
-		searching:  true, 
-		autoWidth:  false, 
+		searching:  true,
+		autoWidth:  false,
         language: {
             search:     t('dt.search'),
             lengthMenu: t('dt.lengthMenu'),
             info:       t('dt.info'),
             paginate:   { previous: t('dt.previous'), next: t('dt.next') }
         },
-        columnDefs: [{ orderable: false, targets: [-1] }]
-    });	
+        columnDefs: [{ orderable: false, targets: [0] }]
+    });
+    _applyPosEmptyFilter();
 
 });
 
-function openHelp() {
-	if (I18N.currentLang() == "de") {
-		window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
-	} else {		
-		window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
-	}
+// ── Hilfe / Settings-Modal / Sats-Modal / Preis-Badge / Refresh: jetzt in
+// navbar.js (siehe dort) — auf allen 4 Seiten geladen statt nur hier.
+
+// ── Positionen: Toggle "Leere ausblenden" ──────────────────
+// Eigenständige Implementierung, analog zum früheren Solo-Transfer-Filter
+// (Tabelle: DataTables ext.search.push; Kartenansicht: einfaches d-none
+// anhand von data-qty-sats, da Karten serverseitig gerendert werden).
+const POS_EMPTY_FILTER_KEY = 'pos-hide-empty-v1';
+let _posEmptyFilterActive = _loadPosEmptyFilter();
+
+function _loadPosEmptyFilter() {
+    const saved = localStorage.getItem(POS_EMPTY_FILTER_KEY);
+    // Default AN (matcht das frühere hart codierte Verhalten der Kartenansicht).
+    return saved === null ? true : saved === '1';
 }
 
-// ── Settings Modal ────────────────────────────────────────
-let settingsModal = null;
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
+    if (settings.nTable.id !== 'posTable' || !_posEmptyFilterActive) return true;
+    const row = settings.aoData[dataIndex].nTr;
+    return row ? Number(row.dataset.qtySats) > 0 : true;
+});
 
-function openSettings() {
-    const langContainer = document.getElementById('langOptions');
-    const supported     = I18N.supported();
-    const currentLang   = I18N.currentLang();
+function _applyPosEmptyFilter() {
+    document.querySelectorAll('#posFilterGroup .pill-filter-btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.mode === (_posEmptyFilterActive ? 'withHoldings' : 'all'));
+    });
 
-    langContainer.innerHTML = Object.entries(supported).map(([code, label]) => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="langChoice" value="${code}"
-                   ${code === currentLang ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;color:var(--text)">${label}</span>
-        </label>
-    `).join('');
+    if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().draw();
+    }
 
-    const curContainer = document.getElementById('currencyOptions');
-    const currentCur   = CURRENCY.current();
-
-    curContainer.innerHTML = CURRENCY.all().map(c => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="curChoice" value="${c.code}"
-                   ${c.code === currentCur ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;color:var(--text)">
-                ${c.code} <span style="color:var(--text-muted)">${c.symbol}</span>
-            </span>
-        </label>
-    `).join('');
-
-    const fontContainer = document.getElementById('fontOptions');
-    const currentFont   = localStorage.getItem('depot-font') || 'ibm';
-
-    fontContainer.innerHTML = FONTS.map(f => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
-            <input type="radio" name="fontChoice" value="${f.key}"
-                   ${f.key === currentFont ? 'checked' : ''}
-                   style="accent-color:var(--accent)"/>
-            <span style="font-size:.82rem;font-family:${f.family};color:var(--text)">${f.label}</span>
-        </label>
-    `).join('');
-
-    if (!settingsModal) settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
-    settingsModal.show();
+    _applyPosCardFilters();
 }
 
-function sendSomeSats() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('sendsomesatsModal'))
-        || new bootstrap.Modal(document.getElementById('sendsomesatsModal'));
-    modal.show();
-}
+// Aktueller Suchtext aus dem sichtbaren Suchfeld (siehe onPosVisibleSearchInput) —
+// separat vom Leer-Filter gehalten, da beide Filter gleichzeitig aktiv sein
+// können und unabhängig ausgelöst werden (Tabelle wird direkt über die
+// DataTables-API gefiltert, die Kartenansicht braucht dafür diesen eigenen
+// Abgleich, da Karten serverseitig gerendert und nie neu aufgebaut werden).
+let _posSearchTerm = '';
 
-function copySatsAddress() {
-    const addr = document.getElementById('satsAddress').textContent;
-    navigator.clipboard.writeText(addr).then(() => {
-        const btn = document.getElementById('btnCopySats');
-        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
-        setTimeout(() => btn.innerHTML = '<i class="bi bi-copy"></i>', 1500);
+/** Wendet Leer-Filter UND Suchtext gemeinsam auf die Kartenansicht an — eine
+ *  Karte ist sichtbar, wenn sie BEIDE Kriterien erfüllt. Von _applyPosEmptyFilter()
+ *  (Leer-Filter geändert) und onPosVisibleSearchInput() (Suchtext geändert)
+ *  gleichermaßen aufgerufen. */
+function _applyPosCardFilters() {
+    const term = _posSearchTerm.trim().toLowerCase();
+    document.querySelectorAll('#posCardsList .overview-pos-card').forEach(card => {
+        const emptyHidden  = _posEmptyFilterActive && Number(card.dataset.qtySats) <= 0;
+        const searchHidden = term && !(card.dataset.label || '').toLowerCase().includes(term);
+        card.classList.toggle('d-none', emptyHidden || searchHidden);
     });
 }
 
-function saveSettings() {
-    const selLang = document.querySelector('input[name="langChoice"]:checked');
-    const selCur  = document.querySelector('input[name="curChoice"]:checked');
-    const selFont = document.querySelector('input[name="fontChoice"]:checked');
-
-    const langChanged = selLang && selLang.value !== I18N.currentLang();
-    const curChanged  = selCur  && selCur.value  !== CURRENCY.current();
-
-    if (selFont) applyFont(selFont.value);
-
-    const applyLang = selLang
-        ? I18N.setLanguage(selLang.value)
-        : Promise.resolve();
-
-    applyLang.then(() => {
-		initFlatpickr();
-		if (curChanged) {
-            CURRENCY.setCurrency(selCur.value);
-            settingsModal.hide();
-            showToast('✓ ' + t('toast.currencyChanged', { currency: selCur.value }), 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            settingsModal.hide();
-            if (langChanged && txLoaded) loadTransactions();
-        }
-    });
+function togglePosEmptyFilter(mode) {
+    _posEmptyFilterActive = mode === 'withHoldings';
+    localStorage.setItem(POS_EMPTY_FILTER_KEY, _posEmptyFilterActive ? '1' : '0');
+    _applyPosEmptyFilter();
 }
-
-// ── Allocation Donut ──────────────────────────────────────
-let donutInstance = null;
-
-function initDonut() {
-    const labels = typeof ALLOCATION_LABELS !== 'undefined' ? ALLOCATION_LABELS : [];
-    const values = typeof ALLOCATION_VALUES !== 'undefined'
-        ? ALLOCATION_VALUES.map(Number) : [];
-
-    if (!labels.length) return;
-    if (donutInstance) { donutInstance.destroy(); donutInstance = null; }
-
-	
-    const options = {
-        ...APEX_DEFAULTS,
-        series: values,
-        labels: labels,
-        chart: {
-            ...APEX_DEFAULTS.chart,
-            type:   'donut',
-            height: window.innerHeight / 3
-        },
-        colors: CHART_COLORS,
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '80%',
-                    labels: {
-                        show: true,
-                        total: {
-                            show:      true,
-                            label:     t('chart.total'),
-                            color:     '#6b6f7a',
-                            fontSize:  '30px',
-                            formatter: (w) => {
-                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                return formatEur(total);
-                            }
-                        },
-                        value: {
-                            color:     '#ddd9d0',
-                            fontSize:  '30px',
-                            formatter: (val) => formatEur(Number(val))
-                        }
-                    }
-                }
-            }
-        },
-        legend: {
-            position:   'bottom',
-            fontSize:   '11px',
-            fontFamily: "'IBM Plex Mono', monospace",
-            labels:     { colors: '#6b6f7a' },
-            markers:    { width: 10, height: 10, radius: 2 }
-        },
-        dataLabels: { enabled: false },
-        stroke:     { width: 0 }
-    };
-
-    donutInstance = new ApexCharts(document.getElementById('donutChart'), options);
-    donutInstance.render();
-}
-
-// ── BTC Price History Chart ───────────────────────────────
-let historyChart = null;
 
 function filterExchangeTransaction(exchange) {
     const panel = document.getElementById('transactionsPanel');
@@ -454,6 +464,11 @@ function filterExchangeTransaction(exchange) {
 
     const doSearch = () => {
         $('#txTable').DataTable().search('"' + exchange + '"').draw();
+        // Sichtbares Suchfeld in der Bulk-Toolbar mitziehen, sonst zeigt es einen
+        // veralteten (leeren) Stand, obwohl im Hintergrund schon gefiltert ist.
+        const visibleInput = document.getElementById('txSearchVisible');
+        if (visibleInput) visibleInput.value = exchange;
+        document.getElementById('txSearchVisibleClear')?.classList.toggle('d-none', !exchange);
     };
 
     if (!txLoaded) {
@@ -461,94 +476,6 @@ function filterExchangeTransaction(exchange) {
     } else {
         doSearch();
     }
-	
-	const body = document.getElementById('txCardBody');
-    const collapsed = !body.classList.contains('d-none');
-	if (!collapsed) {		
-	   body.classList.toggle('d-none', collapsed);
-	   const icon =  document.getElementById('txToggleIcon');
-	   if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-	   _setCardState('txCardBody', false);
-	}
-}
-
-function showHistory() {
-    const panel = document.getElementById('historyPanel');
-    panel.classList.remove('d-none');
-
-    if (historyChart) return;
-
-    document.getElementById('historyChart').innerHTML =
-        `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.loading')}</div>`;
-
-    fetch('/api/btc-tracking/history')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.length) {
-                document.getElementById('historyChart').innerHTML =
-                    `<div style="color:#6b6f7a;padding:1rem;font-size:.8rem">${t('chart.history.empty')}</div>`;
-                return;
-            }
-
-            const series    = data.map(d => [new Date(d.date).getTime(), Number(d.close)]);
-            const first     = series[0][1];
-            const last      = series[series.length - 1][1];
-            const lineColor = last >= first ? '#1D9E75' : '#D85A30';
-
-            const options = {
-                ...APEX_DEFAULTS,
-                series: [{ name: 'BTC/EUR', data: series }],
-                chart: {
-                    ...APEX_DEFAULTS.chart,
-                    type:    'area',
-                    height:  240,
-                    zoom:    { enabled: true },
-                    toolbar: { show: true, tools: { download: false } }
-                },
-                colors: [lineColor],
-                fill: {
-                    type:     'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom:    0.25,
-                        opacityTo:      0.02,
-                        stops:          [0, 100]
-                    }
-                },
-                stroke:   { curve: 'smooth', width: 2 },
-                xaxis: {
-                    type:   'datetime',
-                    labels: { style: { colors: '#6b6f7a', fontFamily: "'IBM Plex Mono', monospace" } },
-                    axisBorder: { color: '#252830' },
-                    axisTicks:  { color: '#252830' }
-                },
-                yaxis: {
-                    labels: {
-                        style:     { colors: '#6b6f7a', fontFamily: "'IBM Plex Mono', monospace" },
-                        formatter: (v) => formatEur(v)
-                    }
-                },
-                tooltip: {
-                    ...APEX_DEFAULTS.tooltip,
-                    x: { format: 'dd.MM.yyyy' },
-                    y: { formatter: (v) => formatEur(v) }
-                },
-                dataLabels: { enabled: false },
-                markers:    { size: 0 }
-            };
-
-            historyChart = new ApexCharts(document.getElementById('historyChart'), options);
-            historyChart.render();
-        })
-        .catch(err => {
-            document.getElementById('historyChart').innerHTML =
-                `<div style="color:#d85a30;padding:1rem;font-size:.8rem">${t('toast.error')}: ${err.message}</div>`;
-        });
-}
-
-function closeHistory() {
-    document.getElementById('historyPanel').classList.add('d-none');
-    if (historyChart) { historyChart.destroy(); historyChart = null; }
 }
 
 // ── Transactions Panel ────────────────────────────────────
@@ -556,18 +483,6 @@ let txLoaded = false;
 let _lastTxData = null; // letzte geladenen Rohdaten, für Re-Render bei Viewport-/Compact-Wechsel
 let _lastTxIsCompact = null;
 // txModal / txModalAdd (bootstrap.Modal instances) now live in tx-form.js
-
-function toggleTransactions() {
-    const panel   = document.getElementById('transactionsPanel');
-    const chevron = document.getElementById('txChevron');
-    const hidden  = panel.classList.contains('d-none');
-
-    panel.classList.toggle('d-none', !hidden);
-    chevron.className = hidden ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
-    chevron.style.fontSize = '.6rem';
-
-    if (hidden && !txLoaded) loadTransactions();
-}
 
 async function loadTransactions() {
 	
@@ -577,33 +492,12 @@ async function loadTransactions() {
             txLoaded = true;
             _lastTxData = data;
             renderTxTable(data);
-			const countEl = document.getElementById('transactionCountValue');
-			if (countEl) countEl.textContent = data.length;
         })
-        .catch(err => {select
-			// Legende aktualisieren
-			const legend = document.getElementById('txLegend');
-			if (legend) {
-			    legend.innerHTML = `
-			        <span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--warn)"></span>
-			            <span>${t('legend.warn.currency')}</span>
-			        </span>
-			        <span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--warn-duplicate)"></span>
-			            <span>${t('legend.warn.duplicate')}</span>
-			        </span>
-					<span class="tx-legend-item">
-			            <span class="tx-legend-dot" style="background:var(--solo-transfer)"></span>
-			            <span>${t('legend.solo.transfer')}</span>
-			        </span>
-					<span class="tx-legend-item">
-		                <span class="tx-legend-dot" style="background:var(--last-import)"></span>
-		                <span>${t('legend.last.import')}</span>
-		            </span>`;
-			}
+        .catch(err => {
+            // Legende ist bereits statisch im HTML vorhanden (mit data-i18n) — hier nur
+            // die Fehlermeldung in der Tabelle anzeigen.
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -611,16 +505,98 @@ function truncateTwoDecimals(num) {
   return Math.trunc(num * 100 + 1e-8) / 100;
 }
 
+const TX_TYPE_COLORS = {
+    BUY:          'text-pos',
+    SELL:         'text-neg',
+    TRANSFER_IN:  'text-pos',
+    TRANSFER_OUT: 'text-neg'
+};
+
+/** Baut das HTML einer einzelnen Transaktionszeile (ohne sie irgendwo einzufügen). */
+function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
+    const color   = TX_TYPE_COLORS[tx.type] || '';
+    const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
+    const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
+
+    const isSolo = tx.transferId
+        && transferIdCounts[tx.transferId] === 1
+        && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
+
+    let earning;
+    let paid;
+    let posNeg = "";
+    if (tx.type == "BUY") {
+        if (tx.currency !== CURRENCY.current()) {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+        } else {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees);
+        }
+
+        let percentage = (100/paid * (paid + earning)) - 100;
+        earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
+
+        if (earning.startsWith("-")) {
+            posNeg = "text-neg";
+        } else {
+            posNeg = "text-pos";
+        }
+    } else {
+        earning="–";
+    }
+    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+	    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
+	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
+	               style="accent-color:var(--accent)"/>
+	    </td>
+	    <td class="depot-actions-cell" style="white-space:nowrap;padding-left:.4rem;padding-right:.4rem">
+	        <span class="depot-actions-icon">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</span>
+	        <span class="depot-actions">
+	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
+	                <i class="bi bi-pencil"></i>
+	            </button>
+	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
+	                <i class="bi bi-copy"></i>
+	            </button>
+	            <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
+	                <i class="bi bi-trash"></i>
+	            </button>
+	        </span>
+	    </td>
+	    <td class="tx-date-col" style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
+	    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
+	    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
+	    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
+	    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
+	</tr>`;
+}
+
+/**
+ * Kopiert alle Attribute und den inneren Inhalt von newRowHtml auf den bestehenden
+ * rowNode, OHNE den DOM-Knoten selbst auszutauschen. Wichtig, damit DataTables
+ * (bei DOM-Datenquelle) die Zeile per row(node).invalidate() weiterhin korrekt
+ * zuordnen kann, statt sie als "verschwunden + neu" zu behandeln.
+ */
+function _replaceTxRowInPlace(rowNode, newRowHtml) {
+    const tmp = document.createElement('tbody');
+    tmp.innerHTML = newRowHtml;
+    const newNode = tmp.firstElementChild;
+    if (!newNode) return;
+    [...rowNode.attributes].forEach(a => rowNode.removeAttribute(a.name));
+    [...newNode.attributes].forEach(a => rowNode.setAttribute(a.name, a.value));
+    rowNode.innerHTML = newNode.innerHTML;
+}
+
+// Letzter gerenderter Stand pro Zeile (id → HTML), für den Diff bei Folge-Renders
+// nach einer Mutation (Edit/Duplizieren/Löschen) — siehe renderTxTable().
+let _txRowHtmlById = new Map();
+
 function renderTxTable(data) {
-    const TYPE_COLORS = {
-        BUY:          'text-pos',
-        SELL:         'text-neg',
-        TRANSFER_IN:  'text-pos',
-        TRANSFER_OUT: 'text-neg'
-    };
-	
 	const isCompact = getDeviceType() !== 'DESKTOP';
-	_lastTxIsCompact = isCompact;
 
 	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
     const transferIdCounts = {};
@@ -630,91 +606,470 @@ function renderTxTable(data) {
         }
     });
 
-    const rows = data.map(tx => {
-        const color   = TYPE_COLORS[tx.type] || '';
-        const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
-        const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-		
-		// NEU
-        const isSolo = tx.transferId
-            && transferIdCounts[tx.transferId] === 1
-            && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
-					
-		let earning;
-		let paid;
-		let posNeg = "";
-		if (tx.type == "BUY") {		
-			if(tx.currency !== CURRENCY.current()) {
-				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
-				paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
-				changes = (paid + earning) * tx.quantity;
-			} else {
-				earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
-				paid = (tx.quantityFiat + tx.fees);
-				changes = (paid + earning) * tx.quantity;
-			}
-			
-			let percentage = (100/paid * (paid + earning)) - 100;
-			earning = formatEur(earning) + " (" + truncateTwoDecimals(percentage) + "%)";
+    const newHtmlById = new Map();
+    data.forEach(tx => newHtmlById.set(String(tx.id), _buildTxRowHtml(tx, transferIdCounts, isCompact)));
 
-			if (earning.startsWith("-")) {
-				posNeg = "text-neg";
-			} else {
-				posNeg = "text-pos";
-			}
-		} else {
-			earning="–";
-		}
-		return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
-		    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
-		        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
-		               style="accent-color:var(--accent)"/>
-		    </td>
-		    <td class="text-center">${tx.comment ? `<i class="bi bi-info-circle" title="${esc(tx.comment)}"></i>` : ''}</td>
-		    <td style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
-		    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
-		    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
-		    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-		    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
-		    <td class="text-end depot-actions" style="white-space:nowrap">
-		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openEditTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Edit">
-		            <i class="bi bi-pencil"></i>
-		        </button>
-		        <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
-		            <i class="bi bi-copy"></i>
-		        </button>
-		        <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
-		            <i class="bi bi-trash"></i>
-		        </button>
-		    </td>
-		</tr>`;
-    });
+    const existingTable = $.fn.DataTable.isDataTable('#txTable') ? $('#txTable').DataTable() : null;
 
-    if ($.fn.DataTable.isDataTable('#txTable')) {
-        $('#txTable').DataTable().destroy();
+    // Voller (Neu-)Aufbau nur beim allerersten Laden, wenn die Tabelle komplett leer
+    // ist/wird, oder wenn sich Kompakt-/Desktop-Modus geändert hat (andere Spalten-
+    // struktur). Sonst: inkrementelles Patchen einzelner Zeilen (siehe unten), damit
+    // Scrollposition, aktuelle Seite und aktiver Suchfilter erhalten bleiben.
+    const compactChanged = _lastTxIsCompact !== null && _lastTxIsCompact !== isCompact;
+    _lastTxIsCompact = isCompact;
+    const needsFullRebuild = !existingTable || data.length === 0 || compactChanged;
+
+    if (needsFullRebuild) {
+        if (existingTable) existingTable.destroy();
+
+        document.getElementById('txTableBody').innerHTML = data.length
+            ? [...newHtmlById.values()].join('')
+            : `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+        _markDuplicates();
+
+        $('#txTable').DataTable({
+            order:      [[2, 'desc']],
+            pageLength: 500,
+            lengthMenu: [25, 50, 100, 250, 500],
+            autoWidth:  false,
+            language: {
+                search:     t('dt.search'),
+                lengthMenu: t('dt.lengthMenu'),
+                info:       t('dt.info'),
+                paginate:   { previous: t('dt.previous'), next: t('dt.next') }
+            },
+            columnDefs: [{ orderable: false, targets: [0, 1] }],
+            // Jeder Draw (initial, Suche, Solo-Filter, Sortierung) hält die
+            // Kartenansicht synchron — siehe _overviewRenderTxCardsIfActive().
+            drawCallback: () => _overviewRenderTxCardsIfActive()
+        });
+        _txRowHtmlById = newHtmlById;
+        // Neu aufgebaute Tabelle hat keine mehr angehakten Checkboxen (z.B. nach
+        // Bulk-Löschen) — Toolbar-Count/Select-All-Status sonst fälschlich stehen.
+        _updateBulkToolbar();
+        return;
     }
 
-    document.getElementById('txTableBody').innerHTML =
-        rows.length ? rows.join('') :
-        `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
-	_markDuplicates();
-	
-    $('#txTable').DataTable({
-        order:      [[2, 'desc']],
-        pageLength: 500,
-		lengthMenu: [25, 50, 100, 250, 500],
-		autoWidth:  false, 
-        language: {
-            search:     t('dt.search'),
-            lengthMenu: t('dt.lengthMenu'),
-            info:       t('dt.info'),
-            paginate:   { previous: t('dt.previous'), next: t('dt.next') }
-        },
-        columnDefs: [{ orderable: false, targets: [0, 1, -1] }]
+    // ── Inkrementelles Update ────────────────────────────────
+    // Wichtig: DataTables hängt bei aktiver Seitengröße/Suche NUR die gerade sichtbaren
+    // Zeilen ins DOM ein — alle anderen Zeilen existieren nur intern (nicht per
+    // document.querySelector auffindbar). Deshalb wird hier ausschließlich über die
+    // DataTables-Row-API mit einer Funktions-Selektor gesucht (Default-Modifier
+    // {page:'all', search:'none'} durchsucht wirklich ALLE Zeilen, unabhängig von
+    // aktueller Seite/Filter) — das war der Grund, warum der Puls-Effekt bisher nur
+    // "manchmal" auftrat (nämlich nur, wenn die betroffene Zeile zufällig auf der
+    // aktuell sichtbaren Seite lag und zum aktiven Suchfilter passte).
+    const table = existingTable;
+    const changedIds = [];
+
+    function _findTxRowNode(id) {
+        const rowApi = table.row((idx, rowData, node) => node && node.getAttribute('data-id') === id);
+        return rowApi.any() ? rowApi.node() : null;
+    }
+
+    for (const id of _txRowHtmlById.keys()) {
+        if (!newHtmlById.has(id)) {
+            const node = _findTxRowNode(id);
+            if (node) table.row(node).remove();
+        }
+    }
+
+    for (const [id, html] of newHtmlById) {
+        const oldHtml = _txRowHtmlById.get(id);
+        if (oldHtml === undefined) {
+            // Neue Zeile (Duplikat) — bekommt den Puls, da sie sonst leicht übersehen wird.
+            table.row.add($(html)); // Position/Seite regelt draw()
+            changedIds.push(id);
+        } else if (oldHtml !== html) {
+            // Bearbeitete Zeile — nur in-place patchen, bewusst OHNE Puls (siehe changedIds
+            // unten). Die Tabelle scrollt/paginiert dabei ohnehin nicht weg, der Nutzer bleibt
+            // an der relevanten Stelle, ein zusätzlicher visueller Hinweis ist hier nicht nötig.
+            const node = _findTxRowNode(id);
+            if (node) {
+                _replaceTxRowInPlace(node, html);
+                table.row(node).invalidate();
+            }
+        }
+    }
+
+    table.draw(false); // false = aktuelle Seite/Sortierung beibehalten statt auf Seite 1 zu springen
+    _markDuplicates();
+    _overviewRenderTxCardsIfActive();
+    _txRowHtmlById = newHtmlById;
+    // Entfernte/neu aufgebaute Zeilen (z.B. nach Bulk-Löschen) haben keine
+    // angehakte Checkbox mehr — Toolbar-Count sonst fälschlich stehen (Fund:
+    // "2 selected" blieb nach dem Löschen der beiden Transaktionen sichtbar).
+    _updateBulkToolbar();
+
+    // Kurzer grüner Fade-Pulse auf geänderten/duplizierten Zeilen (siehe .tx-row-pulse in depot.css).
+    // Knoten erst NACH draw() über die DataTables-API erneut auflösen (bei frisch
+    // hinzugefügten Zeilen ist der Knoten vor dem Draw ggf. noch nicht zuverlässig
+    // verfügbar). Läuft nur sichtbar ab, wenn die Zeile gerade auf der aktuellen Seite
+    // angezeigt wird — das ist beabsichtigt, eine Animation auf einer unsichtbaren
+    // Zeile wäre ohnehin nicht wahrnehmbar.
+    changedIds.forEach(id => {
+        const node = _findTxRowNode(id);
+        if (!node) return;
+        node.classList.add('tx-row-pulse');
+        setTimeout(() => node.classList.remove('tx-row-pulse'), 1500);
     });
+}
+
+// ── "Alle Transaktionen": Kartenansicht ───────────────────────────────────
+// Eigenständige, unabhängige Implementierung (eigener Namensraum, siehe
+// depot.css .overview-tx-card). Aktiv, sobald die Kachel sich eine Grid-Row
+// mit einer anderen Kachel teilt (siehe updateOverviewRowCols) oder der
+// Viewport mobil ist. Die Tabelle (samt DataTables-Suche/Sortierung/Solo-
+// Filter) bleibt dabei die ALLEINIGE Wahrheitsquelle — sie wird nur unsicht-
+// bar (d-none) geschaltet. Die Karten sind eine reine Anzeige-Ableitung aus
+// den aktuell sichtbaren (gefilterten) <tr>-Zeilen in #txTableBody (DataTables
+// hängt bei aktivem Filter ohnehin nur die passenden Zeilen ins DOM ein, siehe
+// Kommentar in renderTxTable oben). Auswahl-Checkboxen in Karten wirken als
+// Fernbedienung auf die zugehörige (unsichtbare) Zeilen-Checkbox — dadurch
+// funktionieren Mehrfachauswahl, Bulk-Toolbar und Rechtsklick-Menü unverändert
+// in beiden Ansichten, ohne die bestehende Auswahl-Logik zu duplizieren.
+const OVERVIEW_TX_MOBILE_BREAKPOINT = 767;
+let _overviewTxCardModeActive = false;
+
+function _overviewShouldUseTxCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const panel = document.getElementById('transactionsPanel');
+    const row   = panel ? panel.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    return row.querySelectorAll('.overview-draggable').length > 1;
+}
+
+/** Prüft, ob umgeschaltet werden muss (Layout-Änderung, Resize) und rendert
+ *  bei Bedarf die Karten neu. Aufrufstellen: initOverviewLayout, nach jeder
+ *  Layout-Änderung (Drag&Drop-Ende, Pfeil-Buttons, Reset) sowie debounced
+ *  auf window "resize" (siehe unten). */
+function _overviewApplyTxViewMode() {
+    const wrap  = document.getElementById('txTableWrap');
+    const cards = document.getElementById('txCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUseTxCards();
+    const changed  = useCards !== _overviewTxCardModeActive;
+    _overviewTxCardModeActive = useCards;
+
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+
+    // Bulk-Toolbar: In der Kartenansicht sind die 7 einzelnen Buttons zu breit
+    // (die Kachel ist ja gerade deshalb schmal) — dort kompakt als Dropdown +
+    // eigene Select-All-Checkbox (Tabellen-Kopfzeile mit #txSelectAll ist in
+    // der Kartenansicht unsichtbar). In der Tabellenansicht bleibt es wie
+    // gehabt bei den inline Buttons.
+    const inline   = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-inline');
+    const dropdown = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-dropdown');
+    if (inline)   inline.classList.toggle('d-none', useCards);
+    if (dropdown) dropdown.classList.toggle('d-none', !useCards);
+
+    if (useCards && changed) renderOverviewTxCards();
+}
+
+// ── "Wallets & Börsen": Kartenansicht ─────────────────────────────────────
+// Eigenständige, unabhängige Implementierung. Anders als bei "Alle Trans-
+// aktionen" (jede Row-Teilung genügt) wird hier erst umgeschaltet, wenn die
+// Kachel wirklich auf 1 von 3 Slots einer vollen Row gequetscht wird — bei
+// nur 2 Kacheln in der Row (halbe Breite) bleibt die schmalere Wallets-
+// Tabelle noch als Tabelle lesbar. Da die Positionsliste rein serverseitig
+// per Thymeleaf gerendert wird (kein JS-Fetch, Hinzufügen/Bearbeiten/Löschen
+// lösen ohnehin einen Seiten-Reload aus) genügt hier ein reines Sichtbar-
+// keits-Umschalten zwischen #posTableWrap und #posCardsList — anders als bei
+// den Transaktionen ist kein Re-Render/Sync nötig.
+function _overviewShouldUsePosCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const block = document.getElementById('overview-block-wallets');
+    const row   = block ? block.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    // Schwelle bewusst bei 2 (statt OVERVIEW_MAX_COLS) — seit Kennzahlen/Donut auf
+    // die Bestandsansicht verschoben wurden, gibt es auf der Übersicht nur noch 2
+    // Kacheln insgesamt (Wallets + Transaktionen), eine Row kann also nie mehr 3
+    // erreichen. Trigger daher: sobald sich Wallets die Row mit irgendeiner
+    // anderen Kachel teilt (nicht mehr erst bei voller 3er-Row).
+    return row.querySelectorAll('.overview-draggable').length >= 2;
+}
+
+function _overviewApplyPosViewMode() {
+    const wrap  = document.getElementById('posTableWrap');
+    const cards = document.getElementById('posCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUsePosCards();
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+}
+
+// ── "Import-Historie": Kartenansicht ──────────────────────────────────────
+// Gleiches Muster wie bei Wallets/Börsen oben: rein serverseitig gerendert
+// (Thymeleaf, kein JS-Fetch), Umschalten genügt daher als reines Sichtbarkeits-
+// Toggle zwischen #importHistoryTableWrap und #importHistoryCardsList — Listen-
+// ansicht, sobald die Kachel allein in ihrer Row steht, sonst Kartenansicht.
+function _overviewShouldUseHistoryCards() {
+    if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
+
+    const block = document.getElementById('overview-block-import-history');
+    const row   = block ? block.closest('.overview-grid-row') : null;
+    if (!row) return false;
+    return row.querySelectorAll('.overview-draggable').length >= 2;
+}
+
+function _overviewApplyHistoryViewMode() {
+    const wrap  = document.getElementById('importHistoryTableWrap');
+    const cards = document.getElementById('importHistoryCardsList');
+    if (!wrap || !cards) return;
+
+    const useCards = _overviewShouldUseHistoryCards();
+    wrap.classList.toggle('d-none', useCards);
+    cards.classList.toggle('d-none', !useCards);
+}
+
+/** Von renderTxTable()/drawCallback nach jedem Tabellen-Redraw aufgerufen,
+ *  damit die Kartenansicht (falls gerade aktiv) synchron bleibt. */
+function _overviewRenderTxCardsIfActive() {
+    if (_overviewTxCardModeActive) renderOverviewTxCards();
+}
+
+function renderOverviewTxCards() {
+    const container = document.getElementById('txCardsList');
+    if (!container) return;
+
+    const rows = document.querySelectorAll('#txTableBody tr[data-id]');
+    if (!rows.length) {
+        container.innerHTML = `<div class="overview-tx-cards-empty">${esc(t('dt.empty'))}</div>`;
+        return;
+    }
+
+    const txById = new Map((_lastTxData || []).map(tx => [String(tx.id), tx]));
+    container.innerHTML = Array.from(rows)
+        .map(row => {
+            const tx = txById.get(row.dataset.id);
+            return tx ? _buildTxCardHtml(tx, row) : '';
+        })
+        .join('');
+
+    // Safari/WebKit-Reflow-Fix: Wird dieser Container im selben Zug erst von
+    // d-none auf sichtbar geschaltet UND befüllt (genau der Fall beim allerersten
+    // Rendern nach dem Laden auf dem Handy), berechnet WebKit das Flex-Layout der
+    // neu eingefügten Karten manchmal nicht sofort korrekt — Labels erscheinen,
+    // Werte bleiben bis zur nächsten Layout-Änderung (z.B. Klick) leer/unsichtbar.
+    // Erzwungenes Reflow durch Lesen von offsetHeight behebt das zuverlässig.
+    void container.offsetHeight;
+}
+
+const OVERVIEW_TX_BADGE_MAP = {
+    BUY:          { cls: 'type-buy',          key: 'flow.legend.buy' },
+    SELL:         { cls: 'type-sell',         key: 'flow.legend.sell' },
+    TRANSFER_IN:  { cls: 'type-transfer-in',  key: 'flow.panel.transferIn' },
+    TRANSFER_OUT: { cls: 'type-transfer-out', key: 'flow.panel.transferOut' }
+};
+
+/** Baut eine Karte aus den Roh-Transaktionsdaten (für Inhalt/Formatierung —
+ *  eigenständige Berechnung, analog zu _buildTxRowHtml) plus der zugehörigen,
+ *  bereits gerenderten <tr> (für Auswahl-/Status-Zustand: checked/selected/
+ *  warning/warning-duplicate/solo-transfer/last-import — so bleibt die Karte
+ *  immer exakt konsistent mit dem, was die Tabelle aktuell anzeigt). */
+function _buildTxCardHtml(tx, row) {
+    const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
+    const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
+    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import']
+        .filter(c => row.classList.contains(c)).join(' ');
+    const selectedClass = row.classList.contains('selected') ? ' selected' : '';
+
+    const badgeInfo = OVERVIEW_TX_BADGE_MAP[tx.type];
+    const badge = badgeInfo
+        ? `<span class="overview-tx-card-badge ${badgeInfo.cls}">${esc(t(badgeInfo.key))}</span>`
+        : '';
+
+    let earning = '–';
+    let posNeg  = '';
+    if (tx.type === 'BUY') {
+        let paid;
+        if (tx.currency !== CURRENCY.current()) {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees) * tx.exchangeRate)) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees) * tx.exchangeRate;
+        } else {
+            earning = (CURRENT_PRICE - ((tx.pricePerBtc + tx.fees))) * tx.quantity;
+            paid = (tx.quantityFiat + tx.fees);
+        }
+        const percentage = (100 / paid * (paid + earning)) - 100;
+        earning = formatEur(earning) + ' (' + truncateTwoDecimals(percentage) + '%)';
+        posNeg = earning.startsWith('-') ? 'text-neg' : 'text-pos';
+    }
+
+    const priceLine = tx.pricePerBtc != null
+        ? _overviewTxFieldRow(t('table.col.pricePerBtc'),
+            tx.currency !== CURRENCY.current() ? formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc))
+        : '';
+    const totalLine = tx.quantityFiat != null
+        ? _overviewTxFieldRow(t('table.col.total'),
+            tx.currency !== CURRENCY.current()
+                ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ` <span style="font-size:.62rem">[${esc(tx.currency)} × ${tx.exchangeRate}]</span>`
+                : formatEur((tx.quantityFiat + tx.fees)))
+        : '';
+    const glLine = tx.type === 'BUY' && tx.quantityFiat != null
+        ? _overviewTxFieldRow(t('table.col.gl'), `<span class="${posNeg}">${earning}</span>`)
+        : '';
+    const transferLine = tx.transferId
+        ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
+        : '';
+    // Kommentar kann beliebig lang sein — rechtsbündig (wie die übrigen Felder)
+    // hat er die Kachel unnötig in die Breite gezogen, da eine lange Zeile ohne
+    // Umbruch den Flex-Container aufweitet. Daher: fest auf 20 Zeichen kürzen
+    // (mit …, voller Text im title-Tooltip) UND linksbündig statt rechtsbündig
+    // darstellen (siehe .overview-tx-field-value.align-left in depot.css).
+    const commentText = tx.comment && tx.comment.length > 20 ? tx.comment.substring(0, 20) + '…' : tx.comment;
+    const commentLine = tx.comment
+        ? _overviewTxFieldRow(t('modal.field.comment'), esc(commentText), tx.comment, true)
+        : '';
+
+    const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
+
+    return `<div class="overview-tx-card ${statusClass}${selectedClass}" data-id="${tx.id}" onclick="_overviewToggleTxCard(this)">
+        <div class="overview-tx-card-head">
+            <span class="overview-tx-card-head-label">
+                <input type="checkbox" class="tx-card-check" data-id="${tx.id}" ${checked}
+                       style="accent-color:var(--accent)" onclick="event.stopPropagation()"
+                       onchange="_overviewOnTxCardCheckChange(this)"/>
+                <span>${esc(tx.positionLabel || '–')}</span>
+            </span>
+            <span class="overview-tx-card-actions" onclick="event.stopPropagation()">
+                ${badge}
+                <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
+                        onclick="openEditTx(${txJson})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon" title="Copy"
+                        onclick="openAddTx(${txJson})">
+                    <i class="bi bi-copy"></i>
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon text-neg" title="Delete"
+                        onclick="deleteTx(${tx.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </span>
+        </div>
+        ${_overviewTxFieldRow(t('table.col.date'), date)}
+        ${_overviewTxFieldRow(t('table.col.btc'), fmt8(tx.quantity))}
+        ${priceLine}${totalLine}${glLine}${transferLine}${commentLine}
+    </div>`;
+}
+
+function _overviewTxFieldRow(label, value, title, alignLeft) {
+    return `<div class="overview-tx-field">
+        <span class="overview-tx-field-label">${esc(label)}</span>
+        <span class="overview-tx-field-value${alignLeft ? ' align-left' : ''}"${title ? ` title="${esc(title)}"` : ''}>${value}</span>
+    </div>`;
+}
+
+/** Fernbedienung: Karten-Checkbox-Änderung auf die tatsächliche (unsichtbare)
+ *  Zeilen-Checkbox übertragen und dort ein echtes change-Event feuern — der
+ *  bestehende globale change-Listener (siehe unten) übernimmt danach ganz
+ *  normal .selected-Klasse + _updateBulkToolbar(), unverändert. */
+function _overviewOnTxCardCheckChange(cb) {
+    const id = cb.dataset.id;
+    const rowCb = document.querySelector(`#txTableBody tr[data-id="${id}"] .tx-row-check`);
+    if (rowCb) {
+        rowCb.checked = cb.checked;
+        rowCb.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    cb.closest('.overview-tx-card')?.classList.toggle('selected', cb.checked);
+}
+
+function _overviewToggleTxCard(cardEl) {
+    const cb = cardEl.querySelector('.tx-card-check');
+    if (!cb) return;
+    cb.checked = !cb.checked;
+    _overviewOnTxCardCheckChange(cb);
+}
+
+/** Re-merged Wallets-/Transaktions-Row bei Bedarf nach einem Resize (z.B.
+ *  Fenster von Desktop- auf Tablet/Phone-Breite verkleinert, ohne Reload) —
+ *  ohne Reload würde sonst ein bereits im DOM getrenntes Layout stehen
+ *  bleiben, bis die Seite neu geladen wird. Kein Effekt, wenn schon gemergt
+ *  oder auf Desktop-Breite. */
+function _overviewReapplyMobileRowConstraint() {
+    const grid = document.getElementById('overviewGrid');
+    if (!grid || !_isOverviewMobileLayout()) return;
+
+    const rows   = Array.from(grid.querySelectorAll('.overview-grid-row'));
+    const layout = rows.map(r => Array.from(r.querySelectorAll('.overview-draggable')).map(el => el.id));
+    const merged = _enforceOverviewMobileRowMerge(layout);
+    if (JSON.stringify(merged) === JSON.stringify(layout)) return;
+
+    applyOverviewLayout(grid, merged);
+    updateOverviewRowCols(grid);
+    _overviewTriggerChartResize();
+    _saveOverviewLayout(grid);
+}
+
+(function initOverviewTxCardMode() {
+    let _resizeTimeout = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(_resizeTimeout);
+        _resizeTimeout = setTimeout(() => {
+            _overviewApplyTxViewMode();
+            _overviewApplyPosViewMode();
+            _overviewApplyHistoryViewMode();
+            _overviewReapplyMobileRowConstraint();
+        }, 150);
+    });
+})();
+
+// ── Sichtbares Suchfeld in der Bulk-Toolbar (Transaktionstabelle) ──────────
+// Das native DataTables-Suchfeld liegt INNERHALB von #txTable_wrapper, das
+// selbst scrollt (max-height + overflow-y:auto) — sticky hat dort nicht
+// zuverlässig funktioniert. Workaround: natives Feld per CSS ausgeblendet
+// (siehe #txTable_wrapper .dt-search in depot.css), stattdessen dieses Feld
+// hier oben in der Bulk-Actions-Toolbar, die IMMER sichtbar bleibt, weil sie
+// außerhalb von #txTable_wrapper liegt. Steuert die eigentliche DataTables-
+// Suche direkt über die API und hält das (verstecktes) native Feld nur der
+// Vollständigkeit halber im Wert synchron.
+function onTxVisibleSearchInput(value) {
+    const hiddenInput = document.querySelector('#txTable_wrapper .dt-search input');
+    if (hiddenInput) hiddenInput.value = value;
+
+    document.getElementById('txSearchVisibleClear')?.classList.toggle('d-none', !value);
+
+    if ($.fn.DataTable.isDataTable('#txTable')) {
+        $('#txTable').DataTable().search(value).draw();
+    }
+}
+
+function clearTxVisibleSearch() {
+    const input = document.getElementById('txSearchVisible');
+    if (input) input.value = '';
+    onTxVisibleSearchInput('');
+    input?.focus();
+}
+
+// Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
+// Filtert zusätzlich die Kartenansicht mit (siehe _applyPosCardFilters) — die
+// Karten sind serverseitig gerendert und wurden von der DataTables-Suche bisher
+// gar nicht erfasst, dadurch ging die Suche auf Tablet/Phone (dort aktive
+// Kartenansicht) faktisch ins Leere.
+function onPosVisibleSearchInput(value) {
+    const hiddenInput = document.querySelector('#posTable_wrapper .dt-search input');
+    if (hiddenInput) hiddenInput.value = value;
+
+    document.getElementById('posSearchVisibleClear')?.classList.toggle('d-none', !value);
+
+    if ($.fn.DataTable.isDataTable('#posTable')) {
+        $('#posTable').DataTable().search(value).draw();
+    }
+
+    _posSearchTerm = value || '';
+    _applyPosCardFilters();
+}
+
+function clearPosVisibleSearch() {
+    const input = document.getElementById('posSearchVisible');
+    if (input) input.value = '';
+    onPosVisibleSearchInput('');
+    input?.focus();
 }
 
 // updateRelevantFields(), _loadPositionsDropdown(), openAddTx(), openEditTx()
@@ -750,7 +1105,16 @@ async function deleteTx(id) {
 
 function confirmDeletePosition(id) {
     showConfirm(t('table.action.delete'), t('confirm.deletePosition')).then(ok => {
-        if (ok) window.location.href = '/depot/delete/' + id;
+        if (!ok) return;
+        fetch('/api/btc-tracking/positions/' + id, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
+                _positionsCache = null;
+                showToast('✓ ' + t('toast.deletePosition.success'), 'success');
+                setTimeout(() => window.location.reload(), 600);
+            })
+            .catch(err => showToast('✗ ' + err.message, 'error'));
     });
 }
 
@@ -765,6 +1129,41 @@ function fmt8(val) {
 // ── CSV Import – PapaParse + Mapping Modal ────────────────
 
 const csvImport = { rawData: [], headers: [] };
+
+// ── CSV Import – neuer 3-Step-Assistent (ersetzt importCsv() unten für
+// normale .csv-Dateien; importCsv() bleibt unverändert im Code, wird aber
+// nicht mehr aufgerufen — .enc-Importe laufen weiterhin unverändert über
+// _importEnc(), siehe unten). Datei-Upload läuft als echtes Formular-POST an
+// die Step-1-Route (siehe Absprache: serverseitiges Parsen ersetzt PapaParse
+// für den Upload-Schritt) statt per fetch(), damit der Browser direkt auf die
+// gerenderte Mapping-Seite navigiert. ──
+function onCsvFileSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = '';
+
+    if (file.name.toLowerCase().endsWith('.enc')) {
+        _importEnc(file);
+        return;
+    }
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/btc-tracking/import/mapping';
+    form.enctype = 'multipart/form-data';
+    form.style.display = 'none';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.name = 'file';
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+
+    form.appendChild(fileInput);
+    document.body.appendChild(form);
+    form.submit();
+}
 
 function importCsv(input) {
     const file = input.files[0];
@@ -1196,9 +1595,10 @@ function doDbExport() {
             throw new Error(err.error || 'Export failed');
         }
         const disposition = response.headers.get('Content-Disposition') || '';
+        const datePart = new Date().toISOString().slice(0, 10);
         const filename = disposition.includes('filename=')
             ? disposition.split('filename=')[1].replace(/"/g, '')
-            : (pw ? 'btc-tracking_full_export.json.enc' : 'btc-tracking_full_export.json');
+            : (pw ? `btc-tracking_backup_${datePart}.json.enc` : `btc-tracking_backup_${datePart}.json`);
         const blob = await response.blob();
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
@@ -1297,40 +1697,7 @@ function savePosition() {
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
-// ── Refresh Prices ────────────────────────────────────────
-function refreshPrices() {
-    if (!OFFLINE.isOnline()) {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
-            || new bootstrap.Modal(document.getElementById('offlineConfirmModal'));
-        modal.show();
-        return;
-    }
-    _doRefreshPrices();
-}
-
-function confirmOfflineRefresh() {
-    bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
-    _doRefreshPrices();
-}
-
-function _doRefreshPrices() {
-    const btn = document.getElementById('btnRefresh');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
-
-    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            const n = data.totalNew || 0;
-            showToast('✓ ' + n + ' ' + t('toast.refreshSuccess'), 'success');
-            setTimeout(() => window.location.reload(), 1800);
-        })
-        .catch(err => {
-            showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>${t('nav.btn.refresh')}`;
-        });
-}
+// ── Refresh Prices / BTC Price inline edit: jetzt in navbar.js (siehe dort) ──
 
 // ── Toast ─────────────────────────────────────────────────
 // showToast() now lives in tx-form.js (shared with the Flow Diagram page).
@@ -1339,60 +1706,6 @@ function _doRefreshPrices() {
 function formatEur(val) {
     // kept for compatibility – delegates to CURRENCY.format()
     return CURRENCY.format(val);
-}
-
-function formatSats(btc) {
-    if (btc == null || isNaN(btc)) return '–';
-    return Math.round(Number(btc) * 1e8).toLocaleString('de-DE') + ' sats';
-}
-
-// ── BTC Price inline edit ─────────────────────────────────
-function openPriceEdit() {
-    const badge  = document.getElementById('btcPriceBadge');
-    const editor = document.getElementById('btcPriceEditor');
-    // Read current display value → strip formatting
-    const raw = document.getElementById('btcPriceDisplay')
-        .textContent.slice(0, -4).replace(/[^\d,]/g, '').replace(',', '.');
-
-    document.getElementById('btcPriceInput').value = parseFloat(raw) || '';
-    badge.classList.add('d-none');
-    editor.classList.remove('d-none');
-    editor.classList.add('d-flex');
-    document.getElementById('btcPriceInput').focus();
-}
-
-function closePriceEdit() {
-    document.getElementById('btcPriceBadge').classList.remove('d-none');
-    const editor = document.getElementById('btcPriceEditor');
-    editor.classList.add('d-none');
-    editor.classList.remove('d-flex');
-}
-
-function savePriceEdit() {
-    const price = parseFloat(document.getElementById('btcPriceInput').value);
-    if (!price || price <= 0) {
-        showToast('✗ ' + t('toast.error') + ': invalid price', 'error');
-        return;
-    }
-	
-    fetch('/api/btc-tracking/current-price', {
-        method:  'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ price, currency: CURRENCY.current() })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
-        // Update badge display without full reload
-        const fmt = Number(data.price).toLocaleString('de-DE', {
-            minimumFractionDigits: 2, maximumFractionDigits: 2
-        }) + ' €';
-        document.getElementById('btcPriceDisplay').textContent = fmt;
-        closePriceEdit();
-        showToast('✓ BTC price updated', 'success');
-		setTimeout(() => window.location.reload(), 1000);
-    })
-    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 function _importEnc(file) {
@@ -1543,26 +1856,15 @@ function _updateBulkToolbar() {
 //    toolbar.classList.toggle('d-none', n === 0);
     if (count) count.textContent = n + ' selected';
 
-    // Sync select-all checkbox state
+    // Sync select-all checkbox state (Tabellen-Kopfzeile UND die Kompakt-
+    // Toolbar-Checkbox in der Kartenansicht — beide steuern dieselbe Auswahl).
     const all  = document.querySelectorAll('.tx-row-check');
-    const selAll = document.getElementById('txSelectAll');
-    if (selAll) {
-        selAll.checked       = all.length > 0 && n === all.length;
-        selAll.indeterminate = n > 0 && n < all.length;
-    }
-}
-
-function toggleCard(bodyId, btn) {
-    const body = document.getElementById(bodyId);
-    if (!body) return;
-
-    const collapsed = !body.classList.contains('d-none');
-    body.classList.toggle('d-none', collapsed);
-
-    const icon = btn.querySelector('i');
-    if (icon) icon.className = collapsed ? 'bi bi-plus-lg' : 'bi bi-dash-lg';
-
-    _setCardState(bodyId, collapsed);
+    [document.getElementById('txSelectAll'), document.getElementById('txCardsSelectAll')]
+        .forEach(selAll => {
+            if (!selAll) return;
+            selAll.checked       = all.length > 0 && n === all.length;
+            selAll.indeterminate = n > 0 && n < all.length;
+        });
 }
 
 function toggleSelectAll(cb) {
@@ -1572,6 +1874,10 @@ function toggleSelectAll(cb) {
         el.closest('tr').classList.toggle('selected', cb.checked);
     });
     _updateBulkToolbar();
+    // Kartenansicht wird aus den (jetzt aktualisierten) <tr>-Zeilen gebaut —
+    // ohne diesen Re-Render bleiben die bereits gerenderten Karten optisch auf
+    // dem alten Auswahlstatus stehen (Checkbox + Rahmen-Highlight).
+    _overviewRenderTxCardsIfActive();
 }
 
 // Row-Checkbox click (stopPropagation damit Row-Click nicht feuert)
@@ -1582,9 +1888,15 @@ document.addEventListener('change', e => {
     }
 });
 
-// Rechtsklick auf txTableBody → Kontextmenü
+// Rechtsklick auf txTableBody → Kontextmenü (funktioniert unverändert auch in
+// der Kartenansicht: ein Rechtsklick auf eine .overview-tx-card wird auf die
+// zugehörige, unsichtbare <tr> aufgelöst — der Rest der Logik bleibt gleich).
 document.addEventListener('contextmenu', e => {
-    const row = e.target.closest('#txTableBody tr');
+    let row = e.target.closest('#txTableBody tr');
+    if (!row) {
+        const card = e.target.closest('.overview-tx-card');
+        if (card) row = document.querySelector(`#txTableBody tr[data-id="${card.dataset.id}"]`);
+    }
     if (!row) return;
     e.preventDefault();
 
@@ -1739,6 +2051,12 @@ function openBulkMove() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('bulkMoveModal'))
         || new bootstrap.Modal(document.getElementById('bulkMoveModal'));
     modal.show();
+}
+
+/** Blendet das Freitext-Feld für eine neue Position ein/aus, je nachdem ob
+ *  "＋ New position..." im Select gewählt ist. */
+function onBulkMoveSelectChange(sel) {
+    document.getElementById('bulkMoveNewRow').classList.toggle('d-none', sel.value !== '__new__');
 }
 
 function confirmBulkMove() {
@@ -1903,6 +2221,38 @@ function showConfirm(title, body) {
 
         _confirmModal.show();
     });
+}
+
+// ── Import-Historie: Eintrag löschen ──────────────────────
+let _deleteImportHistoryId = null;
+
+function openDeleteImportHistoryModal(id, linkedTransactionCount, filename) {
+    _deleteImportHistoryId = id;
+    document.getElementById('deleteImportHistoryFilename').textContent = filename;
+    document.getElementById('deleteImportHistoryBody').textContent =
+        linkedTransactionCount > 0
+            ? t('import.history.delete.body', { COUNT: linkedTransactionCount })
+            : t('import.history.delete.body.none');
+
+    const withTxBtn = document.getElementById('deleteImportHistoryWithTxBtn');
+    withTxBtn.disabled = linkedTransactionCount === 0;
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteImportHistoryModal'))
+        || new bootstrap.Modal(document.getElementById('deleteImportHistoryModal'));
+    modal.show();
+}
+
+function confirmDeleteImportHistory(deleteTransactions) {
+    if (_deleteImportHistoryId == null) return;
+    const id = _deleteImportHistoryId;
+    bootstrap.Modal.getInstance(document.getElementById('deleteImportHistoryModal'))?.hide();
+
+    fetch(`/api/btc-tracking/import/history/${id}?deleteTransactions=${deleteTransactions}`, { method: 'DELETE' })
+        .then(r => {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            window.location.reload();
+        })
+        .catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
 function _markDuplicates() {

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Modals belonging to the shared navbar (fragments/navbar.html) — settings
+  (language/currency/font), sats/lightning, app-lock (set + locked), and the
+  offline-mode confirm dialog for the navbar's own refresh button. Bundled as
+  one fragment so every page only needs a single th:replace call. Requires
+  navbar.js (openSettings/saveSettings/sendSomeSats/copySatsAddress/
+  confirmOfflineRefresh) and applock.js (AppLock.*) loaded on the including page.
+-->
+<div th:fragment="navbarModals">
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0">
+                        <i class="bi bi-gear-fill me-2"></i><span data-i18n="modal.settings.title">Settings</span>
+                    </span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="depot-label mb-2" data-i18n="modal.settings.language">Language</label>
+                    <div id="langOptions" class="d-flex flex-column gap-2 mb-4">
+                        <!-- rendered by JS -->
+                    </div>
+                    <label class="depot-label mb-2" data-i18n="modal.settings.currency">Display Currency</label>
+                    <div id="currencyOptions" class="d-flex flex-column gap-2">
+                        <!-- rendered by JS -->
+                    </div>
+                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.font">Font</label>
+                    <div id="fontOptions" class="d-flex flex-column gap-2">
+                        <!-- rendered by JS -->
+                    </div>
+                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.taxCutoff">Tax holding-period cutoff date</label>
+                    <input type="date" id="taxCutoffDateInput" class="form-control depot-input"/>
+                    <div class="form-text text-muted" style="font-size:.68rem" data-i18n="modal.settings.taxCutoff.hint">
+                        For coins bought on or after this date, the 1-year tax-free holding period no longer applies. Leave empty to disable. Informational only, not tax advice.
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="saveSettings()" data-i18n="modal.settings.btn.save">Save</button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send some Sats Modal -->
+    <div class="modal fade" id="sendsomesatsModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0">
+                        <i class="bi bi-lightning-charge-fill me-2" style="color:#dcba09"></i>
+                        <span data-i18n="sats.modal.title">Send some Sats</span>
+                    </span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem" data-i18n="sats.modal.text">
+                        If you find this app useful, feel free to send a few sats!
+                    </p>
+                    <img src="/sats.png" alt="Lightning QR"
+                         style="width:180px;height:180px;border-radius:var(--radius);margin-bottom:1rem;border:1px solid var(--border)"/>
+                    <div class="d-flex align-items-center gap-2 justify-content-center">
+                        <code style="font-size:.68rem;color:var(--accent);word-break:break-all" id="satsAddress">turbolush199@walletofsatoshi.com</code>
+                        <button class="btn btn-xs depot-btn-icon" onclick="copySatsAddress()" id="btnCopySats" title="Copy">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline Confirm Modal (navbar refresh button's offline gate) -->
+    <div class="modal fade" id="offlineConfirmModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0">
+                        <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
+                        <span data-i18n="modal.offline.title">Offline Mode</span>
+                    </span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
+                        Offline mode is active. Fetch current price from internet anyway?
+                    </p>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="confirmOfflineRefresh()">
+                        <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App gesperrt (nicht schließbar) -->
+    <div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0">
+                        <i class="bi bi-lock-fill me-2" style="color:var(--neg)"></i>
+                        <span data-i18n="applock.lockedModal.title">App locked</span>
+                    </span>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem"
+                       data-i18n="applock.lockedModal.hint">Data is encrypted. Enter password to unlock.</p>
+                    <label class="depot-label" data-i18n="applock.lockedModal.password">Password</label>
+                    <input type="text" id="unlockPassword"
+                           class="form-control depot-input depot-password-field"
+                           autocomplete="off" spellcheck="false"
+                           onkeydown="if(event.key==='Enter') AppLock.doUnlock()"/>
+                    <div id="unlockError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+
+                    <a href="#" id="appResetLink" onclick="event.preventDefault();AppLock.toggleReset()"
+                       style="display:inline-block;font-size:.72rem;color:var(--text-muted);margin-top:.75rem"
+                       data-i18n="applock.reset.link">Forgot password?</a>
+
+                    <div id="appResetSection" class="d-none" style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)">
+                        <p style="font-size:.75rem;color:var(--neg);margin-bottom:.75rem" data-i18n="applock.reset.hint">
+                            This permanently deletes all data. This cannot be undone.
+                        </p>
+                        <label class="depot-label" data-i18n="applock.reset.confirmLabel"></label>
+                        <input type="text" id="resetConfirmInput"
+                               class="form-control depot-input" autocomplete="off" spellcheck="false"
+                               placeholder="delete" oninput="AppLock.onResetConfirmInput()"
+                               onkeydown="if(event.key==='Enter') AppLock.doReset()"/>
+                        <div id="resetError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+                        <button class="btn depot-btn-outline text-neg w-100" id="resetConfirmBtn" disabled
+                                style="margin-top:.75rem" onclick="AppLock.doReset()">
+                            <i class="bi bi-exclamation-triangle me-1"></i><span data-i18n="applock.reset.btn">Reset app</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="AppLock.doUnlock()">
+                        <i class="bi bi-unlock-fill me-1"></i><span data-i18n="applock.lockedModal.btn">Unlock</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App sperren -->
+    <div class="modal fade" id="appLockSetModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0">
+                        <i class="bi bi-lock-fill me-2"></i><span data-i18n="applock.setModal.title">Lock app</span>
+                    </span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:1rem"
+                       data-i18n="applock.setModal.hint"></p>
+                    <div class="mb-3">
+                        <label class="depot-label" data-i18n="applock.setModal.password">Password</label>
+                        <input type="text" id="lockPassword"
+                               class="form-control depot-input depot-password-field"
+                               autocomplete="off" spellcheck="false"/>
+                    </div>
+                    <div class="mb-1">
+                        <label class="depot-label" data-i18n="applock.setModal.passwordConfirm">Confirm password</label>
+                        <input type="text" id="lockPasswordConfirm"
+                               class="form-control depot-input depot-password-field"
+                               autocomplete="off" spellcheck="false"
+                               onkeydown="if(event.key==='Enter') AppLock.doLock()"/>
+                    </div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button class="btn depot-btn-primary" onclick="AppLock.doLock()">
+                        <i class="bi bi-lock-fill me-1"></i><span data-i18n="applock.setModal.btn">Lock</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
