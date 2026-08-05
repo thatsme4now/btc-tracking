@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS `position` (
 
 CREATE TABLE IF NOT EXISTS `transaction` (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    transaction_id    VARCHAR(36),
+    -- 100 statt 36: echte Bitcoin-TXIDs (64 Hex-Zeichen) + ggf. "-in"/"-out"-
+    -- Suffix (Selbst-Transfer-Paare) sprengen die alte UUID-Länge (36).
+    transaction_id    VARCHAR(100),
     position_id   BIGINT        NOT NULL,
     type          VARCHAR(20)   NOT NULL,
     date          TIMESTAMP     NOT NULL,
@@ -122,7 +124,7 @@ CREATE TABLE IF NOT EXISTS import_staging_row (
     fees            DECIMAL(18,8),
     fees_currency   VARCHAR(10),
     comment         VARCHAR(255),
-    transaction_id  VARCHAR(36),
+    transaction_id  VARCHAR(100),
     transfer_id     VARCHAR(36),
     is_duplicate    BOOLEAN        NOT NULL DEFAULT FALSE,
     is_fx_warning   BOOLEAN        NOT NULL DEFAULT FALSE,
@@ -156,6 +158,15 @@ CREATE INDEX IF NOT EXISTS idx_ih_imported_at ON import_history(imported_at);
 -- vor dem Löschen eines History-Eintrags applikationsseitig aufgelöst).
 ALTER TABLE `transaction` ADD COLUMN IF NOT EXISTS import_history_id BIGINT;
 CREATE INDEX IF NOT EXISTS idx_tx_import_history ON `transaction`(import_history_id);
+
+-- Migration für bestehende Installationen: transaction_id war ursprünglich auf
+-- UUID-Länge (36) ausgelegt (nur für Selbst-Transfer-Paare genutzt), echte
+-- Bitcoin-TXIDs aus CSV-Importen (64 Hex-Zeichen, teils + "-in"/"-out"-Suffix)
+-- passten dort nicht rein (JdbcSQLDataException beim Staging). ALTER COLUMN
+-- ist idempotent (auf bereits VARCHAR(100)-Spalten ein No-op), läuft daher
+-- gefahrlos bei jedem Start mit.
+ALTER TABLE `transaction` ALTER COLUMN transaction_id VARCHAR(100);
+ALTER TABLE import_staging_row ALTER COLUMN transaction_id VARCHAR(100);
 
 -- ============================================================
 -- App-weite Einstellungen (Singleton-Zeile, feste id=1)

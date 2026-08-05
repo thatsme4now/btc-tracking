@@ -565,6 +565,14 @@ table.dataTable tbody tr.solo-transfer:hover td { background-color: var(--solo-t
 table.dataTable tbody tr.error-row           { background-color: rgba(216, 90, 48, .12) !important; }
 table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 48, .2) !important; }
 
+/* Import-Assistent Step 1: Wallet/Börse-Zuordnung fehlt (weder map_exchange
+   noch die feste Position gesetzt) — gleiches Muster wie .error-row, damit
+   sofort auffällt wo etwas fehlt, statt erst beim "Weiter"-Klick per Toast. */
+.mapping-row-warning td {
+    background:   rgba(216, 90, 48, .12) !important;
+    border-left:  3px solid var(--neg);
+}
+
 .depot-badge { font-size: .85rem; margin-right: .15rem; }
 
 /* Import-Assistent Step 2 (Review): Staging-Liste bekommt einen eigenen

@@ -30,7 +30,10 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "transaction_id", nullable = true, length = 36)
+    // 100 statt 36: echte Bitcoin-TXIDs (64 Hex-Zeichen) + ggf. "-in"/"-out"-Suffix
+    // (Selbst-Transfer-Paare, siehe ImportWizardService#buildSelfRows) sprengen
+    // die alte UUID-Länge (36) — siehe auch schema-h2.sql/depot.sql.
+    @Column(name = "transaction_id", nullable = true, length = 100)
     private String transactionId;
 
     //@ManyToOne(fetch = FetchType.LAZY, optional = false)

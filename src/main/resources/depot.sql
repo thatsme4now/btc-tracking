@@ -15,9 +15,15 @@ CREATE TABLE IF NOT EXISTS `position` (
 ) ENGINE=InnoDB;
 
 -- 2. Neue Tabelle: transaction
+-- Hinweis für bestehende MySQL-Installationen: dieses Skript läuft (anders als
+-- schema-h2.sql) nicht automatisch bei jedem Start — transaction_id ggf.
+-- manuell nachziehen: ALTER TABLE `transaction` MODIFY transaction_id VARCHAR(100);
+--                      ALTER TABLE import_staging_row MODIFY transaction_id VARCHAR(100);
 CREATE TABLE IF NOT EXISTS transaction (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    transaction_id    VARCHAR(36),
+    -- 100 statt 36: echte Bitcoin-TXIDs (64 Hex-Zeichen) + ggf. "-in"/"-out"-
+    -- Suffix (Selbst-Transfer-Paare) sprengen die alte UUID-Länge (36).
+    transaction_id    VARCHAR(100),
     position_id   BIGINT        NOT NULL,
     type          VARCHAR(20)   NOT NULL COMMENT 'BUY, SELL, TRANSFER_IN, TRANSFER_OUT',
     date          DATETIME          NOT NULL,
@@ -91,7 +97,7 @@ CREATE TABLE IF NOT EXISTS import_staging_row (
     fees            DECIMAL(18,8),
     fees_currency   VARCHAR(10),
     comment         VARCHAR(255),
-    transaction_id  VARCHAR(36),
+    transaction_id  VARCHAR(100),
     transfer_id     VARCHAR(36),
     is_duplicate    TINYINT(1)     NOT NULL DEFAULT 0,
     is_fx_warning   TINYINT(1)     NOT NULL DEFAULT 0,

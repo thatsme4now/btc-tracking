@@ -213,6 +213,32 @@ public class ImportWizardService {
     private static class NoBtcTradeException extends RuntimeException {
     }
 
+    private static final BigDecimal SATS_PER_BTC = BigDecimal.valueOf(100_000_000);
+
+    /** true für Satoshi-Einheiten (case-insensitive) — wie sie z.B. Wallet-Exports
+     *  (Sparrow, BlueWallet, ...) statt "BTC" als Amount-Einheit liefern. */
+    private static boolean isSatoshiUnit(String cur) {
+        if (cur == null) return false;
+        String c = cur.trim();
+        return c.equalsIgnoreCase("sat") || c.equalsIgnoreCase("sats")
+            || c.equalsIgnoreCase("satoshi") || c.equalsIgnoreCase("satoshis");
+    }
+
+    /** true für "BTC" sowie alle Satoshi-Bezeichner — die eigentliche BTC-Bezug-
+     *  Prüfung (ersetzt die bisherigen reinen "BTC".equalsIgnoreCase(...)-Checks). */
+    private static boolean isBtcUnit(String cur) {
+        return cur != null && (cur.trim().equalsIgnoreCase("BTC") || isSatoshiUnit(cur));
+    }
+
+    /** Satoshi-Ganzzahlwerte (z.B. 1904) in BTC (8 Nachkommastellen, exakt, da
+     *  1 Satoshi = 0.00000001 BTC glatt in scale 8 aufgeht) umrechnen. BTC-Werte
+     *  bleiben unverändert, damit bestehende CoinTracking-Importe (bereits in
+     *  BTC) unangetastet bleiben. */
+    private static BigDecimal toBtc(BigDecimal amount, String cur) {
+        if (amount == null) return null;
+        return isSatoshiUnit(cur) ? amount.divide(SATS_PER_BTC, 8, RoundingMode.HALF_UP) : amount;
+    }
+
     private List<ImportStagingRow> buildTradeRows(MappedRow r) {
         ImportStagingRow row = new ImportStagingRow();
         row.setRawTyp(r.getTyp());
@@ -224,13 +250,16 @@ public class ImportWizardService {
 
         BigDecimal buyQty  = decimal(r.getBuyQuantity());
         BigDecimal sellQty = decimal(r.getSellQuantity());
-        BigDecimal fee     = decimal(r.getFee());
         BigDecimal exRate  = decimal(r.getExchangeRate());
         String buyCur  = blankToNull(r.getBuyCurrency());
         String sellCur = blankToNull(r.getSellCurrency());
 
+        // Fee ebenfalls Satoshi->BTC umrechnen (z.B. Netzwerk-Fee bei Wallet-
+        // Exporten), Label entsprechend normalisieren — analog buildSelfRows().
+        String feeCur = blankToNull(r.getFeeCurrency());
+        BigDecimal fee = toBtc(decimal(r.getFee()), feeCur);
         row.setFees(fee);
-        row.setFeesCurrency(blankToNull(r.getFeeCurrency()));
+        row.setFeesCurrency(isSatoshiUnit(feeCur) ? "BTC" : feeCur);
         row.setComment(blankToNull(r.getComment()));
         row.setTransactionId(blankToNull(r.getTransactionId()));
         row.setTransferId(blankToNull(r.getTransferId()));
@@ -249,39 +278,39 @@ public class ImportWizardService {
         String typ = r.getTyp() == null ? "" : r.getTyp().trim();
         switch (typ) {
             case "Trade" -> {
-                if ("BTC".equalsIgnoreCase(buyCur)) {
+                if (isBtcUnit(buyCur)) {
                     txType = TransactionType.BUY;
-                    quantity = buyQty;
+                    quantity = toBtc(buyQty, buyCur);
                     quantityFiat = sellQty;
-                    pricePerBtc = (buyQty != null && buyQty.compareTo(BigDecimal.ZERO) > 0 && sellQty != null)
-                        ? sellQty.divide(buyQty, 2, RoundingMode.HALF_UP) : null;
+                    pricePerBtc = (quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0 && sellQty != null)
+                        ? sellQty.divide(quantity, 2, RoundingMode.HALF_UP) : null;
                     currency = sellCur != null ? sellCur : "EUR";
-                } else if ("BTC".equalsIgnoreCase(sellCur)) {
+                } else if (isBtcUnit(sellCur)) {
                     txType = TransactionType.SELL;
-                    quantity = sellQty;
+                    quantity = toBtc(sellQty, sellCur);
                     quantityFiat = buyQty;
-                    pricePerBtc = (sellQty != null && sellQty.compareTo(BigDecimal.ZERO) > 0 && buyQty != null)
-                        ? buyQty.divide(sellQty, 2, RoundingMode.HALF_UP) : null;
+                    pricePerBtc = (quantity != null && quantity.compareTo(BigDecimal.ZERO) > 0 && buyQty != null)
+                        ? buyQty.divide(quantity, 2, RoundingMode.HALF_UP) : null;
                     currency = buyCur != null ? buyCur : "EUR";
                 } else {
-                    // Weder Kauf- noch Verkaufswährung ist BTC -> kein BTC-Bezug,
+                    // Weder Kauf- noch Verkaufswährung ist BTC/Satoshi -> kein BTC-Bezug,
                     // Zeile wird nicht gestaged, sondern in stageRows() gezählt.
                     throw new NoBtcTradeException();
                 }
             }
             case "Einzahlung" -> {
-                if ("BTC".equalsIgnoreCase(buyCur)) {
+                if (isBtcUnit(buyCur)) {
                     txType = TransactionType.TRANSFER_IN;
-                    quantity = buyQty;
+                    quantity = toBtc(buyQty, buyCur);
                 } else {
                     // Einzahlung einer Nicht-BTC-Währung -> kein BTC-Bezug, überspringen.
                     throw new NoBtcTradeException();
                 }
             }
             case "Auszahlung" -> {
-                if ("BTC".equalsIgnoreCase(sellCur)) {
+                if (isBtcUnit(sellCur)) {
                     txType = TransactionType.TRANSFER_OUT;
-                    quantity = sellQty;
+                    quantity = toBtc(sellQty, sellCur);
                 } else {
                     // Auszahlung einer Nicht-BTC-Währung -> kein BTC-Bezug, überspringen.
                     throw new NoBtcTradeException();
@@ -315,9 +344,16 @@ public class ImportWizardService {
         LocalDateTime dateTime = parseDate(r.getDate());
 
         BigDecimal amount = decimal(r.getBuyQuantity());
-        if (amount == null) amount = decimal(r.getSellQuantity());
+        String amountCur = blankToNull(r.getBuyCurrency());
+        if (amount == null) {
+            amount = decimal(r.getSellQuantity());
+            amountCur = blankToNull(r.getSellCurrency());
+        }
+        amount = toBtc(amount, amountCur);
+
+        String feeCur = blankToNull(r.getFeeCurrency());
         BigDecimal fee = decimal(r.getFee());
-        if (fee == null) fee = BigDecimal.ZERO;
+        fee = fee == null ? BigDecimal.ZERO : toBtc(fee, feeCur);
 
         BigDecimal inQuantity = null;
         if (amount != null) {
@@ -325,8 +361,10 @@ public class ImportWizardService {
             if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount;
         }
 
-        String feeCurrency = r.getFeeCurrency() != null && !r.getFeeCurrency().isBlank()
-            ? r.getFeeCurrency().trim() : "BTC";
+        // Nach der Umrechnung ist der numerische Wert unabhängig vom Original-CSV
+        // immer in BTC — Label entsprechend normalisieren statt "satoshi" stehen
+        // zu lassen (würde sonst mit dem jetzt in BTC umgerechneten Zahlenwert nicht mehr zusammenpassen).
+        String feeCurrency = isSatoshiUnit(feeCur) ? "BTC" : (feeCur != null ? feeCur : "BTC");
         String comment = blankToNull(r.getComment());
         String transferId = UUID.randomUUID().toString();
         String baseTxId = blankToNull(r.getTransactionId());

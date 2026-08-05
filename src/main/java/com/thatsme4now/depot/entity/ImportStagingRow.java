@@ -84,7 +84,10 @@ public class ImportStagingRow {
     @Column(length = 255)
     private String comment;
 
-    @Column(name = "transaction_id", length = 36)
+    // 100 statt 36: echte Bitcoin-TXIDs (64 Hex-Zeichen) + ggf. "-in"/"-out"-Suffix
+    // (Selbst-Transfer-Paare, siehe ImportWizardService#buildSelfRows) sprengen
+    // die alte UUID-Länge (36) — siehe auch schema-h2.sql/depot.sql.
+    @Column(name = "transaction_id", length = 100)
     private String transactionId;
 
     @Column(name = "transfer_id", length = 36)

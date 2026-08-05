@@ -28,23 +28,30 @@ const FIELDS = [
 
 const FIELD_ALIASES = {
     map_typ:          ['Typ', 'typ', 'type', 'Type'],
-    map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime'],
+    // 'Time' hier bewusst zusätzlich als Date-Alias (z.B. Wallet-Exports mit
+    // einer einzelnen ISO-Datetime-Spalte statt getrennter Date/Time-Spalten)
+    // — siehe renderMappingTable() für die Deduplizierung gegen map_time.
+    map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime', 'Time'],
     map_time:         ['Time', 'time', 'Zeit', 'Uhrzeit'],
     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
     map_buyQty:       ['Kauf', 'kauf', 'buyQuantity', 'Buy Amount', 'buy_quantity', 'buy', 'buyQty', 'Amount'],
-    map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur', 'Amount unit'],
+    map_buyCur:       ['Cur.', 'Cur._1', 'cur._1', 'buyCurrency', 'Buy Currency', 'buyCur', 'Amount unit', 'Unit'],
     map_sellQty:      ['Verkauf', 'verkauf', 'sellQuantity', 'Sell Amount', 'sell_quantity', 'sell', 'sellQty', 'Amount'],
-    map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur', 'Amount unit'],
+    map_sellCur:      ['Cur._1', 'Cur._2', 'cur._2', 'sellCurrency', 'Sell Currency', 'sellCur', 'Amount unit', 'Unit'],
     map_fee:          ['Gebühr', 'gebuehr', 'fee', 'Fee', 'fees', 'Fees'],
-    map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur', 'Fee unit'],
+    map_feeCur:       ['Cur._2', 'Cur._3', 'cur._3', 'feeCurrency', 'Fee Currency', 'feecur.', 'feeCur', 'Fee unit', 'Fee Unit'],
     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
-    map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment'],
-    map_transactionId:['transactionId'],
+    map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment', 'Note'],
+    map_transactionId:['transactionId', 'Transaction ID'],
     map_transferId:   ['transferId'],
 };
 
 const INTERNAL_TYPES = ['Trade', 'Einzahlung', 'Auszahlung', 'Selbst'];
-const TYP_VALUE_ALIASES = { RECV: 'Einzahlung', SENT: 'Auszahlung', SELF: 'Selbst' };
+const TYP_VALUE_ALIASES = {
+    RECV: 'Einzahlung', RECEIVED: 'Einzahlung',
+    SENT: 'Auszahlung',
+    SELF: 'Selbst', SENT_TO_YOURSELF: 'Selbst',
+};
 
 function autoMatch(fieldId) {
     const aliases = FIELD_ALIASES[fieldId] || [];
@@ -53,18 +60,30 @@ function autoMatch(fieldId) {
 
 function renderMappingTable() {
     const NONE = `<option value="">${t('modal.csv.field.notMapped')}</option>`;
+
+    // Alle Matches vorab berechnen: falls Date und Time auf dieselbe Spalte
+    // matchen (z.B. eine einzelne ISO-Datetime-Spalte wie "Time"), enthält
+    // sie bereits die volle Zeit — Time NICHT zusätzlich vorbelegen, sonst
+    // würde computeMappedRows() den Zeitanteil doppelt/falsch anhängen.
+    const autoMatches = {};
+    FIELDS.forEach(f => { autoMatches[f.id] = autoMatch(f.id); });
+    if (autoMatches.map_time && autoMatches.map_time === autoMatches.map_date) {
+        autoMatches.map_time = '';
+    }
+
     const rowsHtml = FIELDS.map(f => {
-        const matched = autoMatch(f.id);
+        const matched = autoMatches[f.id];
         const opts = NONE + IMPORT_HEADERS.map(h =>
             `<option value="${esc(h)}" ${h === matched ? 'selected' : ''}>${esc(h)}</option>`
         ).join('');
         const extraOnchange =
             f.id === 'map_typ' ? 'refreshTypRemap(); recomputePreview();' :
             (f.id === 'map_date' || f.id === 'map_time') ? 'validateDateTimeMapping(); recomputePreview();' :
+            f.id === 'map_exchange' ? 'updateExchangeWarning(); recomputePreview();' :
             'recomputePreview();';
 
         let row = `
-            <tr>
+            <tr id="mappingRow_${f.id}">
                 <td class="depot-label pt-2" style="width:180px;white-space:nowrap">
                     ${t(f.labelKey)}${f.required ? ' <span style="color:var(--neg)">*</span>' : ''}
                 </td>
@@ -77,14 +96,14 @@ function renderMappingTable() {
 
         if (f.id === 'map_exchange') {
             row += `
-            <tr>
+            <tr id="mappingRow_map_exchangeFixed">
                 <td class="depot-label pt-2" style="width:180px;white-space:nowrap">${t('csv.import.fixedExchange')}</td>
                 <td>
                     <select id="map_exchangeFixed" class="form-select depot-input form-select-sm mb-1" onchange="onFixedExchangeChange()">
                         <option value="">${t('csv.import.fixedExchange.none')}</option>
                     </select>
                     <input type="text" id="map_exchangeFixedNew" class="form-control depot-input d-none"
-                           placeholder="New position name" maxlength="100" oninput="recomputePreview()"/>
+                           placeholder="New position name" maxlength="100" oninput="updateExchangeWarning(); recomputePreview();"/>
                     <div class="form-text text-muted" style="font-size:.7rem">${t('csv.import.fixedExchange.hint')}</div>
                 </td>
             </tr>`;
@@ -94,6 +113,27 @@ function renderMappingTable() {
 
     document.getElementById('mappingTable').innerHTML = rowsHtml;
     _loadFixedExchangeDropdown();
+    updateExchangeWarning();
+}
+
+/** Hebt die Wallet/Börse-Zeile (map_exchange) + Feste-Position-Zeile
+ *  (map_exchangeFixed) hervor, solange keine der beiden Optionen gesetzt ist —
+ *  ohne Zuordnung schlägt goToReview() sonst erst beim Klick auf "Weiter" mit
+ *  einem leicht übersehbaren Toast fehl, siehe missing.push('exchange') dort. */
+function updateExchangeWarning() {
+    const exchangeSel = document.getElementById('map_exchange');
+    const fixedSel     = document.getElementById('map_exchangeFixed');
+    const newInput     = document.getElementById('map_exchangeFixedNew');
+
+    const mapped = !!(exchangeSel && exchangeSel.value !== '');
+    let fixedOk = false;
+    if (fixedSel && fixedSel.value !== '') {
+        fixedOk = fixedSel.value === '__new__' ? !!(newInput && newInput.value.trim()) : true;
+    }
+
+    const warn = !mapped && !fixedOk;
+    document.getElementById('mappingRow_map_exchange')?.classList.toggle('mapping-row-warning', warn);
+    document.getElementById('mappingRow_map_exchangeFixed')?.classList.toggle('mapping-row-warning', warn);
 }
 
 function refreshTypRemap() {
@@ -157,6 +197,7 @@ function onFixedExchangeChange() {
     newInput.classList.toggle('d-none', !isNew);
     if (isNew) newInput.focus();
     exchangeSel.disabled = sel.value !== '';
+    updateExchangeWarning();
     recomputePreview();
 }
 
