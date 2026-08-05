@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — การแสดงผลข้อมูล</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter','Noto Sans Thai',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:clamp(26px,4vw,40px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-links{display:flex; flex-wrap:wrap; gap:12px;}
+  .back-link{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    display:inline-flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    margin-bottom:16px;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px; font-family:'JetBrains Mono',monospace;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step.single{grid-template-columns:1fr;}
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:22px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h3{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:16px;
+    margin:32px 0 12px;
+    color:var(--accent);
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    color:var(--text);
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  .swatch{
+    display:inline-block;
+    width:10px; height:10px;
+    border-radius:50%;
+    margin-right:6px;
+    vertical-align:middle;
+  }
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figure.missing img{display:none;}
+  .img-fallback{
+    display:none;
+    padding:56px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:13px;
+    line-height:1.9;
+  }
+  .img-fallback .path{color:var(--accent-dim);}
+  figure.missing .img-fallback{display:block;}
+  figcaption{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  .roadmap-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+    margin:20px 0;
+  }
+  .roadmap-card ul.tight{margin:8px 0 0;}
+  .roadmap-card li.done::before{content:"✓ "; color:var(--green); font-family:'JetBrains Mono',monospace;}
+  .roadmap-card li.planned{color:var(--muted);}
+  .roadmap-card li.planned::before{content:"— "; font-family:'JetBrains Mono',monospace;}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+  }
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="lang-switch">
+    <a href="../de/visualizations.html">DE</a>
+    <a href="../visualizations.html">EN</a>
+    <a href="../es/visualizations.html">ES</a>
+    <a href="../fr/visualizations.html">FR</a>
+    <a href="../it/visualizations.html">IT</a>
+    <a href="visualizations.html" class="active">TH</a>
+  </div>
+  <div class="hero-tag"><span class="dot"></span>การแสดงผลข้อมูล · ไทย</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — การแสดงผลข้อมูล</h1>
+  <p class="lead">
+    นอกจากมุมมองแบบตารางในแดชบอร์ดแล้ว แอปยังมีการแสดงผลข้อมูลเฉพาะทาง
+    เพื่อสำรวจประวัติพอร์ตของคุณ หน้านี้ตั้งใจเปิดไว้ให้ขยายเพิ่มเติมได้ —
+    ปัจจุบันครอบคลุม <b>แผนภาพการไหล</b>, <b>มุมมองสินทรัพย์</b>
+    และ <b>มุมมองรายปี</b> และจะเพิ่มเติมทุกครั้งที่มีการแสดงผลใหม่
+  </p>
+  <div class="back-links">
+    <a class="back-link" href="index.html">← กลับไปที่คู่มือ</a>
+    <a class="back-link" href="usage.html">การใช้งาน / ติดตั้ง →</a>
+  </div>
+</header>
+
+<nav class="steps">
+  <a href="#viz-flow"><span>01</span>แผนภาพการไหล (Sankey)</a>
+  <a href="#viz-holdings"><span>02</span>มุมมองสินทรัพย์</a>
+  <a href="#viz-yearly"><span>03</span>มุมมองรายปี</a>
+</nav>
+
+<main>
+
+  <section class="step" id="viz-flow">
+    <div class="step-text">
+      <div class="step-num">การแสดงผล 01</div>
+      <h2>แผนภาพการไหล (Sankey)</h2>
+      <p>
+        เข้าถึงได้จากส่วนหัวของแดชบอร์ดผ่าน <b>「การแสดงผล」→「แผนภาพการไหล」</b>
+        (หรือเข้าโดยตรงที่ <span class="inline-code">/btc-tracking/flow</span>)
+        แผนภาพนี้จะแสดง <b>Sankey diagram</b> ว่า BTC ของคุณเคลื่อนไหวอย่างไรตามเวลา:
+        การซื้อจะไหลเข้าจากด้านซ้าย การขายและการถอนออกภายนอกจะไหลออกทางด้านขวา
+        และการโอนระหว่างกระเป๋า/ตลาดของคุณเองจะแสดงเป็นเส้นเชื่อมระหว่างโหนดตำแหน่งต่าง ๆ
+        รายการจะถูกจัดกลุ่มตามเดือนและตามคู่ต้นทาง/ปลายทาง
+        เพื่อให้แผนภาพยังคงอ่านง่ายแม้มีประวัติยาว
+      </p>
+
+      <h3>ตัวกรอง</h3>
+      <table class="fields">
+        <tr><th>ตัวกรอง</th><th>ผลลัพธ์</th></tr>
+        <tr><td class="field">ตั้งแต่ / ถึง</td><td class="desc">จำกัดแผนภาพให้อยู่ในช่วงเวลาที่กำหนด</td></tr>
+        <tr><td class="field">ตำแหน่ง</td><td class="desc">ยึดแผนภาพไว้กับกระเป๋า/ตลาดหนึ่ง — ติดตาม BTC ย้อนกลับ (ต้นทาง) และไปข้างหน้า (ปลายทาง)</td></tr>
+      </table>
+
+      <h3>คำอธิบายสี</h3>
+      <ul class="tight">
+        <li><span class="swatch" style="background:var(--green)"></span><b>ซื้อ</b> — BTC ที่ซื้อเข้ามาในตำแหน่งหนึ่ง</li>
+        <li><span class="swatch" style="background:var(--red)"></span><b>ขาย</b> — BTC ที่ขายออกจากตำแหน่งหนึ่ง</li>
+        <li><span class="swatch" style="background:var(--accent)"></span><b>โอน</b> — ย้ายระหว่างตำแหน่งของคุณเองสองตำแหน่ง</li>
+        <li><span class="swatch" style="background:var(--muted)"></span><b>ภายนอก</b> — ฝากจาก หรือถอนไปยัง ที่อยู่ที่ไม่ได้อยู่ในตำแหน่งที่คุณติดตาม</li>
+      </ul>
+
+      <h3>แผงรายการธุรกรรม</h3>
+      <p>
+        นอกเหนือจากแผนภาพแล้ว แผงข้อมูลจะแสดงทุกรายการที่เกี่ยวข้องในรูปแบบการ์ด
+        (วันที่ ตำแหน่ง ประเภท จำนวน BTC ราคา ค่าธรรมเนียม สกุลเงิน อัตราแลกเปลี่ยน
+        รหัสการโอน คำอธิบาย) การซื้อ ขาย และการโอนเข้า/ออก
+        จะมีป้ายสีขนาดเล็กกำกับ ช่องค้นหาด้านบนรายการจะกรองตามค่าใด ๆ
+        ที่ปรากฏบนการ์ด (ตำแหน่ง ประเภท วันที่ จำนวนเงิน คำอธิบาย ฯลฯ)
+        — ไม่ว่าจะป้อนจำนวนด้วยจุดหรือจุลภาคก็ตาม บนหน้าจอที่แคบลง
+        แผงนี้จะเลื่อนลงไปอยู่ใต้แผนภาพแทนที่จะอยู่ข้าง ๆ
+      </p>
+
+      <h3>การโต้ตอบในแผนภาพ</h3>
+      <table class="fields">
+        <tr><th>การกระทำ</th><th>ผลลัพธ์</th></tr>
+        <tr><td class="field">วางเมาส์บนโหนดหรือเส้นเชื่อม</td><td class="desc">แสดง tooltip พร้อมจำนวนที่แน่นอน เดือน ยอดคงเหลือของตำแหน่ง และรายการธุรกรรมย่อยที่อยู่เบื้องหลัง</td></tr>
+        <tr><td class="field">คลิกที่โหนดหรือเส้นเชื่อม</td><td class="desc">จะไฮไลต์และ <b>กรอง</b> แผงรายการธุรกรรมให้แสดงเฉพาะรายการที่เกี่ยวข้อง หัวข้อของแผงจะเปลี่ยนเป็น「กรองแล้ว: …」พร้อมปุ่มรีเซ็ต การคลิกซ้ำที่รายการเดิมจะรีเซ็ต การคลิกรายการอื่นจะสลับทันที</td></tr>
+      </table>
+
+      <h3>การโต้ตอบในแผงรายการธุรกรรม</h3>
+      <table class="fields">
+        <tr><th>การกระทำ</th><th>ผลลัพธ์</th></tr>
+        <tr><td class="field">วางเมาส์บนการ์ดธุรกรรม</td><td class="desc">ไฮไลต์ตัวอย่างชั่วคราวของเส้นเชื่อม/โหนดที่ตรงกันในแผนภาพ (เฉพาะเมื่อยังไม่มีการเลือกใด ๆ ในแผนภาพ)</td></tr>
+        <tr><td class="field">คลิกที่การ์ดธุรกรรม</td><td class="desc"><b>ปักหมุด</b> การไฮไลต์สำหรับรายการนั้นในแผนภาพโดยเฉพาะ — <i>โดยไม่</i> กรองหรือย่อรายการ และไม่เปลี่ยนหัวข้อ/ตัวนับของแผง การคลิกซ้ำที่การ์ดเดิมจะเอาการปักหมุดออก การคลิกการ์ดอื่นจะสลับการไฮไลต์ทันที</td></tr>
+      </table>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>ทำไมพฤติกรรมการคลิกจึงต่างกันสองแบบ?</b> การคลิกโดยตรงใน <i>แผนภาพ</i> ใช้เพื่อจำกัดขอบเขต (「แสดงเฉพาะสิ่งที่เกี่ยวข้องกับโหนด/เส้นเชื่อมนี้」) ส่วนการคลิก <i>การ์ด</i> ที่มองเห็นอยู่แล้วในรายการใช้เพื่อค้นหาด้วยสายตาอย่างรวดเร็ว (「รายการนี้อยู่ตรงไหนในแผนภาพ」) โดยไม่เสียตำแหน่งในรายการทั้งหมด</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/flowchart.png" alt="แผนภาพการไหลพร้อมเส้นเชื่อมที่ระบุด้วยสีและแผงรายการธุรกรรม"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 ภาพหน้าจอจะมาเร็ว ๆ นี้<br><span class="path">images/flowchart.png</span></div>
+        <figcaption>แผนภาพการไหลพร้อมแผงรายการธุรกรรมด้านขวา <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-holdings">
+    <div class="step-text">
+      <div class="step-num">การแสดงผล 02</div>
+      <h2>มุมมองสินทรัพย์</h2>
+      <p>
+        เข้าถึงได้จากส่วนหัวของแดชบอร์ดผ่าน <b>「การแสดงผล」→「มุมมองสินทรัพย์」</b>
+        (หรือเข้าโดยตรงที่ <span class="inline-code">/btc-tracking/holdings</span>)
+        แดชบอร์ดแบบเต็มที่ประกอบด้วยการ์ดแยกกัน โดยเน้นที่
+        <b>การกระจายพอร์ต ตัวชี้วัดสำคัญ และผลตอบแทนรายปี</b>
+        — รวมถึงรายละเอียดลงลึกถึงระดับการซื้อแต่ละครั้ง
+        เช่นเดียวกับหน้าภาพรวม การ์ดต่าง ๆ สามารถจัดเรียงใหม่ได้อย่างอิสระโดยลากที่จุดจับ
+        (สูงสุด 3 การ์ดต่อแถว บนมือถือใช้ปุ่มลูกศร) และ「รีเซ็ตเลย์เอาต์」จะคืนค่าการจัดวางเริ่มต้น
+      </p>
+
+      <h3>การจัดสรรและตัวชี้วัด</h3>
+      <p>
+        กราฟวงแหวนจะแสดง <b>การกระจายตามกระเป๋า/ตลาด</b> (สัดส่วนของมูลค่ารวม)
+        ควบคู่กับการ์ดที่มี <b>ตัวชี้วัด</b> หลัก: BTC รวม มูลค่ารวม ผลตอบแทนเป็น %
+        ยอดคงเหลือเป็นซาโตชิ จำนวนเงินลงทุน กำไร/ขาดทุนที่เกิดขึ้นแล้ว
+        กำไร/ขาดทุนรวม และจำนวนธุรกรรม
+      </p>
+
+      <h3>กราฟรายปี</h3>
+      <p>
+        กราฟแท่งอิสระสามชุด แต่ละชุดมีหนึ่งแท่ง (หรือกลุ่มแท่ง) ต่อหนึ่งปี:
+      </p>
+      <table class="fields">
+        <tr><th>กราฟ</th><th>แสดง</th></tr>
+        <tr><td class="field">ยอดคงเหลือ BTC ต่อปี</td><td class="desc">ยอด BTC รวมทั้งพอร์ต ณ วันที่ 31 ธันวาคมของแต่ละปี (หรือปัจจุบันสำหรับปีนี้) แสดงเป็นสีส้ม Bitcoin</td></tr>
+        <tr><td class="field">การซื้อและขายต่อปี</td><td class="desc"><b>การซื้อ</b> เรียงซ้อนตามกระเป๋า/ตลาด (แต่ละตำแหน่งมีโทนสีฟ้า/เขียวอมฟ้าของตัวเอง) ควบคู่กับแท่ง <b>การขาย</b> แยกต่างหาก (สีม่วง) สำหรับปีเดียวกัน</td></tr>
+        <tr><td class="field">กำไร/ขาดทุนที่เกิดขึ้นแล้วต่อปี</td><td class="desc">รายได้จากการขาย ลบด้วยต้นทุนเฉลี่ยถ่วงน้ำหนักของ BTC ที่ขายไป — สีเขียวคือกำไร สีแดง/ส้มคือขาดทุน</td></tr>
+        <tr><td class="field">กำไร/ขาดทุนที่ยังไม่เกิดขึ้นต่อปี</td><td class="desc">มูลค่ายอดคงเหลือ ณ สิ้นปี ลบด้วยต้นทุน ณ ช่วงเวลานั้น ใช้ราคาปัจจุบันสำหรับปีนี้ และใช้ราคาอ้างอิงวันที่ 31 ธันวาคมตามที่อธิบายด้านล่างสำหรับปีก่อนหน้า — หากยังไม่มีข้อมูล แท่งนั้นจะว่างเปล่า</td></tr>
+      </table>
+
+      <h3>กำไร/ขาดทุนต่อการซื้อ</h3>
+      <p>
+        กราฟอีกสองชุด (เปอร์เซ็นต์และจำนวนเงินสัมบูรณ์) มี <b>หนึ่งแท่งต่อการซื้อแต่ละครั้ง</b>
+        เรียงตามลำดับเวลา สีจะรวมเครื่องหมาย (บวก/ลบ) กับสถานะ FIFO เข้าด้วยกัน
+        — คำนวณทั้งพอร์ตว่าการซื้อครั้งไหนถูก「ใช้ไป」บางส่วนแล้วจากการขายในภายหลัง:
+      </p>
+      <ul class="tight">
+        <li><span class="swatch" style="background:#1d9e75"></span><b>ถือครองอยู่ กำไร</b> / <span class="swatch" style="background:#d85a30"></span><b>ถือครองอยู่ ขาดทุน</b> — สีเข้ม ยังไม่ได้ขาย</li>
+        <li><span class="swatch" style="background:#5fbf9e"></span><b>ขายไปบางส่วนแล้ว</b> — โทนสีอ่อนลง มีบางส่วนถูกขายไปแล้ว</li>
+        <li><span class="swatch" style="background:#6f8f83"></span><b>ขายไปทั้งหมดแล้ว</b> — สีอ่อนที่สุด ขายหมดแล้ว</li>
+      </ul>
+      <p class="muted">
+        ค่าที่ผิดปกติมาก ๆ จะถูกบีบอัดในการแสดงผล (สเกลลอการิทึมแบบสมมาตรเมื่อเกิน ±100%
+        หรือค่าขีดแบ่งที่คำนวณจากข้อมูลอัตโนมัติสำหรับกราฟสกุลเงิน)
+        เพื่อไม่ให้การซื้อที่มีค่าสูงหรือต่ำผิดปกติทำให้แท่งอื่น ๆ บนแกนดูเล็กจนแทบมองไม่เห็น
+        — tooltip และรายละเอียดการซื้อจะยังคงแสดงค่าจริงเสมอ
+      </p>
+
+      <h3>รายละเอียดการซื้อ</h3>
+      <p>
+        การคลิกที่แท่งในกราฟกำไร/ขาดทุนต่อการซื้อทั้งสองชุดจะเปิดการ์ด
+        <b>รายละเอียดการซื้อ</b> ที่เกี่ยวข้อง: วันที่ ตำแหน่ง จำนวน BTC ราคา
+        จำนวนเงินรวม ค่าธรรมเนียม กำไร/ขาดทุนเป็น % และจำนวนเงิน คำอธิบาย
+        — สำหรับการซื้อที่ขายไปบางส่วนหรือทั้งหมดแล้ว จะแสดงรายการขายที่เกี่ยวข้องแต่ละรายการ
+        พร้อมสัดส่วน BTC ที่ถูกใช้ไปจากแต่ละรายการด้วย
+        ใช้ปุ่มลูกศร <span class="inline-code">←</span>/<span class="inline-code">→</span>
+        เพื่อเลื่อนดูรายการก่อนหน้า/ถัดไปตามลำดับเวลาในขณะที่มีการเลือกอยู่
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>ราคาอ้างอิงสำหรับปีก่อนหน้า:</b> แอปจะบันทึกราคา BTC ณ สิ้นปี (31 ธันวาคม) โดยประมาณต่อสกุลเงินสำหรับปีก่อนหน้าไว้เบื้องหลังเพียงครั้งเดียว — นี่คือสิ่งที่ขับเคลื่อนแท่งกำไร/ขาดทุนที่ยังไม่เกิดขึ้นของปีก่อนหน้าด้านบน มีการ์ดเฉพาะให้ตรวจสอบและแก้ไขค่าเหล่านี้ได้ด้วยตนเอง รวมถึงเติมข้อมูลปีที่ยังไม่ถูกบันทึกไว้อัตโนมัติ (เช่น ปีที่เพิ่งสิ้นสุดลง)</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/holdings.png" alt="มุมมองสินทรัพย์พร้อมกราฟวงแหวนการจัดสรร ตัวชี้วัด กราฟรายปี และกำไร/ขาดทุนต่อการซื้อ"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 ภาพหน้าจอจะมาเร็ว ๆ นี้<br><span class="path">images/holdings.png</span></div>
+        <figcaption>กราฟวงแหวนการจัดสรร ตัวชี้วัด และยอดคงเหลือ BTC ต่อปี ด้านล่างคือกำไร/ขาดทุนต่อการซื้อ <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="viz-yearly">
+    <div class="step-text">
+      <div class="step-num">การแสดงผล 03</div>
+      <h2>มุมมองรายปี</h2>
+      <p>
+        เข้าถึงได้จากส่วนหัวของแดชบอร์ดผ่าน <b>「การแสดงผล」→「มุมมองรายปี」</b>
+        (หรือเข้าโดยตรงที่ <span class="inline-code">/btc-tracking/yearly</span>)
+        ตัวเลือกด้านบนจะสลับระหว่าง <b>มุมมองภาพรวม</b> และ <b>ปีที่เลือก</b>
+        (ค่าที่เลือกจะยังคงอยู่แม้โหลดหน้าใหม่) — การ์ดทั้งหมดด้านล่างจะปรับตามการเลือกนั้น
+        ในหน้านี้ก็สามารถจัดเรียงการ์ดได้อย่างอิสระเช่นกัน (สูงสุด 2 การ์ดต่อแถว)
+        รวมถึงมี「รีเซ็ตเลย์เอาต์」ด้วย
+      </p>
+
+      <h3>ยอดคงเหลือและมูลค่าตามเวลา</h3>
+      <p>
+        กราฟเส้นที่มีสองแกน: <b>ยอดคงเหลือ</b> เป็น BTC (สีส้ม แกนซ้าย)
+        และ <b>มูลค่า</b> เป็นสกุลเงินที่แสดงที่เลือกไว้ (สีเขียว แกนขวา) —
+        ในมุมมองภาพรวมจะแสดงตลอดประวัติทั้งหมด (เครื่องหมายปีบนแกน X)
+        ส่วนในปีที่เลือกจะแบ่งเป็นรายเดือนทั้ง 12 เดือน
+      </p>
+
+      <h3>ราคา Bitcoin (ประวัติ)</h3>
+      <p>
+        กราฟเส้นแยกต่างหาก (สีม่วง) แสดงประวัติราคา BTC ล้วน ๆ
+        ในสกุลเงินที่แสดงที่เลือกไว้ — เป็นอิสระจากช่วงเวลาที่จำกัดด้วยธุรกรรม
+        ของกราฟยอดคงเหลือ/มูลค่าด้านบน เนื่องจากแสดงประวัติราคารายเดือนทั้งหมดที่มีอยู่
+        (หรือเฉพาะ 12 เดือนของปีที่เลือกไว้) ปุ่ม <b>「โหลดราคา」</b>
+        จะดึงประวัติราคาที่ขาดหายไปโดยอัตโนมัติผ่าน CoinGecko (ราคาปิด วันสุดท้ายของเดือน);
+        <b>「แก้ไขราคา」</b> จะเปิดหน้าต่างที่จัดกลุ่มตามปีและย่อ/ขยายได้
+        สำหรับกรอก/แก้ไขราคารายเดือนด้วยตนเอง — เดือนปัจจุบันจะใช้ราคาที่บันทึกไว้ล่าสุดโดยอัตโนมัติเสมอและไม่สามารถแก้ไขได้ที่นี่
+      </p>
+
+      <h3>การซื้อและการขาย</h3>
+      <p>
+        ทุกธุรกรรมซื้อ/ขายในช่วงเวลาที่เลือกจะแสดงเป็นการ์ดของตัวเอง
+        พร้อมตัวกรองแสดง/ซ่อนแยกกันสำหรับการซื้อและการขาย การ์ดซื้อจะแสดงวันที่
+        จำนวน BTC ราคา จำนวนเงินรวม ค่าธรรมเนียม และกำไร/ขาดทุนเป็น % และจำนวนเงิน
+        (รวมป้าย「ขายไปบางส่วน/ทั้งหมดแล้ว」) การ์ดขายจะแสดง
+        <b>องค์ประกอบจากการซื้อในอดีต</b> เพิ่มเติมด้วย (FIFO — การซื้อที่เปิดค้างไว้นานที่สุดจะถูกใช้ก่อน):
+        สำหรับแต่ละล็อตการซื้อที่ถูกใช้ จะแสดงจำนวน วันที่ซื้อเดิม
+        ระยะเวลาถือครองเป็นวัน กำไร/ขาดทุนตามสัดส่วนของล็อตนั้น และป้าย
+        <b>ยกเว้นภาษี</b>/<b>ต้องเสียภาษี</b> (ระยะเวลาถือครอง ≥ 365 วัน
+        ถือว่าได้รับการยกเว้นภาษี เว้นแต่มีการตั้งวันที่ตัดสิทธิ์ไว้ในหน้าตั้งค่า
+        — เป็นข้อมูลเพื่อประกอบการตัดสินใจเท่านั้น ไม่ใช่คำแนะนำด้านภาษี)
+      </p>
+
+      <h3>การโอน</h3>
+      <p>
+        การฝากและถอน (<span class="inline-code">TRANSFER_IN</span>/
+        <span class="inline-code">TRANSFER_OUT</span>) ในช่วงเวลาที่เลือก
+        แสดงเป็นการ์ดพร้อมวันที่และจำนวน BTC เช่นกัน
+        มีตัวกรองที่แยกจากกันสามแบบ — <b>ทั้งหมด</b>, <b>เฉพาะที่จับคู่แล้ว</b>
+        (การโอนระหว่างสองตำแหน่งของคุณเอง โดยรายการคู่กันจะถูกค้นหาโดยอัตโนมัติผ่านรหัสการโอนร่วมกัน
+        และแสดงเป็น「จาก」/「ถึง」) และ <b>เฉพาะรายการเดี่ยว</b>
+        (ฝาก/ถอนที่ไม่มีรายการคู่กัน — ตัวกรองเริ่มต้น)
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>การคำนวณ FIFO แบบอิสระ:</b> การแบ่งล็อตและระยะเวลาถือครองในมุมมองนี้จะคำนวณแยกต่างหากจากมุมมองสินทรัพย์ — ทั้งสองใช้ตรรกะ FIFO เดียวกัน (การซื้อที่เก่าที่สุดจะถูกใช้ก่อน ทั้งพอร์ตทุกตำแหน่ง) แต่ถูกพัฒนาแยกจากกันโดยตั้งใจ</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/yearly_view.png" alt="มุมมองรายปีพร้อมยอดคงเหลือและมูลค่าตามเวลา ประวัติราคา Bitcoin การซื้อ/ขาย และการโอน"
+             onclick="if(!this.parentElement.classList.contains('missing')) openLightbox(this)"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+        <div class="img-fallback">🖼 ภาพหน้าจอจะมาเร็ว ๆ นี้<br><span class="path">images/yearly_view.png</span></div>
+        <figcaption>ยอดคงเหลือและมูลค่าตามเวลา ประวัติราคา Bitcoin ด้านล่างคือการซื้อ/ขายและการโอน <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step single" style="border-bottom:none">
+    <div class="step-text">
+      <div class="step-num">แผนงานในอนาคต</div>
+      <h2>สิ่งที่มีอยู่แล้ว — และสิ่งที่จะตามมา</h2>
+      <p class="muted">
+        หน้านี้ตั้งใจเปิดไว้ให้ขยายเพิ่มเติม: การแสดงผลแต่ละแบบจะได้รับส่วนของตัวเองที่มีหมายเลขกำกับไว้ด้านบน
+        และเมนู「การแสดงผล」ของแอปได้เตรียมพื้นที่ไว้สำหรับประเภทกราฟใหม่ ๆ
+        ที่จะตามมาควบคู่กับแผนภาพการไหลแล้ว
+      </p>
+      <div class="roadmap-card">
+        <ul class="tight">
+          <li class="done">แผนภาพการไหล (Sankey) — การไหลของการซื้อ/ขาย/โอนตามเวลา พร้อมแผงรายการธุรกรรมที่กรองและค้นหาได้</li>
+          <li class="done">มุมมองสินทรัพย์ — การจัดสรร ตัวชี้วัด การซื้อ/ขายรายปี กำไร/ขาดทุนที่เกิดขึ้นแล้ว/ยังไม่เกิดขึ้น และกำไร/ขาดทุนต่อการซื้อแต่ละครั้ง</li>
+          <li class="done">มุมมองรายปี — ยอดคงเหลือและมูลค่าตามเวลา ประวัติราคา Bitcoin การซื้อ/ขายพร้อมการแบ่งล็อตแบบ FIFO และป้ายภาษี การโอน</li>
+          <li class="planned">การแสดงผลเพิ่มเติม — จะมีการบันทึกไว้ที่นี่เมื่อพร้อมใช้งาน</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · การแสดงผลข้อมูล · <a href="index.html" style="color:var(--muted)">← กลับไปที่คู่มือ</a>
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ ปิด (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>

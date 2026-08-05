@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — คู่มือการใช้งาน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+    --red: #f16565;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter','Noto Sans Thai',sans-serif;
+    line-height:1.6;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:clamp(26px,4vw,40px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-link{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+
+  .lang-switch{
+    display:inline-flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    margin-bottom:16px;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    letter-spacing:0.02em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px; font-family:'JetBrains Mono',monospace;}
+
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  section.step:last-of-type{border-bottom:none;}
+
+  .step-text{grid-column:1;}
+  .step-media{grid-column:2; position:sticky; top:24px;}
+
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:22px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figcaption{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+
+  table.fields{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.fields th, table.fields td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.fields th{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.fields td.field{
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    color:var(--text);
+  }
+  table.fields td.desc{color:var(--muted);}
+
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+
+  pre.csv{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:16px;
+    overflow-x:auto;
+    color:var(--text);
+    line-height:1.7;
+  }
+  pre.csv .v{color:var(--green);}
+  pre.csv .c{color:var(--muted);}
+
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+  }
+
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono','Noto Sans Thai',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+
+  @media (max-width:860px){
+    section.step{grid-template-columns:1fr;}
+    .step-media{grid-column:1; position:static;}
+    .step-text{grid-column:1;}
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="lang-switch">
+    <a href="../de/index.html">DE</a>
+    <a href="../index.html">EN</a>
+    <a href="../es/index.html">ES</a>
+    <a href="../fr/index.html">FR</a>
+    <a href="../it/index.html">IT</a>
+    <a href="index.html" class="active">TH</a>
+  </div>
+  <div class="hero-tag"><span class="dot"></span>คู่มือการใช้งาน · ไทย</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — คู่มือการใช้งาน</h1>
+  <p class="lead">
+    คู่มือฉบับย่อสำหรับฟีเจอร์หลักของแอป BTC-Tracking: การนำเข้า CSV
+    ผ่านตัวช่วยสามขั้นตอน การจัดการธุรกรรมและตำแหน่งในหน้า
+    การจัดการข้อมูล และการส่งออก CSV แอปจะเปิดที่หน้ามุมมองสินทรัพย์เป็นค่าเริ่มต้น —
+    หากต้องการนำเข้าข้อมูลหรือจัดการธุรกรรมและตำแหน่ง
+    ให้ไปที่เมนู <b>「การแสดงผล」</b> ด้านบนแล้วเลือก <b>「การจัดการข้อมูล」</b>
+  </p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a class="back-link" href="usage.html">การใช้งาน / ติดตั้ง — ดาวน์โหลดและติดตั้ง →</a>
+    <a class="back-link" href="visualizations.html">การแสดงผลข้อมูล →</a>
+  </div>
+</header>
+
+<nav class="steps">
+  <a href="#step-1"><span>01</span>นำเข้า CSV</a>
+  <a href="#step-2"><span>02</span>รูปแบบ CSV</a>
+  <a href="#step-3"><span>03</span>การจัดการข้อมูล</a>
+  <a href="#step-4"><span>04</span>ล็อกแอป</a>
+  <a href="#step-5"><span>05</span>ส่งออก CSV</a>
+  <a href="#step-6"><span>06</span>ฟีเจอร์อื่น ๆ</a>
+  <a href="#step-7"><span>07</span>โหมด Einundzwanzig</a>
+</nav>
+
+<main>
+
+  <section class="step" id="step-1" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">01 / 07</div>
+      <h2>นำเข้า CSV</h2>
+      <p>
+        เลือกไฟล์ผ่าน <b>「นำเข้า CSV」</b> การนำเข้าจะทำงานเป็นตัวช่วยสามขั้นตอน:
+        <b>จับคู่คอลัมน์</b>, <b>ตรวจสอบ</b> และ <b>สถานะ</b>
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">1. จับคู่คอลัมน์</h3>
+      <p>
+        แอปจะตรวจจับคอลัมน์โดยอัตโนมัติและเสนอการจับคู่ให้ — เช่น
+        สำหรับไฟล์ส่งออกจาก CoinTracking รูปแบบไฟล์จากกระเป๋าเงินต่าง ๆ
+        หรือไฟล์ของคุณเองที่มีชื่อคอลัมน์แตกต่างออกไป
+        ตัวอย่างข้อมูลแบบเรียลไทม์จะแสดงทันทีว่าแต่ละแถวที่ตรวจพบจะถูกตีความอย่างไร
+      </p>
+      <ul class="tight">
+        <li><b>ฟิลด์ที่จำเป็น</b> (มีเครื่องหมาย *): ประเภท, วันที่, กระเป๋า/ตลาด, จำนวนซื้อ, สกุลเงินซื้อ, จำนวนขาย, สกุลเงินขาย ต้องจับคู่กับคอลัมน์ CSV แต่ละคอลัมน์</li>
+        <li><b>กระเป๋า/ตลาดคงที่:</b> จะแทนที่การจับคู่คอลัมน์และกำหนดตำแหน่งเดียวกันให้กับ <i>ทุกแถว</i> — มีประโยชน์กับไฟล์ที่ครอบคลุมเพียงตลาดเดียว หากไม่มีการจับคู่ตลาด พื้นที่ส่วนนี้จะถูกไฮไลต์ให้เห็นชัดเจน</li>
+        <li><b>การจับคู่ค่าประเภท:</b> ทุกค่าที่แตกต่างกันในไฟล์ (เช่น <span class="inline-code">Withdrawal</span>, <span class="inline-code">Staking</span>) จะถูกจับคู่กับประเภทภายในที่กำหนด — หรือตั้งเป็น <span class="inline-code">– ข้าม –</span> เพื่อไม่นำแถวเหล่านั้นเข้าระบบ</li>
+      </ul>
+      <figure>
+        <img src="../images/csv_import_step_1.png" alt="ขั้นตอนที่ 1: หน้าจอจับคู่คอลัมน์ CSV พร้อมการจับคู่อัตโนมัติ" onclick="openLightbox(this)">
+        <figcaption>ขั้นตอนที่ 1 — จับคู่คอลัมน์: ข้อเสนอการจับคู่คอลัมน์อัตโนมัติ <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">2. ตรวจสอบ</h3>
+      <p>
+        แต่ละแถวที่ตรวจพบจะถูกตรวจสอบทีละแถวก่อนนำเข้าจริง
+        แถวที่มีสีจะบ่งบอกว่าจุดไหนควรตรวจสอบ — เช่น รายการซ้ำที่อาจเกิดขึ้น
+        หรือค่าที่ไม่ถูกต้อง การเลือกหลายแถวพร้อมกันช่วยให้ยืนยัน แก้ไข
+        หรือยกเว้นแถวออกจากการนำเข้าครั้งนี้ได้เป็นชุด
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_2.png" alt="ขั้นตอนที่ 2: ตารางตรวจสอบพร้อมสถานะแถวที่ระบุด้วยสี" onclick="openLightbox(this)">
+        <figcaption>ขั้นตอนที่ 2 — ตรวจสอบ: ตรวจสอบแต่ละแถวก่อนนำเข้า <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">3. สถานะ</h3>
+      <p>
+        สรุปผลการนำเข้า: มีกี่แถวที่ถูกนำเข้า ข้าม
+        หรือถูกตรวจพบว่าเป็นรายการซ้ำ จากหน้านี้คุณจะกลับไปที่การจัดการข้อมูล
+        ซึ่งธุรกรรมที่นำเข้าจะปรากฏให้เห็นทันที
+      </p>
+      <figure>
+        <img src="../images/csv_import_step_3.png" alt="ขั้นตอนที่ 3: สรุปสถานะการนำเข้า" onclick="openLightbox(this)">
+        <figcaption>ขั้นตอนที่ 3 — สถานะ: ผลลัพธ์การนำเข้าในภาพเดียว <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>เคล็ดลับ:</b> ก่อนนำเข้าจริง ควรตรวจดูจำนวนแถวที่ตรวจพบในขั้นตอนจับคู่คอลัมน์ — หากไม่ตรงกับไฟล์ต้นฉบับ ให้ตรวจสอบว่าตัวคั่นหรือแถวหัวตารางถูกตรวจจับถูกต้องหรือไม่</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-2">
+    <div class="step-text">
+      <div class="step-num">02 / 07</div>
+      <h2>รูปแบบ CSV ของแอป</h2>
+      <p>
+        หากไม่เลือกตัวเลือก CoinTracking แอปจะส่งออกในรูปแบบของตัวเอง
+        ซึ่งเป็นรูปแบบเดียวกับที่การนำเข้า CSV แบบแมนนวลคาดหวัง
+        (โดยไม่ใช้การจับคู่อัตโนมัติแบบ CoinTracking)
+      </p>
+
+      <pre class="csv"><span class="c">"typ","date","exchange","buyQty","buyCur","sellQty","sellCur","fee","feeCur","comment"</span>
+<span class="v">"Deposit"</span>,"20.07.2026 16:53:27","Bitbox02","0.00490000","BTC","","","","EUR","Example transfer to own wallet"
+<span class="v">"Withdrawal"</span>,"20.07.2026 16:53:26","21 Bitcoin","","","0.00500000","BTC","0.00010000","BTC","Example transfer to own wallet"
+<span class="v">"Trade"</span>,"19.07.2026 16:53:26","21 Bitcoin","0.01000000","BTC","500.00","EUR","0.00000000","EUR","Example transaction"</pre>
+
+      <p class="muted">สำคัญ: <span class="inline-code">typ</span> กำหนดประเภทของรายการ (ฝาก / ถอน / เทรด), <span class="inline-code">buyQty</span>/<span class="inline-code">buyCur</span> และ <span class="inline-code">sellQty</span>/<span class="inline-code">sellCur</span> อธิบายสิ่งที่ซื้อและขายตามลำดับ</p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>การตรวจจับที่ยืดหยุ่น:</b> การจับคู่ในขั้นตอนที่ 1 ยังรองรับชื่อคอลัมน์ที่แตกต่างจากรูปแบบไฟล์ส่งออกอื่น ๆ (เช่น <span class="inline-code">Time</span>, <span class="inline-code">Unit</span>, <span class="inline-code">Fee Unit</span>, <span class="inline-code">Transaction ID</span>, <span class="inline-code">Note</span>) จำนวนที่ระบุเป็นซาโตชิจะถูกแปลงเป็น BTC โดยอัตโนมัติ และวันที่ที่มีการชดเชยเขตเวลา (เช่น <span class="inline-code">2026-07-20T16:53:27-03:00</span>) จะถูกอ่านค่าได้อย่างถูกต้อง</span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/example_csv.png" alt="ตัวอย่างไฟล์ CSV ที่ส่งออก" onclick="openLightbox(this)">
+        <figcaption>ตัวอย่างแถว CSV: ฝาก ถอน เทรด <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-3" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">03 / 07</div>
+      <h2>การจัดการข้อมูล</h2>
+      <p>
+        ตำแหน่งและธุรกรรมทั้งหมดจะจัดการในหน้า <b>「การจัดการข้อมูล」</b>
+        การ์ดแต่ละใบสามารถลากด้วยจุดจับเพื่อจัดเรียงใหม่และย่อ/ขยายได้
+        — ลำดับที่จัดไว้จะถูกบันทึกไว้
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">กระเป๋าและตลาด</h3>
+      <p>
+        ตารางแสดงตำแหน่งทั้งหมด ใช้ <b>「เพิ่มกระเป๋า / ตลาด」</b>
+        เพื่อสร้างตำแหน่งใหม่ — แต่ละตลาด/กระเป๋าต้องถูกสร้างไว้ก่อนบันทึกรายการแรก
+        คลิกที่แถวเพื่อกรองรายการธุรกรรมให้แสดงเฉพาะตำแหน่งนั้น
+        ส่วนตัวกรองจะซ่อนตำแหน่งที่ไม่มียอดคงเหลือ
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">ธุรกรรมทั้งหมด</h3>
+      <p>
+        รายการธุรกรรมทั้งหมด <b>「เพิ่มธุรกรรม」</b> จะเปิดฟอร์มสำหรับบันทึกรายการเดียว:
+      </p>
+      <table class="fields">
+        <tr><th>ฟิลด์</th><th>ความหมาย</th></tr>
+        <tr><td class="field">จำนวน (BTC)</td><td class="desc">จำนวน BTC ที่ซื้อขาย เช่น <span class="inline-code">0.1</span></td></tr>
+        <tr><td class="field">วันที่และเวลา</td><td class="desc">เวลาที่เกิดธุรกรรม</td></tr>
+        <tr><td class="field">ประเภท</td><td class="desc"><span class="inline-code">BUY</span> หรือ <span class="inline-code">SELL</span></td></tr>
+        <tr><td class="field">จำนวนเงิน Fiat</td><td class="desc">มูลค่าตามสกุลเงินที่ใช้เทรด เช่น <span class="inline-code">5000</span></td></tr>
+        <tr><td class="field">สกุลเงิน</td><td class="desc">สกุลเงินที่ใช้เทรด เช่น EUR หรือ USDT</td></tr>
+        <tr><td class="field">อัตราแลกเปลี่ยนเป็นสกุลเงินที่แสดง</td><td class="desc">มีผลเฉพาะเมื่อสกุลเงินที่เทรดกับสกุลเงินที่แสดงต่างกัน</td></tr>
+        <tr><td class="field">ตลาด</td><td class="desc">เลือกตำแหน่งที่มีอยู่ หรือสร้างใหม่ผ่าน <span class="inline-code">+ New position…</span></td></tr>
+        <tr><td class="field">ค่าธรรมเนียม / สกุลเงิน (ค่าธรรมเนียม)</td><td class="desc">ค่าธรรมเนียมการเทรด รวมสกุลเงินของค่าธรรมเนียมเอง</td></tr>
+      </table>
+      <figure>
+        <img src="../images/add_manually_transaction.png" alt="ฟอร์ม: เพิ่มธุรกรรม" onclick="openLightbox(this)">
+        <figcaption>ตัวอย่าง: ซื้อ 0.1 BTC ราคา 5,000 EUR บนตลาด「21 Bitcoin」 <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+
+      <p>เลือกหนึ่งแถวหรือมากกว่าผ่านช่องกาเครื่องหมายเพื่อเปิดเมนูการดำเนินการ:</p>
+      <table class="fields">
+        <tr><th>การดำเนินการ</th><th>ความหมาย</th></tr>
+        <tr><td class="field">ส่งออกที่เลือก</td><td class="desc">ส่งออกเฉพาะแถวที่เลือกไว้เป็น CSV</td></tr>
+        <tr><td class="field">จับคู่การโอน</td><td class="desc">เชื่อมโยงสองแถว (ฝาก/ถอน) ให้เป็นการโอนระหว่างกระเป๋าที่สัมพันธ์กัน</td></tr>
+        <tr><td class="field">เปลี่ยนกระเป๋าหรือตลาด</td><td class="desc">แก้ไขตำแหน่งภายหลัง</td></tr>
+        <tr><td class="field">ตั้งค่าอัตราแลกเปลี่ยน</td><td class="desc">แก้ไขอัตราแลกเปลี่ยนเป็นสกุลเงินที่แสดง</td></tr>
+        <tr><td class="field">ไม่ใช่รายการซ้ำ</td><td class="desc">ยืนยันแถวที่ถูกตรวจพบว่าซ้ำ และเอาเครื่องหมายออก</td></tr>
+        <tr><td class="field">ทำเครื่องหมายเป็นการโอนเดี่ยว</td><td class="desc">ระบุการฝาก/ถอนที่ไม่มีรายการคู่กันโดยตั้งใจ</td></tr>
+        <tr><td class="field">ลบ</td><td class="desc">ลบธุรกรรมที่เลือกไว้</td></tr>
+      </table>
+
+      <h4 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:14px;margin:24px 0 10px;color:var(--text)">การไฮไลต์แถวด้วยสี</h4>
+      <p class="muted">สีพื้นหลังของแถวในรายการธุรกรรมจะบ่งบอกสถานะหนึ่งในสี่แบบโดยอัตโนมัติ:</p>
+      <table class="fields">
+        <tr><th>สี</th><th>ความหมาย</th></tr>
+        <tr><td class="field">🟠 ส้ม</td><td class="desc">สกุลเงินต่างประเทศที่ยังไม่มีอัตราแลกเปลี่ยน — ธุรกรรมในสกุลเงินที่ต่างจากสกุลเงินที่แสดง อัตราแลกเปลี่ยนยังอยู่ที่ 1 ให้แก้ไขผ่าน「ตั้งค่าอัตราแลกเปลี่ยน」</td></tr>
+        <tr><td class="field">🟣 ม่วง</td><td class="desc">รายการซ้ำที่อาจเกิดขึ้น — วันที่ ประเภท และจำนวนตรงกับธุรกรรมที่มีอยู่แล้ว ให้ตรวจสอบและยืนยันผ่าน「ไม่ใช่รายการซ้ำ」หรือลบแถวนั้น</td></tr>
+        <tr><td class="field">🔵 น้ำเงิน</td><td class="desc">การโอนเดี่ยว — การฝากหรือถอนที่ไม่มีรายการคู่กันในตำแหน่งอื่น ถูกทำเครื่องหมายเป็นรายการเดี่ยวโดยตั้งใจ</td></tr>
+        <tr><td class="field">🔴 แดงเข้ม</td><td class="desc">นำเข้าล่าสุด — แถวนี้มาจากการนำเข้า CSV ของเซสชันปัจจุบัน เพื่อให้ตรวจสอบได้ง่ายหลังนำเข้า</td></tr>
+      </table>
+      <p class="muted">คำอธิบายสีเหนือตารางจะแสดงสีทั้งสี่แบบเดียวกันเพื่ออ้างอิงอย่างรวดเร็ว</p>
+      <figure>
+        <img src="../images/transaction_highlighting.png" alt="การไฮไลต์แถวด้วยสีในรายการธุรกรรม" onclick="openLightbox(this)">
+        <figcaption>ตัวอย่างการไฮไลต์ทั้งสี่แบบ: นำเข้าล่าสุด การโอนเดี่ยว สกุลเงินต่างประเทศที่ไม่มีอัตราแลกเปลี่ยน รายการซ้ำที่อาจเกิดขึ้น <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">ประวัติการนำเข้า</h3>
+      <p>
+        การ์ดแสดงรายการนำเข้า CSV ทั้งหมดที่ผ่านมา: วันที่ ชื่อไฟล์
+        จำนวนแถวทั้งหมด และจำนวนที่ถูกนำเข้า ตรวจพบว่าซ้ำ หรือมีข้อผิดพลาด
+        สามารถลบการนำเข้าแต่ละรายการได้จากที่นี่
+      </p>
+
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>ตัวชี้วัดและกราฟ:</b> ผลตอบแทน ยอดคงเหลือ การจัดสรร และกำไร/ขาดทุนต่อการซื้อ ไม่แสดงที่หน้านี้อีกต่อไป แต่ย้ายไปแสดงที่ <a href="visualizations.html" style="color:var(--accent)">มุมมองสินทรัพย์</a></span>
+      </div>
+
+      <figure>
+        <img src="../images/data_management.png" alt="การจัดการข้อมูล: กระเป๋าและตลาด พร้อมรายการธุรกรรม" onclick="openLightbox(this)">
+        <figcaption>การจัดการข้อมูล: กระเป๋าและตลาด รายการธุรกรรมพร้อมการดำเนินการรายแถว <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="../images/data_management_with_cards.png" alt="การจัดการข้อมูลในมุมมองการ์ดบนหน้าจอขนาดเล็ก" onclick="openLightbox(this)">
+        <figcaption>มุมมองการ์ดที่ปรับตามหน้าจอขนาดเล็กแทนแถวตาราง <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-4">
+    <div class="step-text">
+      <div class="step-num">04 / 07</div>
+      <h2>ล็อกแอป</h2>
+      <p>
+        ไอคอนกุญแจในส่วนหัว (ข้าง「การดำเนินการ」/「การแสดงผล」)
+        จะเข้ารหัสตำแหน่งและธุรกรรมทั้งหมดด้วยรหัสผ่าน
+        และลบข้อมูลที่เป็นข้อความธรรมดาออกจากฐานข้อมูล
+        มีประโยชน์เมื่อแอปถูกปล่อยไว้โดยไม่มีคนดูแล
+        หรือเครื่องที่ใช้งานไม่น่าเชื่อถือเต็มที่
+      </p>
+      <table class="fields">
+        <tr><th>ฟิลด์</th><th>ความหมาย</th></tr>
+        <tr><td class="field">รหัสผ่าน</td><td class="desc">รหัสผ่านสำหรับเข้ารหัส — จำเป็นสำหรับการปลดล็อกในภายหลัง</td></tr>
+        <tr><td class="field">ยืนยันรหัสผ่าน</td><td class="desc">ต้องตรงกันทุกตัวอักษร มิฉะนั้นการล็อกจะถูกปฏิเสธ</td></tr>
+      </table>
+      <div class="note">
+        <span>ℹ</span>
+        <span><b>สิ่งที่เกิดขึ้นเมื่อล็อก:</b> ตำแหน่งและธุรกรรมทั้งหมดจะถูกเข้ารหัสด้วยรหัสผ่านและลบออกจากฐานข้อมูล หลังจากนั้นแอปจะแสดงหน้าจอ「แอปถูกล็อก」ทุกครั้งที่เปิดใช้งาน จนกว่าจะป้อนรหัสผ่านที่ถูกต้องอีกครั้ง — ซึ่งจะกู้คืนข้อมูลด้วย การพยายามป้อนรหัสผ่านผิดจะถูกหน่วงเวลาเพิ่มขึ้นเรื่อย ๆ</span>
+      </div>
+      <div class="note">
+        <span>🔒</span>
+        <span><b>การเข้ารหัส:</b> <span class="inline-code">AES-256-GCM</span> คีย์จะถูกสร้างจากรหัสผ่านผ่าน <span class="inline-code">PBKDF2WithHmacSHA256</span> ด้วยจำนวนรอบ 310,000 ครั้ง และ salt แบบสุ่มขนาด 16 ไบต์ การเข้ารหัสแต่ละครั้งใช้ nonce แบบ GCM สุ่มขนาด 12 ไบต์ auth tag ขนาด 128 บิตจะตรวจจับรหัสผ่านที่ผิดหรือข้อมูลที่ถูกแก้ไขเมื่อปลดล็อก</span>
+      </div>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>สำคัญ:</b> ไม่มีระบบกู้คืนรหัสผ่าน หากลืมรหัสผ่าน ข้อมูลที่เข้ารหัสไว้จะไม่สามารถกู้คืนได้</span>
+      </div>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">การปลดล็อก</h3>
+      <p>
+        เมื่อแอปถูกล็อกอยู่ หน้าจอ <b>「แอปถูกล็อก」</b> พร้อมช่องกรอกรหัสผ่านจะปรากฏขึ้นทุกครั้งที่เปิดใช้งาน
+        เมื่อป้อนรหัสผ่านถูกต้องแล้ว ข้อมูลจะถูกถอดรหัสและกู้คืน
+      </p>
+      <div class="note">
+        <span>♻</span>
+        <span><b>ลืมรหัสผ่าน:</b> ใช้ <span class="inline-code">รีเซ็ตแอป</span> ในหน้าจอปลดล็อกเพื่อรีเซ็ตแอปหากจำรหัสผ่านไม่ได้แล้ว การทำเช่นนี้จะลบข้อมูลที่เข้ารหัสไว้ทั้งหมดอย่างถาวรและแอปจะเริ่มต้นใหม่เหมือนการติดตั้งครั้งแรก การยืนยันต้องพิมพ์คำว่า <span class="inline-code">DELETE</span></span>
+      </div>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/lock_app.png" alt="หน้าจอล็อกแอปพร้อมช่องกรอกรหัสผ่าน" onclick="openLightbox(this)">
+        <figcaption>หน้าจอ「ล็อกแอป」เปิดผ่านไอคอนกุญแจในส่วนหัว <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+      <figure>
+        <img src="../images/unlock.png" alt="หน้าจอ「แอปถูกล็อก」สำหรับปลดล็อกด้วยรหัสผ่านหรือรีเซ็ตแอป" onclick="openLightbox(this)">
+        <figcaption>หน้าจอ「แอปถูกล็อก」: ป้อนรหัสผ่าน หรือรีเซ็ตผ่าน「รีเซ็ตแอป」 <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-5">
+    <div class="step-text">
+      <div class="step-num">05 / 07</div>
+      <h2>ส่งออก CSV</h2>
+      <p>
+        ผ่าน <b>「ส่งออก CSV」</b> ในส่วนหัว คุณสามารถส่งออกธุรกรรมทั้งหมด
+        หรือเฉพาะบางรายการหลังจากเลือกแถวในตารางแล้ว
+      </p>
+
+      <table class="fields">
+        <tr><th>ตัวเลือก</th><th>ความหมาย</th></tr>
+        <tr><td class="field">รูปแบบ CoinTracking</td><td class="desc">เปิดใช้ช่องกาเครื่องหมายเพื่อส่งออกในรูปแบบที่ใช้ร่วมกับ CoinTracking แทนรูปแบบของแอปเอง</td></tr>
+        <tr><td class="field">รหัสผ่าน (ไม่บังคับ)</td><td class="desc">เว้นว่างไว้ → ส่งออกเป็น <span class="inline-code">.csv</span> แบบข้อความธรรมดา ตั้งรหัสผ่าน → ไฟล์ <span class="inline-code">.enc</span> ที่เข้ารหัส</td></tr>
+      </table>
+    </div>
+    <div class="step-media">
+      <figure>
+        <img src="../images/export_with_password_or_as_cointracking.png" alt="หน้าจอส่งออกพร้อมรูปแบบ CoinTracking และรหัสผ่านที่ไม่บังคับ" onclick="openLightbox(this)">
+        <figcaption>หน้าจอส่งออก: เลือกรูปแบบและเข้ารหัสด้วยรหัสผ่านได้ตามต้องการ <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="step" id="step-6" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">06 / 07</div>
+      <h2>ฟีเจอร์อื่น ๆ</h2>
+      <p>
+        แถบไอคอนด้านขวาของส่วนหัวรวบรวมการตั้งค่าและเครื่องมือส่วนกลาง
+        ที่ใช้งานได้จากทุกหน้า
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">ตั้งค่า</h3>
+      <p>ไอคอนรูปเฟืองจะเปิดหน้าต่างการตั้งค่า:</p>
+      <table class="fields">
+        <tr><th>ฟิลด์</th><th>ความหมาย</th></tr>
+        <tr><td class="field">ภาษา</td><td class="desc">ภาษาที่ใช้แสดงผลในแอป</td></tr>
+        <tr><td class="field">สกุลเงินที่แสดง</td><td class="desc">สกุลเงิน Fiat สำหรับค่าที่คำนวณทั้งหมด (ยอดคงเหลือ กำไร/ขาดทุน ฯลฯ)</td></tr>
+        <tr><td class="field">แบบอักษร</td><td class="desc">ถูกตรึงไว้ที่ Inconsolata และแก้ไขไม่ได้ขณะโหมด Einundzwanzig เปิดใช้งานอยู่</td></tr>
+        <tr><td class="field">วันที่ตัดสิทธิ์ทางภาษี (สิ้นสุดการยกเว้น)</td><td class="desc">สำหรับเหรียญที่ซื้อตั้งแต่วันนี้เป็นต้นไป จะไม่ได้รับสิทธิ์ยกเว้นภาษีเมื่อถือครองครบ 1 ปีอีกต่อไป เว้นว่างไว้เพื่อปิดใช้งาน เป็นข้อมูลเพื่อประกอบการตัดสินใจเท่านั้น ไม่ใช่คำแนะนำด้านภาษี</td></tr>
+      </table>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">ราคา BTC</h3>
+      <p>
+        ราคาที่แสดงทางด้านซ้ายของส่วนหัวสามารถแก้ไขได้ด้วยตนเองโดยคลิกที่ตัวเลข
+        — มีประโยชน์เมื่อไม่สามารถโหลดราคาปัจจุบันได้
+        ปุ่ม <b>「รีเฟรช」</b> จะโหลดราคาใหม่จาก CoinGecko
+        หากเปิดโหมดออฟไลน์อยู่ จะมีข้อความยืนยันปรากฏขึ้นก่อน
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">โหมดออฟไลน์</h3>
+      <p>
+        ไอคอน Wi-Fi ใช้เปิด/ปิดโหมดออฟไลน์ เมื่อเปิดใช้งานอยู่
+        แอปจะไม่ดึงข้อมูลราคาจากอินเทอร์เน็ตโดยอัตโนมัติ
+        — แต่ยังสามารถตั้งราคาด้วยตนเองได้ การตั้งค่านี้จะถูกบันทึกไว้ในเบราว์เซอร์
+      </p>
+
+      <h3 style="font-family:'JetBrains Mono','Noto Sans Thai',monospace;font-size:16px;margin:32px 0 12px;color:var(--accent)">เมนูการดำเนินการ: สำรองข้อมูลและรีเซ็ต</h3>
+      <p>
+        นอกเหนือจากการนำเข้า/ส่งออก CSV แล้ว เมนู <b>「การดำเนินการ」</b>
+        ยังมีฟีเจอร์สำรองฐานข้อมูลแบบเต็มรูปแบบ ซึ่งแยกจากการส่งออก CSV:
+      </p>
+      <table class="fields">
+        <tr><th>การดำเนินการ</th><th>ความหมาย</th></tr>
+        <tr><td class="field">ส่งออกฐานข้อมูล</td><td class="desc">สำรองตำแหน่ง ธุรกรรม ประวัติการนำเข้า และข้อมูลราคาทั้งหมด (รายวัน รายเดือน และรายปี) เป็น JSON รหัสผ่านไม่บังคับ — เว้นว่างไว้สำหรับไฟล์ที่ไม่เข้ารหัส</td></tr>
+        <tr><td class="field">นำเข้าฐานข้อมูล</td><td class="desc">ลบตำแหน่ง ธุรกรรม ประวัติการนำเข้า และข้อมูลราคาปัจจุบันทั้งหมด แล้วแทนที่ด้วยไฟล์สำรองที่นำเข้ามา ไม่สามารถย้อนกลับได้</td></tr>
+      </table>
+      <figure>
+        <img src="../images/nav_bar_menu.png" alt="เมนูการดำเนินการพร้อมลบทั้งหมด นำเข้า/ส่งออก CSV และส่งออก/นำเข้าฐานข้อมูล" onclick="openLightbox(this)">
+        <figcaption>เมนูการดำเนินการ: ลบทั้งหมด นำเข้า/ส่งออก CSV ส่งออก/นำเข้าฐานข้อมูล <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>⚠</span>
+        <span><b>ระวังปุ่ม「ลบทั้งหมด」:</b> รายการนี้ในเมนูการดำเนินการจะลบข้อมูลทั้งหมดทันทีหลังยืนยันแบบง่าย ๆ — ต่างจากการรีเซ็ตในหน้าจอ「แอปถูกล็อก」(ดูขั้นตอนที่ 04) ที่ต้องพิมพ์คำว่า <span class="inline-code">delete</span> เพื่อยืนยัน ควรสำรองข้อมูลก่อนคลิกปุ่มนี้</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="step-7" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">07 / 07</div>
+      <h2>โหมด Einundzwanzig</h2>
+      <p>
+        ไอคอน「21」ในส่วนหัวจะเปลี่ยนไปใช้ธีมสีทางเลือก พร้อมแบบอักษรเฉพาะ
+        (Inconsolata) และแถบข้อความเลื่อนที่มีคำคมจากวัฒนธรรม Bitcoiner
+        ตราบใดที่โหมดนี้เปิดใช้งานอยู่ ปุ่มสลับโหมดสว่าง/มืดปกติ
+        และตัวเลือกแบบอักษรในหน้าตั้งค่าจะถูกล็อกไว้
+      </p>
+      <figure>
+        <img src="../images/21_mode.png" alt="โหมด Einundzwanzig พร้อมธีมสีและแถบข้อความเฉพาะ" onclick="openLightbox(this)">
+        <figcaption>โหมด Einundzwanzig: ธีมสี แบบอักษร และแถบข้อความเฉพาะในส่วนหัว <span class="zoom-hint">คลิกเพื่อขยาย ↗</span></figcaption>
+      </figure>
+      <div class="note">
+        <span>₿</span>
+        <span>ตั้งชื่อตามและได้แรงบันดาลใจจากพอดแคสต์ Bitcoin ภาษาเยอรมัน <a href="https://einundzwanzig.space/" target="_blank" rel="noopener" style="color:var(--accent)">einundzwanzig.space</a> (「einundzwanzig」แปลว่า「ยี่สิบเอ็ด」ในภาษาเยอรมัน)</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  BTC-Tracking App · คู่มือการใช้งาน
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ ปิด (Esc)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>

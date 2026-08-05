@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTC-Tracking App — Nutzung &amp; Setup</title>
+<title>BTC-Tracking App — Uso e installazione</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -293,22 +293,23 @@
 <body>
 <header class="hero">
   <div class="lang-switch">
-    <a href="usage.html" class="active">DE</a>
+    <a href="../de/usage.html">DE</a>
     <a href="../usage.html">EN</a>
     <a href="../es/usage.html">ES</a>
     <a href="../fr/usage.html">FR</a>
-    <a href="../it/usage.html">IT</a>
+    <a href="usage.html" class="active">IT</a>
     <a href="../th/usage.html">TH</a>
   </div>
-  <div class="hero-tag"><span class="dot"></span>Nutzung &amp; Setup · Deutsch</div>
-  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Nutzung &amp; Setup</h1>
+  <div class="hero-tag"><span class="dot"></span>Uso e installazione · Italiano</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Uso e installazione</h1>
   <p class="lead">
-    Zwei Wege, die App zu betreiben: manueller Download (JAR oder portables
-    Windows-ZIP) oder Installation als App auf Umbrel über den Community App Store.
+    Due modi per eseguire l'app: download manuale (JAR o ZIP portatile per
+    Windows) oppure installazione come app su Umbrel tramite la Community
+    App Store.
   </p>
   <div style="display:flex;flex-wrap:wrap;gap:12px">
-    <a class="back-link" href="index.html">← Zur Anleitung</a>
-    <a class="back-link" href="visualizations.html">Visualisierungen →</a>
+    <a class="back-link" href="index.html">← Torna alla guida</a>
+    <a class="back-link" href="visualizations.html">Visualizzazioni →</a>
   </div>
 </header>
 <nav class="steps">
@@ -319,134 +320,133 @@
 </nav>
 <main>
   <section class="step" id="option-a">
-    <div class="step-num">OPTION A</div>
-    <h2>Download &amp; lokale Installation</h2>
-    <p>Alle Downloads liegen im Haupt-Repository der App.</p>
+    <div class="step-num">OPZIONE A</div>
+    <h2>Download e installazione locale</h2>
+    <p>Tutti i download si trovano nel repository principale dell'app.</p>
     <div class="repo-card">
       <div class="repo-name">
         github.com/thatsme4now/btc-tracking
-        <span class="muted">Quellcode, Releases, README mit allen Setup-Varianten</span>
+        <span class="muted">Codice sorgente, release, README con tutte le varianti di installazione</span>
       </div>
-      <a class="repo-btn" href="https://github.com/thatsme4now/btc-tracking" target="_blank" rel="noopener">Repository öffnen ↗</a>
+      <a class="repo-btn" href="https://github.com/thatsme4now/btc-tracking" target="_blank" rel="noopener">Apri repository ↗</a>
     </div>
-    <h3>Variante 1 — JAR (Java erforderlich)</h3>
-    <p>Voraussetzung: <b>Java 21+</b> installiert.</p>
+    <h3>Variante 1 — JAR (richiede Java)</h3>
+    <p>Requisito: <b>Java 21+</b> installato.</p>
     <ol class="steplist">
-      <li>Im Repository auf <b>Releases</b> gehen (rechte Seitenleiste auf GitHub) und die neueste <span class="inline-code">btc-tracking.jar</span> herunterladen.</li>
-      <li>Terminal im Download-Ordner öffnen.</li>
-      <li>App starten:
+      <li>Nel repository, vai su <b>Releases</b> (barra laterale destra su GitHub) e scarica l'ultimo <span class="inline-code">btc-tracking.jar</span>.</li>
+      <li>Apri un terminale nella cartella di download.</li>
+      <li>Avvia l'app:
         <pre class="cmd">java -jar btc-tracking.jar</pre>
       </li>
-      <li>Browser öffnet automatisch <span class="inline-code">http://localhost:8080/btc-tracking</span>. Daten werden standardmäßig in <span class="inline-code">btc-tracking-data.mv.db</span> neben der JAR gespeichert (H2, dauerhaft) — diese Datei sichern, um Daten zu behalten.</li>
+      <li>Il browser si apre automaticamente su <span class="inline-code">http://localhost:8080/btc-tracking</span>. I dati vengono salvati di default in <span class="inline-code">btc-tracking-data.mv.db</span> accanto al JAR (H2, persistente) — esegui il backup di questo file per conservare i tuoi dati.</li>
     </ol>
-    <h3>Variante 2 — Portables ZIP für Windows (kein Java nötig)</h3>
-    <p>Enthält eine gebündelte JRE — keine separate Java-Installation erforderlich.</p>
+    <h3>Variante 2 — ZIP portatile per Windows (senza Java)</h3>
+    <p>Include una JRE integrata — non richiede un'installazione Java separata.</p>
     <ol class="steplist">
-      <li>Im Repository unter <b>Releases</b> das ZIP für Windows herunterladen (enthält gebündelte JRE + Launcher).</li>
-      <li>ZIP vollständig entpacken (nicht nur öffnen — die JRE muss mit extrahiert werden).</li>
-      <li>Im entpackten Ordner die <span class="inline-code">BtcTracking.exe</span> (bzw. das <span class="inline-code">.bat</span>-Startskript) ausführen.</li>
-      <li>Server startet lokal auf Port 8080, Browser öffnet automatisch <span class="inline-code">http://localhost:8080/btc-tracking</span>.</li>
+      <li>Nel repository, scarica lo ZIP per Windows sotto <b>Releases</b> (include JRE integrata + launcher).</li>
+      <li>Estrai completamente lo ZIP (non limitarti ad aprirlo — anche la JRE deve essere estratta).</li>
+      <li>Nella cartella estratta, esegui <span class="inline-code">BtcTracking.exe</span> (o lo script di avvio <span class="inline-code">.bat</span>).</li>
+      <li>Il server si avvia localmente sulla porta 8080, il browser si apre automaticamente su <span class="inline-code">http://localhost:8080/btc-tracking</span>.</li>
     </ol>
     <div class="note">
       <span>ℹ</span>
-      <span><b>Hinweis:</b> Details zu weiteren Setup-Varianten (In-Memory ohne Persistenz, MySQL-Anbindung, Build aus dem Quellcode mit <span class="inline-code">./gradlew bootJar</span>) stehen im README des Repositories.</span>
+      <span><b>Nota:</b> I dettagli su altre varianti di installazione (in memoria senza persistenza, connessione MySQL, build dal codice sorgente con <span class="inline-code">./gradlew bootJar</span>) sono nel README del repository.</span>
     </div>
   </section>
   <section class="step" id="option-b">
-    <div class="step-num">OPTION B</div>
-    <h2>Installation auf Umbrel</h2>
+    <div class="step-num">OPZIONE B</div>
+    <h2>Installazione su Umbrel</h2>
     <p>
-      Die App lässt sich auch als App auf einer <b>Umbrel</b>-Node installieren —
-      über einen eigenen Community App Store, keine Aufnahme im offiziellen
-      Umbrel App Store nötig.
+      L'app può essere installata anche come app su un nodo <b>Umbrel</b> —
+      tramite una Community App Store dedicata, senza bisogno di essere
+      inclusa nella Umbrel App Store ufficiale.
     </p>
     <div class="repo-card">
       <div class="repo-name">
         github.com/thatsme4now/thatsme4now-umbrel-apps
-        <span class="muted">Community App Store · enthält die App „thatsme4now-btc-tracking“</span>
+        <span class="muted">Community App Store · include l'app «thatsme4now-btc-tracking»</span>
       </div>
-      <a class="repo-btn" href="https://github.com/thatsme4now/thatsme4now-umbrel-apps" target="_blank" rel="noopener">Repository öffnen ↗</a>
+      <a class="repo-btn" href="https://github.com/thatsme4now/thatsme4now-umbrel-apps" target="_blank" rel="noopener">Apri repository ↗</a>
     </div>
     <ol class="steplist">
-      <li>In der <b>umbrelOS</b>-Oberfläche zum App Store gehen und den Bereich für <b>Community App Stores</b> öffnen (dort können externe Store-URLs hinzugefügt werden).</li>
-      <li>Als URL eintragen:
+      <li>Nell'interfaccia <b>umbrelOS</b>, vai nell'App Store e apri la sezione <b>Community App Stores</b> (lì si possono aggiungere URL di store esterni).</li>
+      <li>Inserisci l'URL:
         <pre class="cmd">https://github.com/thatsme4now/thatsme4now-umbrel-apps</pre>
       </li>
-      <li>Store hinzufügen — Umbrel lädt die enthaltenen Apps aus dem Repository.</li>
-      <li>Die App <b>„BTC Tracking“</b> aus diesem Community Store auswählen und wie jede andere Umbrel-App installieren.</li>
-      <li>Nach der Installation ist die App über das Umbrel-Dashboard erreichbar, Daten bleiben persistent auf der Umbrel-Node.</li>
+      <li>Aggiungi lo store — Umbrel carica le app contenute nel repository.</li>
+      <li>Seleziona l'app <b>«BTC Tracking»</b> da questo Community Store e installala come qualsiasi altra app Umbrel.</li>
+      <li>Dopo l'installazione, l'app è raggiungibile dal pannello Umbrel, i dati restano persistenti sul nodo Umbrel.</li>
     </ol>
     <div class="note">
       <span>ℹ</span>
-      <span><b>Hinweis:</b> Community App Stores sind eine reguläre Umbrel-Funktion für Apps außerhalb des offiziellen Stores. Genaue Menüpfade können sich je nach umbrelOS-Version leicht unterscheiden.</span>
+      <span><b>Nota:</b> I Community App Store sono una funzione normale di Umbrel per app al di fuori dello store ufficiale. I percorsi esatti dei menu possono variare leggermente a seconda della versione di umbrelOS.</span>
     </div>
   </section>
   <section class="step" id="option-c">
-    <div class="step-num">OPTION C</div>
-    <h2>Installation per Docker</h2>
+    <div class="step-num">OPZIONE C</div>
+    <h2>Installazione con Docker</h2>
     <p>
-      Die App ist auch als Docker-Image verfügbar — läuft isoliert, ohne
-      lokale Java-Installation.
+      L'app è disponibile anche come immagine Docker — funziona in modo
+      isolato, senza installazione Java locale.
     </p>
     <div class="repo-card">
       <div class="repo-name">
         hub.docker.com/r/thatsme4now/btc-tracking
-        <span class="muted">Docker-Image der App</span>
+        <span class="muted">Immagine Docker dell'app</span>
       </div>
-      <a class="repo-btn" href="https://hub.docker.com/repository/docker/thatsme4now/btc-tracking/general" target="_blank" rel="noopener">Docker Hub öffnen ↗</a>
+      <a class="repo-btn" href="https://hub.docker.com/repository/docker/thatsme4now/btc-tracking/general" target="_blank" rel="noopener">Apri Docker Hub ↗</a>
     </div>
-    <p>Voraussetzung: <b>Docker</b> installiert (z. B. Docker Desktop unter Windows).</p>
+    <p>Requisito: <b>Docker</b> installato (ad es. Docker Desktop su Windows).</p>
     <ol class="steplist">
-      <li>Terminal bzw. PowerShell öffnen.</li>
-      <li>Container starten:
+      <li>Apri un terminale o PowerShell.</li>
+      <li>Avvia il container:
         <pre class="cmd">docker run -d \
   --name btc-tracking \
   -p 8080:8080 \
   -v btc-tracking-data:/app/data \
   thatsme4now/btc-tracking:latest</pre>
       </li>
-      <li>App unter <span class="inline-code">http://localhost:8080/btc-tracking</span> im Browser öffnen.</li>
+      <li>Apri l'app nel browser su <span class="inline-code">http://localhost:8080/btc-tracking</span>.</li>
     </ol>
     <div class="note">
       <span>ℹ</span>
-      <span><b>Persistenz:</b> Das Named Volume <span class="inline-code">btc-tracking-data</span> hält die Daten über Neustarts und Image-Updates hinweg. Für ein Update reicht <span class="inline-code">docker pull thatsme4now/btc-tracking:latest</span> gefolgt von einem Neustart des Containers — das Volume bleibt erhalten.</span>
+      <span><b>Persistenza:</b> Il volume denominato <span class="inline-code">btc-tracking-data</span> mantiene i dati tra riavvii e aggiornamenti dell'immagine. Per un aggiornamento basta <span class="inline-code">docker pull thatsme4now/btc-tracking:latest</span> seguito da un riavvio del container — il volume viene mantenuto.</span>
     </div>
   </section>
   <section class="step" id="option-d">
-    <div class="step-num">OPTION D</div>
-    <h2>Installation per Proxmox</h2>
+    <div class="step-num">OPZIONE D</div>
+    <h2>Installazione con Proxmox</h2>
     <p>
-      Kein dediziertes Proxmox-Template — der Betrieb erfolgt über eine
-      normale <b>VM oder LXC-Container</b> auf der Proxmox-Node, in der
-      Docker installiert ist. Danach gilt derselbe Ablauf wie unter
-      <a href="#option-c">Option C</a>.
+      Non esiste un template Proxmox dedicato — si utilizza una normale
+      <b>VM o container LXC</b> sul nodo Proxmox con Docker installato. Da lì
+      valgono gli stessi passaggi dell'<a href="#option-c">Opzione C</a>.
     </p>
     <ol class="steplist">
-      <li>Auf der Proxmox-Node eine VM oder ein (privilegiertes oder unprivilegiertes) LXC anlegen, z. B. mit Debian/Ubuntu.</li>
-      <li>In der VM/LXC Docker installieren.</li>
-      <li>Den <span class="inline-code">docker run</span>-Befehl aus Option C in der VM/LXC ausführen.</li>
-      <li>App über die IP der VM/LXC erreichen: <span class="inline-code">http://&lt;VM-IP&gt;:8080/btc-tracking</span>.</li>
+      <li>Sul nodo Proxmox, crea una VM o un LXC (privilegiato o non privilegiato), ad es. con Debian/Ubuntu.</li>
+      <li>Installa Docker nella VM/LXC.</li>
+      <li>Esegui il comando <span class="inline-code">docker run</span> dell'Opzione C nella VM/LXC.</li>
+      <li>Raggiungi l'app tramite l'IP della VM/LXC: <span class="inline-code">http://&lt;IP-VM&gt;:8080/btc-tracking</span>.</li>
     </ol>
     <div class="note">
       <span>ℹ</span>
-      <span><b>Hinweis:</b> Bei LXC ist verschachteltes Docker (Nested Virtualization) nötig — in Proxmox über die Option <span class="inline-code">Features → Nesting</span> am Container aktivieren, bevor Docker installiert wird.</span>
+      <span><b>Nota:</b> Per LXC è necessario Docker annidato (virtualizzazione annidata) — attivalo in Proxmox tramite <span class="inline-code">Features → Nesting</span> sul container prima di installare Docker.</span>
     </div>
   </section>
   <section class="step" style="border-bottom:none">
-    <div class="step-num">ÜBERBLICK</div>
-    <h2>Welche Variante passt?</h2>
+    <div class="step-num">PANORAMICA</div>
+    <h2>Quale variante fa per te?</h2>
     <table class="compare">
-      <tr><th>Variante</th><th>Voraussetzung</th><th>Geeignet für</th></tr>
-      <tr><td class="field">JAR</td><td class="desc">Java 21+ installiert</td><td class="desc">Linux/Mac/Windows, wer Java bereits nutzt</td></tr>
-      <tr><td class="field">Portables Windows-ZIP</td><td class="desc">Keine — JRE ist enthalten</td><td class="desc">Windows ohne Java-Installation</td></tr>
-      <tr><td class="field">Umbrel</td><td class="desc">Laufende Umbrel-Node</td><td class="desc">Dauerbetrieb auf eigener Hardware/Server, zusammen mit anderen Umbrel-Apps</td></tr>
-      <tr><td class="field">Docker</td><td class="desc">Docker installiert (z. B. Docker Desktop unter Windows)</td><td class="desc">Isolierter Betrieb ohne lokale Java-Installation, einfache Updates per Image-Pull</td></tr>
-      <tr><td class="field">Proxmox</td><td class="desc">Proxmox-Node, VM/LXC mit Docker</td><td class="desc">Dauerbetrieb auf eigener Proxmox-Infrastruktur</td></tr>
+      <tr><th>Variante</th><th>Requisito</th><th>Adatta a</th></tr>
+      <tr><td class="field">JAR</td><td class="desc">Java 21+ installato</td><td class="desc">Linux/Mac/Windows, se usi già Java</td></tr>
+      <tr><td class="field">ZIP portatile per Windows</td><td class="desc">Nessuno — la JRE è inclusa</td><td class="desc">Windows senza installazione Java</td></tr>
+      <tr><td class="field">Umbrel</td><td class="desc">Nodo Umbrel in funzione</td><td class="desc">Funzionamento continuo su hardware/server proprio, insieme ad altre app Umbrel</td></tr>
+      <tr><td class="field">Docker</td><td class="desc">Docker installato (ad es. Docker Desktop su Windows)</td><td class="desc">Esecuzione isolata senza installazione Java locale, aggiornamenti semplici tramite pull dell'immagine</td></tr>
+      <tr><td class="field">Proxmox</td><td class="desc">Nodo Proxmox, VM/LXC con Docker</td><td class="desc">Funzionamento continuo su infrastruttura Proxmox propria</td></tr>
     </table>
   </section>
 </main>
 <footer>
-  BTC-Tracking App · Nutzung &amp; Setup · <a href="index.html">← Zur Anleitung</a>
+  BTC-Tracking App · Uso e installazione · <a href="index.html">← Torna alla guida</a>
 </footer>
 </body>
 </html>

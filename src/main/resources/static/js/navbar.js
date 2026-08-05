@@ -249,6 +249,14 @@ function copySatsAddress() {
 function openHelp() {
     if (I18N.currentLang() == "de") {
         window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
+    } else if (I18N.currentLang() == "it") {
+        window.open('https://thatsme4now.github.io/btc-tracking/it', '_blank');
+    } else if (I18N.currentLang() == "fr") {
+        window.open('https://thatsme4now.github.io/btc-tracking/fr', '_blank');
+    } else if (I18N.currentLang() == "es") {
+        window.open('https://thatsme4now.github.io/btc-tracking/es', '_blank');
+    } else if (I18N.currentLang() == "th") {
+        window.open('https://thatsme4now.github.io/btc-tracking/th', '_blank');
     } else {
         window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
     }
