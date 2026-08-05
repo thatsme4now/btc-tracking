@@ -8,6 +8,9 @@
 })();
 
 function toggleTheme() {
+    // Im Einundzwanzig-Modus ist Dark-Theme fix — Button ist zusätzlich per
+    // CSS (pointer-events:none) gesperrt, dies hier ist die JS-seitige Absicherung.
+    if (document.body.classList.contains('mode-21')) return;
     const current = document.body.classList.contains('light') ? 'light' : 'dark';
     const next    = current === 'dark' ? 'light' : 'dark';
     applyTheme(next);
@@ -32,14 +35,17 @@ function applyTheme(theme) {
 const DENSITY_CYCLE  = ['default', 'comfortable'];
 const DENSITY_ICONS  = { default: 'bi-type', comfortable: 'bi-type-bold' };
 const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
+// IBM Plex Mono bewusst nicht mehr auswählbar (siehe Font-Auswahl-Aufräumung),
+// bleibt aber als @font-face + hartcodierte Nutzung (Chart-Schrift in
+// holdings.js, Lot-Qty/Gain-Badges in yearly.css/flow.css) unangetastet.
 const FONTS = [
-    { key: 'ibm',    label: 'IBM Plex Mono', family: "'IBM Plex Mono', 'Courier New', monospace" },
-    { key: 'inter',  label: 'Inter',         family: "'Inter', sans-serif" },
-    { key: 'roboto', label: 'Roboto',        family: "'Roboto', sans-serif" },
+    { key: 'inter',       label: 'Inter',       family: "'Inter', sans-serif" },
+    { key: 'roboto',      label: 'Roboto',      family: "'Roboto', sans-serif" },
+    { key: 'inconsolata', label: 'Inconsolata', family: "'Inconsolata', 'Courier New', monospace" },
 ];
 
 (function initFont() {
-    const saved = localStorage.getItem('depot-font') || 'ibm';
+    const saved = localStorage.getItem('depot-font') || 'inter';
     applyFont(saved);
 })();
 
@@ -47,6 +53,44 @@ function applyFont(key) {
     const font = FONTS.find(f => f.key === key) || FONTS[0];
     document.documentElement.style.setProperty('--font', font.family);
     localStorage.setItem('depot-font', key);
+}
+
+// ── Einundzwanzig-Modus ──────────────────────────────────────────────────
+// Additiver Theme/Font-Override: setzt beim Aktivieren einmalig Dark-Theme +
+// Inconsolata (merkt sich vorherigen Theme/Font-Wert), bleibt danach aber
+// frei änderbar über die normalen Theme-/Font-Controls — kein Lock. Beim
+// Deaktivieren wird der gemerkte Zustand von vor der Aktivierung wiederhergestellt.
+(function initMode21() {
+    const saved = localStorage.getItem('depot-mode21') || 'off';
+    if (saved === 'on') document.body.classList.add('mode-21');
+    _updateMode21Icon();
+})();
+
+function toggleMode21() {
+    const active = document.body.classList.contains('mode-21');
+    if (!active) {
+        localStorage.setItem('depot-mode21-prev-theme', localStorage.getItem('depot-theme') || 'dark');
+        localStorage.setItem('depot-mode21-prev-font',  localStorage.getItem('depot-font')  || 'inter');
+        document.body.classList.add('mode-21');
+        applyTheme('dark');
+        applyFont('inconsolata');
+        localStorage.setItem('depot-mode21', 'on');
+    } else {
+        const prevTheme = localStorage.getItem('depot-mode21-prev-theme') || 'dark';
+        const prevFont  = localStorage.getItem('depot-mode21-prev-font')  || 'inter';
+        document.body.classList.remove('mode-21');
+        applyTheme(prevTheme);
+        applyFont(prevFont);
+        localStorage.setItem('depot-mode21', 'off');
+        localStorage.removeItem('depot-mode21-prev-theme');
+        localStorage.removeItem('depot-mode21-prev-font');
+    }
+    _updateMode21Icon();
+}
+
+function _updateMode21Icon() {
+    const btn = document.getElementById('btnMode21');
+    if (btn) btn.classList.toggle('mode21-active', document.body.classList.contains('mode-21'));
 }
 
 (function initDensity() {

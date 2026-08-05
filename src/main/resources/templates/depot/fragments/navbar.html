@@ -62,6 +62,23 @@
                 </button>
             </div>
 
+            <!-- Nur sichtbar bei aktivem Einundzwanzig-Modus (body.mode-21), siehe
+                 depot.css .mode21-ticker. Track-Inhalt bewusst dupliziert (2x dieselbe
+                 Sequenz), damit die Endlosschleife (translateX(-50%) in @keyframes
+                 mode21Marquee) nahtlos wirkt statt sichtbar neu zu starten. -->
+            <div class="mode21-ticker" aria-hidden="true">
+                <div class="mode21-ticker-track">
+                    <span data-i18n="ticker.tax">Steuern sind Raub!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Have fun staying poor!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Stay humble stack Sats!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Afuera!</span><span class="mode21-ticker-sep">//</span>
+                    <span data-i18n="ticker.tax">Steuern sind Raub!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Have fun staying poor!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Stay humble stack Sats!</span><span class="mode21-ticker-sep">//</span>
+                    <span>Afuera!</span><span class="mode21-ticker-sep">//</span>
+                </div>
+            </div>
+
             <div class="ms-auto align-items-center gap-3 navbar-actions-desktop">
                 <div class="dropdown" th:if="${showActions}">
                     <button class="btn depot-btn-outline dropdown-toggle" type="button"
@@ -131,6 +148,10 @@
                 <button class="btn depot-btn-offline px-2" id="btnOffline"
                         onclick="OFFLINE.toggle()" title="Online mode">
                     <i class="bi bi-wifi" id="offlineIcon"></i>
+                </button>
+                <button class="btn depot-btn-icon px-2" onclick="toggleMode21()" id="btnMode21"
+                        data-i18n-title="nav.btn.mode21" title="Einundzwanzig-Modus">
+                    <span class="mode21-label">21</span>
                 </button>
                 <button class="btn depot-btn-icon px-2" onclick="toggleTheme()" id="btnTheme"
                         data-i18n-title="nav.btn.settings" title="Toggle light/dark mode">

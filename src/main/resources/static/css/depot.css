@@ -49,6 +49,20 @@
     font-display: swap;
     src: url('/vendor/fonts/Roboto-Medium.woff2') format('woff2');
 }
+@font-face {
+    font-family: 'Inconsolata';
+    font-style:  normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('/vendor/fonts/Inconsolata-Regular.woff2') format('woff2');
+}
+@font-face {
+    font-family: 'Inconsolata';
+    font-style:  normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('/vendor/fonts/Inconsolata-Medium.woff2') format('woff2');
+}
 
 /* ── Base ────────────────────────────────────────────────── */
 :root {
@@ -67,7 +81,7 @@
     --last-import:      #2c0905;
     --solo-transfer:    #1b4f72;
     --radius:           6px;
-    --font:             'IBM Plex Mono', 'Courier New', monospace;
+    --font:             'Inter', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -95,8 +109,101 @@ body.light {
     --warn:       		#e0ceb9;
     --warn-duplicate:  #baa0d5;
     --solo-transfer:      #aed6f1;
-    --last-import:         #a9dede; 
-    
+    --last-import:         #a9dede;
+
+}
+
+/* ── Einundzwanzig-Modus ───────────────────────────────────
+   Look & Feel angelehnt an einundzwanzig.space (Media Kit): dunkler
+   Hintergrund + Bitcoin-Orange als Primärakzent, Cyan/Purple als
+   Sekundärakzente, Inconsolata als Schrift. Wird von toggleMode21()
+   (theme.js) per body-Klasse gesetzt/entfernt; --font/--bg etc. bleiben
+   danach normal über Theme-/Font-Buttons änderbar (kein Lock). */
+body.mode-21 {
+    --bg:               #151515;
+    --bg-card:          #1c1c1c;
+    --bg-row:           #202020;
+    --border:           #333333;
+    --text:             #f0f0f0;
+    --text-muted:       #8a8a8a;
+    --accent:           #F7931A;
+    --accent-dim:       rgba(247,147,26,0.15);
+    --accent-2:         #00B4CF;
+    --accent-3:         #A915FF;
+    --radius:           3px;
+    --font:             'Inconsolata', 'Courier New', monospace;
+}
+body.mode-21 .depot-btn-primary,
+body.mode-21 .depot-btn-outline,
+body.mode-21 .depot-card,
+body.mode-21 .depot-navbar {
+    box-shadow: 0 0 0 rgba(247,147,26,0);
+    transition: box-shadow .2s, border-color .2s;
+}
+body.mode-21 .depot-btn-primary:hover,
+body.mode-21 .depot-btn-icon:hover {
+    box-shadow: 0 0 10px rgba(247,147,26,0.35);
+}
+body.mode-21 .depot-navbar {
+    border-bottom-color: var(--accent);
+    box-shadow: 0 1px 12px rgba(247,147,26,0.12);
+}
+
+/* ── 21-Modus Toggle-Icon (aktiv-Zustand) ──────────────────
+   Gleiches Muster wie .depot-btn-offline.is-offline, nur mit --accent
+   statt --neg, da "aktiv" hier kein Fehlerzustand ist. */
+#btnMode21.mode21-active {
+    border-color: var(--accent);
+    color:        var(--accent);
+    background:   rgba(247,147,26,0.1);
+}
+#btnMode21.mode21-active:hover {
+    background: rgba(247,147,26,0.18);
+}
+/* Theme-Toggle im 21-Modus fix auf Dark — Klick/Hover gesperrt, siehe
+   toggleTheme() early-return in theme.js für die JS-seitige Absicherung. */
+body.mode-21 #btnTheme {
+    opacity:       .35;
+    pointer-events: none;
+    cursor:        not-allowed;
+}
+#btnMode21 .mode21-label {
+    font-family:   'Inconsolata', 'Courier New', monospace;
+    font-weight:   600;
+    font-size:     .72rem;
+    letter-spacing: .02em;
+}
+
+/* ── 21-Modus Marquee-Ticker ────────────────────────────────
+   Nur sichtbar wenn body.mode-21 aktiv ist; auf Tablet/Handy analog zu
+   .navbar-actions-desktop ausgeblendet (siehe @media unten). */
+.mode21-ticker {
+    display:  none;
+    flex:     1 1 auto;
+    overflow: hidden;
+    margin:   0 1rem;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+body.mode-21 .mode21-ticker { display: block; }
+.mode21-ticker-track {
+    display:        inline-flex;
+    white-space:    nowrap;
+    font-family:    'Inconsolata', 'Courier New', monospace;
+    font-weight:    600;
+    font-size:      .8rem;
+    letter-spacing: .03em;
+    color:          var(--accent);
+    animation:      mode21Marquee 22s linear infinite;
+}
+.mode21-ticker-sep {
+    color:        var(--text-muted);
+    margin:       0 1.25rem;
+    opacity:      .6;
+}
+@keyframes mode21Marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
 }
 
 /* ── Navbar ──────────────────────────────────────────────── */
@@ -1161,6 +1268,7 @@ input#dt-search-1 {
         row-gap: .5rem;
     }
     .navbar-actions-desktop { display: none !important; }
+    .mode21-ticker          { display: none !important; }
     .navbar-hamburger-btn   { display: inline-flex !important; }
 }
 @media (min-width: 769px) {

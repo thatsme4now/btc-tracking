@@ -164,12 +164,16 @@ function openSettings() {
     `).join('');
 
     const fontContainer = document.getElementById('fontOptions');
-    const currentFont   = localStorage.getItem('depot-font') || 'ibm';
+    const currentFont   = localStorage.getItem('depot-font') || 'inter';
+    // Im Einundzwanzig-Modus ist Dark-Theme + Inconsolata fix — Font-Auswahl
+    // wird gesperrt (disabled), siehe toggleMode21()/toggleTheme() in theme.js.
+    const mode21Active  = document.body.classList.contains('mode-21');
 
     fontContainer.innerHTML = FONTS.map(f => `
-        <label class="d-flex align-items-center gap-2" style="cursor:pointer">
+        <label class="d-flex align-items-center gap-2" style="cursor:${mode21Active ? 'not-allowed' : 'pointer'};opacity:${mode21Active ? '.5' : '1'}">
             <input type="radio" name="fontChoice" value="${f.key}"
                    ${f.key === currentFont ? 'checked' : ''}
+                   ${mode21Active ? 'disabled' : ''}
                    style="accent-color:var(--accent)"/>
             <span style="font-size:.82rem;font-family:${f.family};color:var(--text)">${f.label}</span>
         </label>
@@ -189,7 +193,9 @@ function saveSettings() {
     const curChanged       = selCur  && selCur.value  !== CURRENCY.current();
     const taxCutoffChanged = taxCutoffValue !== _taxCutoffOriginal;
 
-    if (selFont) applyFont(selFont.value);
+    // Font bleibt im Einundzwanzig-Modus fix auf Inconsolata — Radios sind
+    // in openSettings() bereits disabled, hier zusätzlich defensiv geprüft.
+    if (selFont && !document.body.classList.contains('mode-21')) applyFont(selFont.value);
 
     // Sprache, Währung UND der Steuer-Stichtag beeinflussen serverseitig
     // berechnete/gerenderte Werte (Zahl-/Datumsformate, positionsbezogene

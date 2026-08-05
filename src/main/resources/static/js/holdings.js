@@ -40,6 +40,17 @@ const HOLDINGS_ALLOCATION_PALETTE = [
     '#BA7517', '#185FA5', '#0F6E56', '#3C3489', '#993C1D'
 ];
 
+// Einundzwanzig-Modus: eigene, zyklisch wiederholte Palette (Orange/Cyan/
+// Purple aus dem Media Kit) statt der 10 diversifizierten Standardfarben —
+// siehe _holdingsAllocationPalette() für die Auswahl je nach body.mode-21.
+const HOLDINGS_ALLOCATION_PALETTE_MODE21 = ['#F7931A', '#00B4CF', '#A915FF'];
+
+function _holdingsAllocationPalette() {
+    return document.body.classList.contains('mode-21')
+        ? HOLDINGS_ALLOCATION_PALETTE_MODE21
+        : HOLDINGS_ALLOCATION_PALETTE;
+}
+
 // Per-buy G/V-Balken: 3 Helligkeitsstufen je nach FIFO-Realisiert-Status
 // (voll gehalten = kräftig, teilweise realisiert = mittel, komplett realisiert
 // = gedämpft), damit man den Status auch ohne Klick auf einen Balken erahnen kann.
@@ -262,7 +273,7 @@ function initHoldingsDonut(positions, currency) {
             type:   'donut',
             height: window.innerHeight / 3
         },
-        colors: HOLDINGS_ALLOCATION_PALETTE,
+        colors: _holdingsAllocationPalette(),
         plotOptions: {
             pie: {
                 donut: {
