@@ -13,10 +13,9 @@ import java.math.BigDecimal;
  * live {@link CurrentPrice} instead — see MonthlyPriceService.
  *
  * Rows come from either the bundled monthly-btc-prices.csv seed resource
- * (see MonthlyPriceSeeder), a live CoinGecko backfill (see
- * MonthlyPriceService#backfill), or manual correction via the UI — once a
- * row exists for a given (ticker, year, month, currency) it is never
- * silently overwritten by seeding/backfill again.
+ * (see MonthlyPriceSeeder) or manual correction via the UI — once a row
+ * exists for a given (ticker, year, month, currency) it is never silently
+ * overwritten by the seeder again.
  */
 @Data
 @Entity

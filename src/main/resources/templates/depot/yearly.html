@@ -23,9 +23,6 @@
             <span data-i18n="yearly.title">Jahresansicht</span>
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <select id="yearlyYearSelect" class="form-select form-select-sm yearly-year-select"></select>
-                <button id="yearlyLoadPricesBtn" class="btn btn-xs depot-btn-outline" onclick="yearlyLoadPrices()">
-                    <i class="bi bi-cloud-download me-1"></i><span data-i18n="yearly.btn.loadPrices">Preise laden</span>
-                </button>
                 <button id="yearlyEditPricesBtn" class="btn btn-xs depot-btn-outline" data-bs-toggle="modal" data-bs-target="#yearlyPriceModal">
                     <i class="bi bi-pencil me-1"></i><span data-i18n="yearly.btn.editPrices">Preise anpassen</span>
                 </button>
@@ -135,32 +132,6 @@
 <!-- Edit Transaction Modal (shared fragment, same dialog as the main dashboard) -->
 <div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
 
-<!-- Offline Confirm Modal (shared pattern with overview.html's price refresh) -->
-<div class="modal fade" id="yearlyOfflineConfirmModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-            <div class="modal-header" style="border-bottom:1px solid var(--border)">
-                <span class="depot-card-header mb-0">
-                    <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
-                    <span data-i18n="modal.offline.title">Offline Mode</span>
-                </span>
-                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
-                    Offline mode is active. Fetch current price from internet anyway?
-                </p>
-            </div>
-            <div class="modal-footer" style="border-top:1px solid var(--border)">
-                <button class="btn depot-btn-primary" onclick="yearlyConfirmOfflineLoadPrices()">
-                    <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
-                </button>
-                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Manual monthly price editor: grouped by year, collapsible, newest year first -->
 <div class="modal fade" id="yearlyPriceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-scrollable">
@@ -187,17 +158,16 @@
 <script th:src="@{/vendor/js/flatpickr-l10n-es.js}"></script>
 <script th:src="@{/vendor/js/flatpickr-l10n-fr.js}"></script>
 <script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
-<!-- load order: i18n → currency → theme → offline → applock → navbar → tx-form → yearly -->
+<!-- load order: i18n → currency → theme → applock → navbar → tx-form → yearly -->
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/theme.js}"></script>
-<script th:src="@{/js/offline.js}"></script>
 <script th:src="@{/js/applock.js}"></script>
 <script th:src="@{/js/navbar.js}"></script>
 <script th:src="@{/js/tx-form.js}"></script>
 <script th:src="@{/js/yearly.js}"></script>
 <script>
-    I18N.ready.then(() => { I18N.applyI18n(); OFFLINE.init(); initFlatpickr(); initYearly(); });
+    I18N.ready.then(() => { I18N.applyI18n(); initFlatpickr(); initYearly(); });
 </script>
 </body>
 </html>

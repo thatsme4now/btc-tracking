@@ -36,7 +36,7 @@ App starts at `http://localhost:8080/btc-tracking` with H2 in-memory DB.
 
 ## Adding a Currency
 
-**Backend:** CoinGecko already supports any `vs_currency`. No backend change needed.
+**Backend:** prices are entered manually (no external price API) — no backend change needed for a new currency code.
 
 **Frontend** (`currency.js`):
 ```js

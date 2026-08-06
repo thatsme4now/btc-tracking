@@ -129,16 +129,6 @@ public class DepotRestController {
         }
     }
 
-    @PostMapping("/monthly-prices/backfill")
-    public ResponseEntity<Map<String, Object>> backfillMonthlyPrices() {
-        try {
-            int inserted = monthlyPriceService.backfill();
-            return ResponseEntity.ok(Map.of("totalNew", inserted));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
     @GetMapping("/yearly-overview")
     public com.thatsme4now.depot.dto.YearlyOverviewDTO getYearlyOverview(
             @RequestParam(required = false, name = "year") Integer year,
@@ -160,13 +150,6 @@ public class DepotRestController {
 		return flowService.buildFlowGraph(fromDate, toDate, positionId);
     }
     
-    @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refresh(
-            @RequestParam(name = "currency", defaultValue = "EUR") String currency) {
-        int totalNew = depotService.refreshPrices(currency);
-        return ResponseEntity.ok(Map.of("totalNew", totalNew));
-    }
-
     @GetMapping("/history")
     public List<PriceHistory> getHistory() {
         return depotService.getHistory();

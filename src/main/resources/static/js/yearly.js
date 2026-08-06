@@ -951,45 +951,6 @@ function showToast(msg, type) {
     setTimeout(() => toast.classList.add('d-none'), 5000);
 }
 
-// ── "Preise laden" (CoinGecko-Bulk-Backfill, alle 3 Währungen) ────────────
-
-function yearlyLoadPrices() {
-    if (!OFFLINE.isOnline()) {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('yearlyOfflineConfirmModal'))
-            || new bootstrap.Modal(document.getElementById('yearlyOfflineConfirmModal'));
-        modal.show();
-        return;
-    }
-    _yearlyDoLoadPrices();
-}
-
-function yearlyConfirmOfflineLoadPrices() {
-    bootstrap.Modal.getInstance(document.getElementById('yearlyOfflineConfirmModal'))?.hide();
-    _yearlyDoLoadPrices();
-}
-
-function _yearlyDoLoadPrices() {
-    const btn = document.getElementById('yearlyLoadPricesBtn');
-    const originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = `<span class="depot-spinner"></span>${(typeof t === 'function') ? t('toast.refreshLoading') : 'Lade…'}`;
-
-    fetch('/api/btc-tracking/monthly-prices/backfill', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
-            const n = data.totalNew || 0;
-            showToast('✓ ' + n + ' ' + ((typeof t === 'function') ? t('yearly.toast.pricesLoaded') : 'neue Monatspreise geladen'), 'success');
-            _yearlyAllTx = null; // Cache invalidieren, falls FIFO-relevante Werte sich indirekt ändern
-            yearlyLoadOverview(_yearlySelectedYear);
-        })
-        .catch(err => showToast('✗ ' + err.message, 'error'))
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        });
-}
-
 // ── Manueller Monatskurs-Dialog: nach Jahr gruppiert, einklappbar, neuestes Jahr oben ──
 
 async function yearlyLoadPriceModal() {

@@ -10,8 +10,8 @@
   "Visualisierung" links to all 4 pages including "Übersicht" (main page) itself,
   replacing the old page-specific "Zurück" button.
   Requires on the including page: bootstrap.bundle.min.js, i18n.js, currency.js,
-  theme.js, offline.js, applock.js, navbar.js (price badge / settings / sats / help
-  logic) — plus the navbar-modals fragment (settings/sats/applock/offline-confirm).
+  theme.js, applock.js, navbar.js (price badge / settings / sats / help
+  logic) — plus the navbar-modals fragment (settings/sats/applock).
   pageTitleKey: i18n-Key für den Seitennamen hinter Titel/Version (z.B.
   "nav.btn.holdings"), reuse der bestehenden Visualisierung-Dropdown-Keys,
   damit keine neuen Übersetzungen nötig sind. Leerstring ('') unterdrückt den
@@ -57,9 +57,6 @@
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </span>
-                <button id="btnRefresh" class="btn depot-btn-primary" onclick="refreshPrices()">
-                    <i class="bi bi-arrow-clockwise me-1"></i><span class="refresh-text" data-i18n="nav.btn.refresh">Refresh</span>
-                </button>
             </div>
 
             <!-- Nur sichtbar bei aktivem Einundzwanzig-Modus (body.mode-21), siehe
@@ -144,10 +141,6 @@
                 <button class="btn depot-btn-icon px-2" id="btnLightning"
                         onclick="sendSomeSats()" title="Send some sats!">
                     <i class="bi bi-lightning-charge-fill" id="lightningIcon"></i>
-                </button>
-                <button class="btn depot-btn-offline px-2" id="btnOffline"
-                        onclick="OFFLINE.toggle()" title="Online mode">
-                    <i class="bi bi-wifi" id="offlineIcon"></i>
                 </button>
                 <button class="btn depot-btn-icon px-2" onclick="toggleMode21()" id="btnMode21"
                         data-i18n-title="nav.btn.mode21" title="Einundzwanzig-Modus">

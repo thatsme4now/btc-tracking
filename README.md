@@ -1,7 +1,7 @@
 # Bitcoin Portfolio Tracker
 
 A self-hosted, privacy-first Bitcoin portfolio tracker.  
-Runs locally as a single JAR — no cloud, no accounts, no ads.
+Runs locally as a single JAR — no cloud, no accounts, no ads, no internet connection required.
 
 If you enjoy this small tool, please spend some sats: `turbolush199@walletofsatoshi.com`
 
@@ -15,11 +15,10 @@ If you enjoy this small tool, please spend some sats: `turbolush199@walletofsato
 
 - Track BTC positions across multiple exchanges and wallets
 - BUY / SELL / TRANSFER_IN / TRANSFER_OUT transactions
-- manually price adjustment or via CoinGecko (EUR, USD, THB, …)
+- Manual BTC price entry (EUR, USD, THB, …) — no external price API, works fully offline
 - CSV import with flexible column mapping (PapaParse)
 - CSV export compatible with common tax tools. (Optional with password to encrypt data)
 - Dark / light theme, EN / DE / TH UI
-- can run fully offline if wanted
 
 ---
 
@@ -158,7 +157,7 @@ src/main/java/com/thatsme4now/depot/
 ├── dto/             # Data transfer objects
 ├── entity/          # JPA entities
 ├── repository/      # Spring Data repositories
-├── service/         # Business logic, CoinGecko, CSV import
+├── service/         # Business logic, CSV import
 src/main/resources/
 ├── templates/       # Thymeleaf HTML
 ├── static/          # JS (depot.js, i18n.js, currency.js), CSS
@@ -174,6 +173,23 @@ All data, calculations, and exports are provided "as is" without warranty.
 This tool is not financial or tax advice — verify all figures independently
 before relying on them (e.g. for tax filing). See [LICENSE](LICENSE) and
 [NOTICE.md](NOTICE.md) for third-party licenses.
+
+## Data & Disclaimer
+
+The app makes no outbound network calls — all BTC prices (current and
+historical) are entered manually or come from the bundled CSV seed data.
+This project is not affiliated with, endorsed by, or sponsored by the
+Bitcoin Foundation.
+
+All data, calculations, and exports are provided "as is" without warranty.
+This tool is not financial or tax advice — verify all figures independently
+before relying on them (e.g. for tax filing). See [LICENSE](LICENSE) and
+[NOTICE.md](NOTICE.md) for third-party licenses.
+
+Parts of this project were developed with AI assistance (Claude). No legal
+disclosure requirement applies — noted here for transparency.
+
+---
 
 ## License
 

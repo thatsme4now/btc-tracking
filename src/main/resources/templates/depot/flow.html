@@ -101,17 +101,16 @@
 <script th:src="@{/vendor/js/flatpickr-l10n-it.js}"></script>
 <script th:src="@{/vendor/js/d3.v7.min.js}"></script>
 <script th:src="@{/vendor/js/d3-sankey.min.js}"></script>
-<!-- load order: i18n → currency → theme → offline → applock → navbar → tx-form → flow -->
+<!-- load order: i18n → currency → theme → applock → navbar → tx-form → flow -->
 <script th:src="@{/js/i18n.js}"></script>
 <script th:src="@{/js/currency.js}"></script>
 <script th:src="@{/js/theme.js}"></script>
-<script th:src="@{/js/offline.js}"></script>
 <script th:src="@{/js/applock.js}"></script>
 <script th:src="@{/js/navbar.js}"></script>
 <script th:src="@{/js/tx-form.js}"></script>
 <script th:src="@{/js/flow.js}"></script>
 <script>
-    I18N.ready.then(() => { I18N.applyI18n(); OFFLINE.init(); initFlow(); });
+    I18N.ready.then(() => { I18N.applyI18n(); initFlow(); });
 </script>
 </body>
 </html>

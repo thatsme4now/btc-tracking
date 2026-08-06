@@ -30,8 +30,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * Like HistoricalPriceSeeder, this NEVER overwrites a row that already
  * exists for a given (ticker, year, month, currency) — whether it came
- * from an earlier seed run, a live CoinGecko backfill (see
- * MonthlyPriceService#backfill), or a manual correction via the UI.
+ * from an earlier seed run or a manual correction via the UI.
  *
  * The currently running (not yet elapsed) month is intentionally skipped —
  * it always uses the live current_price instead, see MonthlyPriceService.

@@ -344,7 +344,6 @@ document.addEventListener('DOMContentLoaded', initOverviewLayout);
 // ── i18n + currency init ─────────────────────────────────
 I18N.ready.then(() => {
     I18N.applyI18n();
-    OFFLINE.init();
 
     // Sync JS currency state with what the server used (cookie may lag)
     if (typeof SERVER_CURRENCY !== 'undefined' && SERVER_CURRENCY !== CURRENCY.current()) {
