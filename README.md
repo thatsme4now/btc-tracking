@@ -168,6 +168,12 @@ src/main/resources/
 ```
 
 ---
+## Data & Disclaimer
+
+All data, calculations, and exports are provided "as is" without warranty.
+This tool is not financial or tax advice — verify all figures independently
+before relying on them (e.g. for tax filing). See [LICENSE](LICENSE) and
+[NOTICE.md](NOTICE.md) for third-party licenses.
 
 ## License
 
