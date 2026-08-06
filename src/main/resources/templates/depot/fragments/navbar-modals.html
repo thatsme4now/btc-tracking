@@ -4,11 +4,10 @@
 
 <!--
   Modals belonging to the shared navbar (fragments/navbar.html) — settings
-  (language/currency/font), sats/lightning, app-lock (set + locked), and the
-  offline-mode confirm dialog for the navbar's own refresh button. Bundled as
-  one fragment so every page only needs a single th:replace call. Requires
-  navbar.js (openSettings/saveSettings/sendSomeSats/copySatsAddress/
-  confirmOfflineRefresh) and applock.js (AppLock.*) loaded on the including page.
+  (language/currency/font), sats/lightning, and app-lock (set + locked).
+  Bundled as one fragment so every page only needs a single th:replace call.
+  Requires navbar.js (openSettings/saveSettings/sendSomeSats/copySatsAddress)
+  and applock.js (AppLock.*) loaded on the including page.
 -->
 <div th:fragment="navbarModals">
 
@@ -80,31 +79,6 @@
         </div>
     </div>
 
-    <!-- Offline Confirm Modal (navbar refresh button's offline gate) -->
-    <div class="modal fade" id="offlineConfirmModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
-                <div class="modal-header" style="border-bottom:1px solid var(--border)">
-                    <span class="depot-card-header mb-0">
-                        <i class="bi bi-wifi-off me-2" style="color:var(--neg)"></i>
-                        <span data-i18n="modal.offline.title">Offline Mode</span>
-                    </span>
-                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p style="font-size:.8rem;color:var(--text)" data-i18n="modal.offline.body">
-                        Offline mode is active. Fetch current price from internet anyway?
-                    </p>
-                </div>
-                <div class="modal-footer" style="border-top:1px solid var(--border)">
-                    <button class="btn depot-btn-primary" onclick="confirmOfflineRefresh()">
-                        <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="modal.offline.confirm">Fetch anyway</span>
-                    </button>
-                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- App gesperrt (nicht schließbar) -->
     <div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">

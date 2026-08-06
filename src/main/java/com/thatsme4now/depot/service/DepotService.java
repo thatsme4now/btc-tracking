@@ -36,7 +36,6 @@ public class DepotService {
     private final TransactionRepository  transactionRepo;
     private final CurrentPriceRepository currentPriceRepo;
     private final PriceHistoryRepository priceHistoryRepo;
-    private final CoinGeckoService       coinGeckoService;
     private final AppSettingsRepository  appSettingsRepo;
 
     private static final String     TICKER = "BTC";
@@ -134,10 +133,6 @@ public class DepotService {
 
     public List<PriceHistory> getHistory() {
         return priceHistoryRepo.findByTickerOrderByDateAsc(TICKER);
-    }
-
-    public int refreshPrices(String currency) {
-        return coinGeckoService.loadAndSaveHistory(normalizeCurrency(currency));
     }
 
     // ── Helpers ───────────────────────────────────────────

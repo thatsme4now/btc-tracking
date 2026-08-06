@@ -149,9 +149,7 @@ body.mode-21 .depot-navbar {
     box-shadow: 0 1px 12px rgba(247,147,26,0.12);
 }
 
-/* ── 21-Modus Toggle-Icon (aktiv-Zustand) ──────────────────
-   Gleiches Muster wie .depot-btn-offline.is-offline, nur mit --accent
-   statt --neg, da "aktiv" hier kein Fehlerzustand ist. */
+/* ── 21-Modus Toggle-Icon (aktiv-Zustand) ────────────────── */
 #btnMode21.mode21-active {
     border-color: var(--accent);
     color:        var(--accent);
@@ -241,32 +239,6 @@ body.mode-21 .mode21-ticker { display: block; }
     border:         1px solid var(--border);
     border-radius:  var(--radius);
     padding:        0.3rem 0.75rem;
-}
-
-/* ── Offline Toggle ──────────────────────────────────────── */
-.depot-btn-offline {
-    background:     transparent;
-    border:         1px solid var(--border);
-    color:          var(--text-muted);
-    font-family:    var(--font);
-    font-size: 		1.2rem;
-    padding:        0.3rem 0.5rem;
-    border-radius:  var(--radius);
-    cursor:         pointer;
-    transition:     all 0.15s;
-    line-height:    1;
-}
-.depot-btn-offline:hover {
-    border-color: var(--text-muted);
-/*     color:        var(--text); */
-}
-.depot-btn-offline.is-offline {
-    border-color: var(--neg);
-    color:        var(--neg);
-    background:   rgba(216, 90, 48, 0.08);
-}
-.depot-btn-offline.is-offline:hover {
-    background: rgba(216, 90, 48, 0.15);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
@@ -1449,8 +1421,7 @@ input#dt-search-1 {
 /* ── Modals: fullscreen auf Handy ──────────────────────── */
 @media (max-width: 412px) {
     .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
-    .refresh-text{display: none;}
-    
+
     .depot-navbar .container-fluid:nth-of-type(2) {
         justify-content: center;
     }

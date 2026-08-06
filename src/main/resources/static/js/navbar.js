@@ -1,12 +1,12 @@
 'use strict';
 
 // ── Shared Navbar (alle 4 Seiten) ───────────────────────────────────────────
-// Preis-Badge, Kurs-Refresh, Settings-Modal (Sprache/Währung/Schriftart),
+// Preis-Badge (manuell editierbar), Settings-Modal (Sprache/Währung/Schriftart),
 // Sats-Modal und Hilfe-Link — vorher Teil von depot.js und dadurch nur auf der
 // Hauptseite verfügbar. Jetzt hier, zusammen mit dem gemeinsamen
 // fragments/navbar.html + fragments/navbar-modals.html, auf allen 4 Seiten
 // geladen. Benötigt: i18n.js, currency.js, theme.js (FONTS/applyFont),
-// offline.js (OFFLINE), bootstrap.bundle.min.js.
+// bootstrap.bundle.min.js.
 
 // ── BTC-Preis-Badge ──────────────────────────────────────────────────────
 // Lädt den aktuellen Kurs clientseitig über den bestehenden
@@ -79,46 +79,6 @@ function savePriceEdit() {
         setTimeout(() => window.location.reload(), 1000);
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
-}
-
-// ── Refresh Prices ────────────────────────────────────────
-// Lädt ausschließlich den aktuellen Kurs — das Nachladen fehlender
-// Monatspreise (Backfill) passiert bewusst nicht hier, sondern ausschließlich
-// über den eigenen "Preise laden"-Button auf der Jahresansicht-Seite
-// (yearlyLoadPrices() in yearly.js).
-function refreshPrices() {
-    if (!OFFLINE.isOnline()) {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))
-            || new bootstrap.Modal(document.getElementById('offlineConfirmModal'));
-        modal.show();
-        return;
-    }
-    _doRefresh();
-}
-
-function confirmOfflineRefresh() {
-    bootstrap.Modal.getInstance(document.getElementById('offlineConfirmModal'))?.hide();
-    _doRefresh();
-}
-
-function _doRefresh() {
-    const btn = document.getElementById('btnRefresh');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="depot-spinner"></span>${t('toast.refreshLoading')}`;
-
-    fetch('/api/btc-tracking/refresh?currency=' + CURRENCY.current(), { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            const n = data.totalNew || 0;
-            showToast('✓ ' + n + ' ' + t('toast.refreshSuccess'), 'success');
-            setTimeout(() => window.location.reload(), 1800);
-        })
-        .catch(err => {
-            showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error');
-            btn.disabled = false;
-            btn.innerHTML = `<i class="bi bi-arrow-clockwise me-1"></i>${t('nav.btn.refresh')}`;
-        });
 }
 
 // ── Settings Modal (Sprache / Währung / Schriftart / Steuer-Stichtag) ──
@@ -247,19 +207,12 @@ function copySatsAddress() {
 
 // ── Hilfe ────────────────────────────────────────────────
 function openHelp() {
-    if (I18N.currentLang() == "de") {
-        window.open('https://thatsme4now.github.io/btc-tracking/de', '_blank');
-    } else if (I18N.currentLang() == "it") {
-        window.open('https://thatsme4now.github.io/btc-tracking/it', '_blank');
-    } else if (I18N.currentLang() == "fr") {
-        window.open('https://thatsme4now.github.io/btc-tracking/fr', '_blank');
-    } else if (I18N.currentLang() == "es") {
-        window.open('https://thatsme4now.github.io/btc-tracking/es', '_blank');
-    } else if (I18N.currentLang() == "th") {
-        window.open('https://thatsme4now.github.io/btc-tracking/th', '_blank');
-    } else {
-        window.open('https://thatsme4now.github.io/btc-tracking/', '_blank');
-    }
+    const lang = I18N.currentLang();
+    const supported = ["de", "it", "fr", "es", "th"];
+    const path = supported.includes(lang)
+        ? `https://thatsme4now.github.io/btc-tracking/${lang}`
+        : 'https://thatsme4now.github.io/btc-tracking/';
+    window.open(path, '_blank');
 }
 
 // ── Bootstrap ────────────────────────────────────────────
@@ -268,5 +221,4 @@ function openHelp() {
 // ihrem eigenen Bootstrap-Skript aufrufen muss.
 I18N.ready.then(() => {
     initNavbarPriceBadge();
-    if (typeof OFFLINE !== 'undefined') OFFLINE.init();
 });
