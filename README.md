@@ -3,14 +3,13 @@
 A self-hosted, privacy-first Bitcoin portfolio tracker.  
 Runs locally as a single JAR — no cloud, no accounts, no ads, no internet connection required.
 
+📖 **Documentation:** in the app via the Help button, or directly at
+[`/docs/index.html`](http://localhost:8080/docs/index.html) once the app is running —
+source in [`src/main/resources/static/docs`](src/main/resources/static/docs).
+
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
-
----
-
-# Documentation
-- 📖 available in-app at `http://localhost:8080/btc-tracking/docs` or in the source tree under [`src/main/resources/static/docs/`](src/main/resources/static/docs/).
 
 ---
 
@@ -21,6 +20,7 @@ Runs locally as a single JAR — no cloud, no accounts, no ads, no internet conn
 - Manual BTC price entry (EUR, USD, THB, …) — no external price API, works fully offline
 - CSV import with flexible column mapping (PapaParse)
 - CSV export compatible with common tax tools. (Optional with password to encrypt data)
+- Visualizations: Sankey flow diagram of BTC movements, holdings dashboard (allocation, metrics, per-purchase breakdown), yearly performance chart (holdings + value over time)
 - Dark / light theme, EN / DE / TH UI
 
 ---
@@ -34,6 +34,62 @@ Runs locally as a single JAR — no cloud, no accounts, no ads, no internet conn
 
 ---
 
+## Installation
+
+Five ways to run it — pick what fits your setup. Full step-by-step guides
+(screenshots included) are in the [documentation](src/main/resources/static/docs)
+under "Usage & Setup".
+
+### 1. Direct Download (GitHub Releases)
+
+Download the JAR (Java 21+ required) or, on Windows without Java, the portable
+ZIP with bundled JRE.
+
+```bash
+java -jar btc-tracking.jar
+```
+
+→ [Releases](https://github.com/thatsme4now/btc-tracking/releases)
+
+### 2. Umbrel Community App Store
+
+One-click install on your Umbrel node via a dedicated Community App Store
+(no listing in the official Umbrel App Store needed).
+
+In umbrelOS: **App Store → Community App Stores** → add
+`https://github.com/thatsme4now/thatsme4now-umbrel-apps` → install **BTC Tracking**.
+
+→ [thatsme4now/thatsme4now-umbrel-apps](https://github.com/thatsme4now/thatsme4now-umbrel-apps)
+
+### 3. Docker
+
+```bash
+docker run -d \
+  --name btc-tracking \
+  -p 8080:8080 \
+  -v btc-tracking-data:/app/data \
+  thatsme4now/btc-tracking:latest
+```
+
+→ [Docker Hub](https://hub.docker.com/repository/docker/thatsme4now/btc-tracking/general) · the named volume keeps data across restarts/updates.
+
+### 4. Proxmox (VM / LXC)
+
+No dedicated Proxmox template — runs as a regular VM or LXC container with
+Docker installed, then use the `docker run` command from option 3 inside it.
+For LXC, enable nested virtualization first (**Features → Nesting**).
+
+### 5. Build from Source
+
+```bash
+git clone https://github.com/thatsme4now/btc-tracking.git
+cd btc-tracking
+./gradlew bootJar
+java -jar build/libs/btc-tracking.jar
+```
+
+---
+
 ## Quick Start — H2 File (default, recommended)
 
 No database setup required. Data is persisted in `btc-tracking-data.mv.db` next to the JAR.
@@ -43,13 +99,10 @@ The file `btc-tracking-data.mv.db` is created automatically on first run. **Back
 java -jar btc-tracking.jar
 ```
 
-The browser opens automatically at `http://localhost:8080/btc-tracking`.  
+The browser opens automatically at `http://localhost:8080/btc-tracking`.
 
----
-
-## Quick Start — In-Memory (H2)
-
-No database setup, no persistence. Data is lost on every restart. Useful for testing.
+<details>
+<summary>In-Memory (testing only, no persistence)</summary>
 
 Create `application-local.properties` next to the JAR:
 
@@ -60,10 +113,10 @@ depot.db=inmemory
 ```bash
 java -jar btc-tracking.jar --spring.config.additional-location=./application-local.properties
 ```
+</details>
 
----
-
-## Quick Start — MySQL (persistent)
+<details>
+<summary>MySQL (persistent)</summary>
 
 1. Create the database and run the schema:
 
@@ -85,34 +138,7 @@ spring.datasource.password=YOUR_PASSWORD
 ```bash
 java -jar btc-tracking.jar --spring.config.additional-location=./application-local.properties
 ```
-
----
-
-## Build from Source
-
-```bash
-git clone https://github.com/thatsme4now/btc-tracking.git
-cd btc-tracking
-./gradlew bootJar
-```
-
-Output: `build/libs/btc-tracking.jar`
-
-**Run after build:**
-
-```bash
-java -jar build/libs/btc-tracking.jar
-```
-
-## Download Pre-built Release
-
-Go to [Releases](../../releases) and download `btc-tracking.jar` from the latest release.
-
-```bash
-java -jar btc-tracking.jar
-```
-
-Java 21+ must be installed on your machine.
+</details>
 
 ---
 
@@ -129,28 +155,6 @@ All settings in `application.properties` (or override via external file / enviro
 | `spring.datasource.password` | — | MySQL password |
 | `spring.jpa.show-sql` | `false` | Log SQL statements |
 
----
-
-## CSV Import Format
-
-The import modal maps any CSV format to the internal schema interactively.  
-The **export** format (re-importable) uses these columns:
-
-| Column | Example |
-|---|---|
-| `typ` | `Trade`, `Einzahlung`, `Auszahlung` |
-| `date` | `01.01.2024 14:30:00` |
-| `exchange` | `Binance` |
-| `buyQty` | `0.00500000` |
-| `buyCur` | `BTC` |
-| `sellQty` | `280.50` |
-| `sellCur` | `EUR` |
-| `fee` | `1.40` |
-| `feeCur` | `EUR` |
-| `exchangeRate` | `1.000000` |
-| `comment` | optional |
-
----
 
 ## Project Structure
 
@@ -163,13 +167,14 @@ src/main/java/com/thatsme4now/depot/
 ├── service/         # Business logic, CSV import
 src/main/resources/
 ├── templates/       # Thymeleaf HTML
-├── static/          # JS (depot.js, i18n.js, currency.js), CSS
+├── static/          # JS (depot.js, i18n.js, currency.js), CSS, docs/ (in-app help)
 ├── i18n/            # en.json, de.json, th.json
 ├── schema-h2.sql    # H2 schema
 ├── depot.sql        # MySQL schema + sample data
 ```
 
 ---
+
 ## Data & Disclaimer
 
 All data, calculations, and exports are provided "as is" without warranty.
@@ -179,24 +184,29 @@ before relying on them (e.g. for tax filing).
 The app makes no outbound network calls — all BTC prices (current and
 historical) are entered manually or come from the bundled CSV seed data.
 This project is not affiliated with, endorsed by, or sponsored by the
-Bitcoin Foundation.
+Bitcoin Foundation, Umbrel, Docker, or Proxmox.
 
-All data, calculations, and exports are provided "as is" without warranty.
-This tool is not financial or tax advice — verify all figures independently
-before relying on them (e.g. for tax filing). See [LICENSE](LICENSE) and
-[NOTICE.md](NOTICE.md) for third-party licenses.
+See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for third-party licenses.
 
 Parts of this project were developed with AI assistance (Claude). No legal
 disclosure requirement applies — noted here for transparency.
 
 ---
+
 ## ⚠️ Public Deployment Notice
 
-This application is designed for private, self-hosted use. If you expose your instance publicly (reverse proxy, port forwarding, cloud hosting, etc.), **you** become the legal operator/provider of that public service under applicable laws (e.g., EU/German telemedia and data protection law, including GDPR). This includes any obligation to provide an imprint (*Impressum*) and a privacy policy for your public instance.
+This application is designed for private, self-hosted use. If you expose your
+instance publicly (reverse proxy, port forwarding, cloud hosting, etc.),
+**you** become the legal operator/provider of that public service under
+applicable laws (e.g., EU/German telemedia and data protection law, including
+GDPR). This includes any obligation to provide an imprint (*Impressum*) and a
+privacy policy for your public instance.
 
-The author provides this software "as is" and is not responsible for how individual users choose to deploy or expose it.
+The author provides this software "as is" and is not responsible for how
+individual users choose to deploy or expose it.
 
 ---
+
 ## License
 
 [MIT](LICENSE)
