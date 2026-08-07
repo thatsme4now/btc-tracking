@@ -190,8 +190,8 @@ disclosure requirement applies — noted here for transparency.
 This application is designed for private, self-hosted use. If you expose your instance publicly (reverse proxy, port forwarding, cloud hosting, etc.), **you** become the legal operator/provider of that public service under applicable laws (e.g., EU/German telemedia and data protection law, including GDPR). This includes any obligation to provide an imprint (*Impressum*) and a privacy policy for your public instance.
 
 The author provides this software "as is" and is not responsible for how individual users choose to deploy or expose it.
----
 
+---
 ## License
 
 [MIT](LICENSE)
