@@ -206,12 +206,13 @@ function copySatsAddress() {
 }
 
 // ── Hilfe ────────────────────────────────────────────────
+// Doku wird als statische Resource von dieser App selbst ausgeliefert
+// (/docs/**, siehe static/docs/) — Ordnerstruktur 1:1 wie im docs/-Ordner
+// im Repo-Root (der weiterhin zusätzlich per GitHub Pages läuft).
 function openHelp() {
     const lang = I18N.currentLang();
     const supported = ["de", "it", "fr", "es", "th"];
-    const path = supported.includes(lang)
-        ? `https://thatsme4now.github.io/btc-tracking/${lang}`
-        : 'https://thatsme4now.github.io/btc-tracking/';
+    const path = supported.includes(lang) ? `/docs/${lang}/index.html` : '/docs/index.html';
     window.open(path, '_blank');
 }
 
