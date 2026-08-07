@@ -9,6 +9,11 @@ Runs locally as a single JAR — no cloud, no accounts, no ads, no internet conn
 
 ---
 
+# Documentation
+- 📖 available in-app at `http://localhost:8080/btc-tracking/docs` or in the source tree under [`src/main/resources/static/docs/`](src/main/resources/static/docs/).
+
+---
+
 ## Features
 
 - Track BTC positions across multiple exchanges and wallets
