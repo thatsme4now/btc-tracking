@@ -3,8 +3,6 @@
 A self-hosted, privacy-first Bitcoin portfolio tracker.  
 Runs locally as a single JAR — no cloud, no accounts, no ads, no internet connection required.
 
-If you enjoy this small tool, please spend some sats: `turbolush199@walletofsatoshi.com`
-
 ![Java](https://img.shields.io/badge/Java-21-blue)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-green)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
@@ -186,6 +184,12 @@ before relying on them (e.g. for tax filing). See [LICENSE](LICENSE) and
 Parts of this project were developed with AI assistance (Claude). No legal
 disclosure requirement applies — noted here for transparency.
 
+---
+## ⚠️ Public Deployment Notice
+
+This application is designed for private, self-hosted use. If you expose your instance publicly (reverse proxy, port forwarding, cloud hosting, etc.), **you** become the legal operator/provider of that public service under applicable laws (e.g., EU/German telemedia and data protection law, including GDPR). This includes any obligation to provide an imprint (*Impressum*) and a privacy policy for your public instance.
+
+The author provides this software "as is" and is not responsible for how individual users choose to deploy or expose it.
 ---
 
 ## License
