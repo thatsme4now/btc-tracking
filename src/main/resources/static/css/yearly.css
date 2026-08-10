@@ -1,4 +1,4 @@
-/* ── Jahresansicht ──────────────────────────────────────── */
+/* ── Yearly view ── */
 
 .yearly-year-select {
     width: auto;
@@ -9,8 +9,7 @@
     font-size: .78rem;
 }
 
-/* ── Draggable grid (eigenständig, analog zu holdings.css, aber mit
-   maximal 2 statt 3 Slots pro Reihe — siehe yearly.js updateYearlyRowCols) ── */
+/* ── Draggable grid, max 2 slots per row, see yearly.js updateYearlyRowCols ── */
 .yearly-layout-hint {
     font-size: .68rem;
     color: var(--text-muted);
@@ -80,9 +79,7 @@
 }
 .yearly-drag-handle { cursor: grab; color: var(--text-muted); flex: 0 0 auto; }
 
-/* Käufe/Verkäufe-Sichtbarkeitsfilter der Kauf/Verkauf-Kachel — 2 unabhängige
-   Toggle-Buttons, Standard beide an. Aktiver Zustand nutzt dieselbe grün/rot-
-   Konvention wie die Kauf/Verkauf-Badges (type-buy/type-sell in flow.css). */
+/* Buy/sell visibility filter, 2 independent toggles, same green/red convention as flow.css badges */
 .yearly-tiles-filter {
     display: flex;
     gap: .25rem;
@@ -106,11 +103,7 @@
 .yearly-tiles-filter-btn.buy.is-active  { border-color: var(--pos); color: var(--pos); }
 .yearly-tiles-filter-btn.sell.is-active { border-color: var(--neg); color: var(--neg); }
 
-/* Alle/Paare/Solo-Filter der Transfers-Kachel — anders als der Käufe/Verkäufe-
-   Filter oben KEIN unabhängiges Doppel-Toggle, sondern 3 sich gegenseitig
-   ausschließende Optionen (Radio-artig, siehe yearlyToggleTransfersFilter).
-   Aktiver Zustand nutzt die Akzentfarbe statt grün/rot, da es hier keine
-   Kauf/Verkauf-Konvention gibt. */
+/* All/pairs/solo filter for transfers, radio-style mutually exclusive, see yearlyToggleTransfersFilter */
 .yearly-transfers-filter {
     display: flex;
     gap: .25rem;
@@ -154,9 +147,7 @@
 }
 .yearly-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-/* ── Kauf/Verkauf-Kacheln ──────────────────────────────────
-   Reusen .flow-tx-card aus flow.css als Basis, angeordnet als
-   responsives Grid statt einer schmalen vertikalen Liste. */
+/* ── Buy/sell tiles, reuse .flow-tx-card from flow.css in a responsive grid ── */
 .yearly-tile-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -167,12 +158,11 @@
 .yearly-tile { cursor: default; }
 .yearly-tile:hover { border-color: var(--border); }
 
-/* Status-Badges (gehalten/teilweise/komplett realisiert) — eigenständig
-   definiert, da holdings.css auf dieser Seite nicht geladen wird. */
+/* Status badges, defined standalone since holdings.css isn't loaded here */
 .flow-tx-card-badge.state-partial  { color: var(--warn-duplicate, #b8860b); }
 .flow-tx-card-badge.state-realized { color: var(--text-muted); }
 
-/* ── Verkauf-Kachel: FIFO-Lot-Aufschlüsselung ─────────────── */
+/* ── Sell tile: FIFO lot breakdown ── */
 .yearly-lots-title {
     font-size: .64rem;
     text-transform: uppercase;
@@ -213,7 +203,7 @@
 .yearly-tax-badge.tax-free   { background: rgba(29, 158, 117, .18); color: var(--pos); }
 .yearly-tax-badge.tax-liable { background: rgba(216, 90, 48, .18); color: var(--neg); }
 
-/* ── Transfer-Kachel: Solo-Transfer-Hinweis (keine Gegenbuchung gefunden) ── */
+/* ── Transfer tile: solo-transfer hint (no matching counter-entry found) ── */
 .yearly-transfer-solo {
     font-size: .66rem;
     color: var(--text-muted);
@@ -223,7 +213,7 @@
     border-top: 1px solid var(--border);
 }
 
-/* ── Manueller Monatskurs-Dialog ───────────────────────────── */
+/* ── Manual monthly price dialog ── */
 .yearly-price-modal-hint {
     font-size: .7rem;
     color: var(--text-muted);
@@ -307,23 +297,18 @@
 }
 .yearly-price-save:hover { color: var(--accent); border-color: var(--accent); }
 
-/* ── Responsive ─────────────────────────────────────────── */
+/* ── Responsive ── */
 @media (max-width: 768px) {
     .yearly-tile-grid { grid-template-columns: 1fr; }
     .yearly-price-row { grid-template-columns: 2.6rem 1fr auto; }
 
-    /* Käufe/Verkäufe- und Transfers-Kachel: Titel + Filter-Buttons + Pfeile
-       ragten auf dem Handy zusammen mit dem Zähler ("128 Käufe · 10 Verkäufe")
-       über den Kachelrand hinaus, da alles in einer Zeile stehen musste.
-       Fix: Titelzeile darf umbrechen, der Zähler wird per flex-basis:100% +
-       order auf eine eigene, zweite Zeile unterhalb von Titel/Filter/Pfeilen
-       gezwungen — kein zusätzliches HTML/JS nötig. */
+    /* Title row wraps; counter moves to its own line via flex-basis:100% + order */
     .yearly-chart-title { flex-wrap: wrap; row-gap: .3rem; }
     .yearly-chart-title-count {
         order: 10;
         flex-basis: 100%;
         white-space: normal;
-        padding-left: calc(1rem + .4rem); /* rückt unter den Titeltext ein, nicht unter das Drag-Handle */
+        padding-left: calc(1rem + .4rem); /* align under the title text, not the drag handle */
     }
 }
 

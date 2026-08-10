@@ -52,31 +52,13 @@
 
 .holdings-chart-block.dragging { opacity: .4; }
 
-/* ApexCharts positioniert sein Tooltip standardmäßig direkt neben dem
-   gehoverten/angeklickten Balken (per JS berechnetes inline left/top), ohne
-   Kollisionserkennung mit dem Kachelrand — bei Balken nahe am rechten Rand
-   ragt es dann über die Kachel hinaus. Zwei JS-Ansätze (tooltip.fixed, dann
-   ein MutationObserver-Fix) hatten beide eigene Probleme (falsche Position
-   beim ersten Klick bzw. eine Endlosschleife durch Selbst-Beobachtung).
-   Stattdessen rein per CSS mit !important fest an den rechten Rand der
-   Chart-Zeichenfläche (.apexcharts-canvas, das ApexCharts selbst bereits
-   position:relative setzt) verankert — keine JS-Berechnung, kein Timing-
-   Problem, kein Loop-Risiko, da hier nichts beobachtet/reagiert wird. */
+/* Pin ApexCharts tooltip to the right edge via CSS instead of its default JS-computed position, which overflows near the right edge. */
 .holdings-chart-block .apexcharts-tooltip {
     left: auto !important;
     right: 0 !important;
 }
 
-/* Kacheln, die IMMER nur 1 Slot breit sein sollen (Kauf-Details, Referenzkurse):
-   sobald eine solche Kachel in einer Reihe steht, erzwingt updateHoldingsRowCols()
-   (holdings.js) dort echte 3 gleich breite Spalten (--cols:3) statt der sonst
-   üblichen dynamischen 1/2/3-Spalten-Berechnung — die Kachel füllt dadurch genau
-   1 von 3 echten Spalten sauber aus, statt in einer zu großen Zelle zusammen-
-   geschrumpft auszusehen. Kein max-width-Trick mehr nötig.
-   Die jeweils andere (nicht-gecappte) Kachel in derselben Reihe würde ohne
-   explizites Spanning ebenfalls nur 1 von 3 Spalten einnehmen (Standard-
-   Grid-Verhalten) — updateHoldingsRowCols() setzt ihr daher --span auf die
-   verbleibenden freien Spalten, damit sie den übrigen Platz ausfüllt. */
+/* Tiles that must always be 1 slot wide (--cols/--span set by holdings.js updateHoldingsRowCols). */
 .holdings-draggable { grid-column: span var(--span, 1); }
 
 .holdings-chart-title {
@@ -166,15 +148,14 @@
 }
 .holdings-refprices-save:hover { color: var(--accent); border-color: var(--accent); }
 
-/* Ausgewählter Balken im Gewinn/Verlust-je-Kauf-Chart (Klick oder ←/→-Nav.) */
+/* Selected bar in the profit/loss-per-buy chart (click or arrow-key nav) */
 .holdings-bar-selected rect,
 .holdings-bar-selected path {
     stroke: var(--accent) !important;
     stroke-width: 2px !important;
 }
 
-/* ── Kauf-Detail-Karte (Kachel B) ──────────────────────────
-   Reused .flow-tx-card/.flow-tx-field/.flow-tx-list styles from flow.css. */
+/* ── Buy detail card: reuses .flow-tx-card/.flow-tx-field/.flow-tx-list from flow.css ── */
 .holdings-buydetail-scroll {
     max-height: 360px;
     overflow-y: auto;

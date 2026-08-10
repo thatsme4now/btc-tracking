@@ -1,48 +1,31 @@
 'use strict';
 // Theme (Dark/Light) init/toggle/apply now lives in theme.js (shared with flow.html/holdings.html).
-// Hinweis Sticky-Suche (siehe depot.css): #posTable_wrapper/#txTable_wrapper sind
-// bereits eigene Scroll-Container (max-height + overflow-y:auto), daher genügt dort
-// top:0 für die sticky Such-/Length-Zeile — kein Navbar-Höhen-Offset per JS nötig.
+// Sticky search (see depot.css): top:0 suffices since #posTable_wrapper/#txTable_wrapper are their own scroll containers.
 
-// ── Font + Density Toggle: jetzt in theme.js (siehe dort) ──
-// Auf allen 4 Seiten geladen statt nur hier, damit die Einstellung überall wirkt.
+// Font + density toggle now lives in theme.js, loaded on all 4 pages.
 
 // ── Flatpickr Date Pickers / Add-Edit-Transaction modal ───
 // Moved to tx-form.js (shared with the Flow Diagram page): FLATPICKR_LOCALES,
 // _fpAdd/_fpEdit/_fpTransferIn, _fpLocale(), initFlatpickr().
 
-// ── Kachel-Grid (Drag&Drop Desktop, Pfeil-Buttons Mobile) ──
-// Eigenständige, unabhängige Implementierung — ersetzt das frühere einfache
-// Auf/Ab-Sortieren einer flachen Liste (SECTION_ORDER_KEY) durch ein echtes
-// Grid: 4 Reihen, max. 3 Slots pro Reihe (wie Bestandsansicht), analog zum
-// Muster auf Jahresansicht/Bestandsansicht (siehe yearly.js/holdings.js),
-// aber eigener Namensraum/Key (bewusst nicht geteilt).
+// ── Tile grid (desktop drag & drop, mobile arrow buttons), 4 rows max 3 slots each, own namespace (see yearly.js/holdings.js for the same pattern) ──
 const OVERVIEW_LAYOUT_KEY = 'overview-layout-v2';
 const OVERVIEW_MAX_COLS   = 3;
-// 3 Reihen — die Übersicht ist reine Daten-Verwaltung (Kennzahlen und
-// Aufteilung nach Wallet/Börse leben jetzt auf der Bestandsansicht, siehe
-// holdings.js' HOLDINGS_DEFAULT_LAYOUT). Reihe 1: Wallets & Börsen (füllt
-// allein). Reihe 2: Alle Transaktionen (füllt allein). Reihe 3: leer, für
-// künftige Kacheln reserviert (z.B. Import).
+// 3 rows: wallets & exchanges, all transactions, and one empty row reserved for future tiles.
 const OVERVIEW_DEFAULT_LAYOUT = [
     ['overview-block-wallets'],
     ['transactionsPanel'],
     ['overview-block-import-history']
 ];
 
-// Tablet/Phone (≤991px, siehe App-weite Konvention): Wallets- und Transaktions-
-// Kachel dürfen dort nur gemeinsam in EINER Row stehen (kein Drag & Drop auf
-// Mobile, aber Pfeil-Buttons könnten sie sonst in getrennte Rows schieben).
+// On tablet/phone (≤991px) the wallets and transactions tiles must stay in one row (no drag & drop there, but arrow buttons could otherwise split them).
 const OVERVIEW_LAYOUT_MOBILE_BREAKPOINT = 991;
 
 function _isOverviewMobileLayout() {
     return window.innerWidth <= OVERVIEW_LAYOUT_MOBILE_BREAKPOINT;
 }
 
-/** Führt Rows zusammen, in denen Wallets- und Transaktions-Kachel getrennt
- *  stehen (z.B. ein auf Desktop gespeichertes Layout) — Ziel-Row ist die mit
- *  dem kleineren Index, Reihenfolge der Blöcke bleibt erhalten. Kein Effekt,
- *  wenn beide bereits in derselben Row sind. */
+// Merges rows if the wallets/transactions tiles ended up separated (e.g. a desktop-saved layout); no-op if already together.
 function _enforceOverviewMobileRowMerge(layout) {
     const rowIdxOf = id => layout.findIndex(row => row.includes(id));
     const rowIdxs = [...new Set(OVERVIEW_COLLAPSIBLE_BLOCKS.map(rowIdxOf).filter(i => i !== -1))];
@@ -58,8 +41,7 @@ function _enforceOverviewMobileRowMerge(layout) {
     return merged;
 }
 
-/** Wendet die Mobile-Row-Regel auf ein Layout an, sofern gerade Tablet/Phone
- *  aktiv ist — zentrale Stelle, die von Load, Reset UND Resize genutzt wird. */
+// Applies the mobile row-merge rule if tablet/phone is currently active
 function _overviewLayoutForBreakpoint(layout) {
     return _isOverviewMobileLayout() ? _enforceOverviewMobileRowMerge(layout) : layout;
 }
@@ -127,14 +109,7 @@ function updateOverviewRowCols(grid) {
     });
 }
 
-/**
- * Nach updateOverviewRowCols() geänderte --cols/--span-Werte ändern die tatsächliche
- * Container-Breite des Donut-Charts per CSS — ApexCharts misst seine SVG-Breite aber
- * nur beim (Neu-)Rendern bzw. bei einem window "resize"-Event, nicht bei reinen
- * CSS-Grid-Änderungen (siehe derselbe, bereits einmal auf der Jahresansicht behobene
- * Bug-Fall in yearly.js). Vorsorglich hier ebenfalls nach jeder Layout-Änderung ein
- * synthetisches resize-Event auslösen.
- */
+// ApexCharts only remeasures its SVG width on a window resize event, not on pure CSS grid changes, so fire one synthetically after layout changes (same fix as yearly.js).
 function _overviewTriggerChartResize() {
     window.dispatchEvent(new Event('resize'));
 }
@@ -151,9 +126,7 @@ function resetOverviewLayout() {
     _overviewApplyHistoryViewMode();
 }
 
-// ── Zuklapp-Feature für Kacheln (nur Tablet/Phone ≤991px, siehe depot.css) ──
-// Eigener Namensraum/Key, unabhängig vom Layout-Key (Kollabieren betrifft nur
-// die Sichtbarkeit des Kachel-Inhalts, nicht die Grid-Reihenfolge).
+// ── Tile collapse feature (tablet/phone ≤991px only, see depot.css); own key, independent of the layout key ──
 const OVERVIEW_COLLAPSE_KEY = 'overview-collapse-v1';
 const OVERVIEW_COLLAPSIBLE_BLOCKS = ['overview-block-wallets', 'transactionsPanel', 'overview-block-import-history'];
 
@@ -261,21 +234,7 @@ function _getOverviewDragAfterElement(row, x) {
     }, { offset: -Infinity, element: null }).element;
 }
 
-/** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
- *  links nach rechts) — für Mobile/Touch, wo natives Drag & Drop fehlt bzw.
- *  über die Pfeil-Buttons in .overview-block-actions angesteuert wird. */
-/**
- * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
- * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
- * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
- * (< OVERVIEW_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter
- * → wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
- * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
- * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
- * die 3-Slot-Grenze "anstoßen" und der Pfeil täte nichts.
- * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
- * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos.)
- */
+// Moves a tile one step via arrow button: swaps within its row, or migrates across a row boundary if the neighbor row has space, otherwise swaps with its edge tile.
 function moveOverviewBlock(id, direction) {
     const grid = document.getElementById('overviewGrid');
     if (!grid) return;
@@ -293,17 +252,15 @@ function moveOverviewBlock(id, direction) {
     const targetPosInRow = posInRow + direction;
 
     if (targetPosInRow >= 0 && targetPosInRow < layout[rowIdx].length) {
-        // Innerhalb der Row: einfacher Tausch mit dem Nachbarn.
+        // swap with the neighbor within the row
         [layout[rowIdx][posInRow], layout[rowIdx][targetPosInRow]] =
             [layout[rowIdx][targetPosInRow], layout[rowIdx][posInRow]];
     } else {
-        // Row-Grenze überschritten.
+        // crossed a row boundary
         const targetRowIdx = rowIdx + direction;
         if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
 
-        // Tablet/Phone (≤991px): Wallets- und Transaktions-Kachel dürfen die
-        // gemeinsame Row nicht verlassen (siehe OVERVIEW_LAYOUT_MOBILE_BREAKPOINT) —
-        // Pfeil tut in diesem Fall bewusst nichts, statt sie zu trennen.
+        // wallets/transactions tiles can't leave their shared row on tablet/phone
         if (_isOverviewMobileLayout() && OVERVIEW_COLLAPSIBLE_BLOCKS.includes(id)) return;
 
         if (layout[targetRowIdx].length < OVERVIEW_MAX_COLS) {
@@ -361,14 +318,8 @@ I18N.ready.then(() => {
     }
 
 	initFlatpickr();
-	// Tabellen-/Kartenansicht (Transaktionen + Wallets) nach dem Laden erneut
-	// anwenden: initOverviewLayout() lief bereits bei DOMContentLoaded, ggf.
-	// bevor der Viewport (window.innerWidth) am Handy zuverlässig feststand —
-	// führte dazu, dass am Handy nach einem frischen Reload fälschlich die
-	// Tabelle (statt der Kartenansicht) stehen blieb, bis irgendeine Aktion
-	// (z.B. Filtern) zufällig einen weiteren Umschalt-Aufruf auslöste. Nach dem
-	// Laden ist der Viewport garantiert stabil, hier daher sicherheitshalber
-	// erneut prüfen/umschalten.
+	// re-apply table/card view mode: viewport may not have been stable yet
+	// at DOMContentLoaded, causing the table to wrongly stick on mobile
 	loadTransactions().then(() => {
 	    _overviewApplyTxViewMode();
 	    _overviewApplyPosViewMode();
@@ -397,20 +348,15 @@ I18N.ready.then(() => {
 
 });
 
-// ── Hilfe / Settings-Modal / Sats-Modal / Preis-Badge / Refresh: jetzt in
-// navbar.js (siehe dort) — auf allen 4 Seiten geladen statt nur hier.
+// Help / settings modal / sats modal / price badge now live in navbar.js, loaded on all 4 pages.
 
-// ── Positionen: Toggle "Leere ausblenden" ──────────────────
-// Eigenständige Implementierung, analog zum früheren Solo-Transfer-Filter
-// (Tabelle: DataTables ext.search.push; Kartenansicht: einfaches d-none
-// anhand von data-qty-sats, da Karten serverseitig gerendert werden).
+// ── Positions: "hide empty" toggle ──────────────────
 const POS_EMPTY_FILTER_KEY = 'pos-hide-empty-v1';
 let _posEmptyFilterActive = _loadPosEmptyFilter();
 
 function _loadPosEmptyFilter() {
     const saved = localStorage.getItem(POS_EMPTY_FILTER_KEY);
-    // Default AN (matcht das frühere hart codierte Verhalten der Kartenansicht).
-    return saved === null ? true : saved === '1';
+    return saved === null ? true : saved === '1'; // default on
 }
 
 $.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
@@ -431,17 +377,10 @@ function _applyPosEmptyFilter() {
     _applyPosCardFilters();
 }
 
-// Aktueller Suchtext aus dem sichtbaren Suchfeld (siehe onPosVisibleSearchInput) —
-// separat vom Leer-Filter gehalten, da beide Filter gleichzeitig aktiv sein
-// können und unabhängig ausgelöst werden (Tabelle wird direkt über die
-// DataTables-API gefiltert, die Kartenansicht braucht dafür diesen eigenen
-// Abgleich, da Karten serverseitig gerendert und nie neu aufgebaut werden).
+// Current search text, kept separate from the empty filter since both can be active independently.
 let _posSearchTerm = '';
 
-/** Wendet Leer-Filter UND Suchtext gemeinsam auf die Kartenansicht an — eine
- *  Karte ist sichtbar, wenn sie BEIDE Kriterien erfüllt. Von _applyPosEmptyFilter()
- *  (Leer-Filter geändert) und onPosVisibleSearchInput() (Suchtext geändert)
- *  gleichermaßen aufgerufen. */
+// Applies both the empty filter and search term to the card view; a card is visible only if it matches both.
 function _applyPosCardFilters() {
     const term = _posSearchTerm.trim().toLowerCase();
     document.querySelectorAll('#posCardsList .overview-pos-card').forEach(card => {
@@ -463,8 +402,7 @@ function filterExchangeTransaction(exchange) {
 
     const doSearch = () => {
         $('#txTable').DataTable().search('"' + exchange + '"').draw();
-        // Sichtbares Suchfeld in der Bulk-Toolbar mitziehen, sonst zeigt es einen
-        // veralteten (leeren) Stand, obwohl im Hintergrund schon gefiltert ist.
+        // keep the visible search field in the bulk toolbar in sync
         const visibleInput = document.getElementById('txSearchVisible');
         if (visibleInput) visibleInput.value = exchange;
         document.getElementById('txSearchVisibleClear')?.classList.toggle('d-none', !exchange);
@@ -479,7 +417,7 @@ function filterExchangeTransaction(exchange) {
 
 // ── Transactions Panel ────────────────────────────────────
 let txLoaded = false;
-let _lastTxData = null; // letzte geladenen Rohdaten, für Re-Render bei Viewport-/Compact-Wechsel
+let _lastTxData = null; // last loaded raw data, for re-render on viewport/compact changes
 let _lastTxIsCompact = null;
 // txModal / txModalAdd (bootstrap.Modal instances) now live in tx-form.js
 
@@ -493,8 +431,6 @@ async function loadTransactions() {
             renderTxTable(data);
         })
         .catch(err => {
-            // Legende ist bereits statisch im HTML vorhanden (mit data-i18n) — hier nur
-            // die Fehlermeldung in der Tabelle anzeigen.
             document.getElementById('txTableBody').innerHTML =
                 `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
@@ -511,7 +447,7 @@ const TX_TYPE_COLORS = {
     TRANSFER_OUT: 'text-neg'
 };
 
-/** Baut das HTML einer einzelnen Transaktionszeile (ohne sie irgendwo einzufügen). */
+// Builds the HTML for a single transaction row (without inserting it anywhere)
 function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
     const color   = TX_TYPE_COLORS[tx.type] || '';
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
@@ -574,12 +510,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	</tr>`;
 }
 
-/**
- * Kopiert alle Attribute und den inneren Inhalt von newRowHtml auf den bestehenden
- * rowNode, OHNE den DOM-Knoten selbst auszutauschen. Wichtig, damit DataTables
- * (bei DOM-Datenquelle) die Zeile per row(node).invalidate() weiterhin korrekt
- * zuordnen kann, statt sie als "verschwunden + neu" zu behandeln.
- */
+// Copies attributes and inner content onto the existing row node without swapping the DOM node itself, so DataTables' row(node).invalidate() still tracks it correctly.
 function _replaceTxRowInPlace(rowNode, newRowHtml) {
     const tmp = document.createElement('tbody');
     tmp.innerHTML = newRowHtml;
@@ -590,14 +521,13 @@ function _replaceTxRowInPlace(rowNode, newRowHtml) {
     rowNode.innerHTML = newNode.innerHTML;
 }
 
-// Letzter gerenderter Stand pro Zeile (id → HTML), für den Diff bei Folge-Renders
-// nach einer Mutation (Edit/Duplizieren/Löschen) — siehe renderTxTable().
+// Last rendered HTML per row id, used to diff on subsequent renders after a mutation
 let _txRowHtmlById = new Map();
 
 function renderTxTable(data) {
 	const isCompact = getDeviceType() !== 'DESKTOP';
 
-	// NEU: Häufigkeit jeder transferId zählen → genau 1x = Solo-Transfer
+	// count occurrences of each transferId; exactly 1 = solo transfer
     const transferIdCounts = {};
     data.forEach(tx => {
         if (tx.transferId) {
@@ -610,10 +540,7 @@ function renderTxTable(data) {
 
     const existingTable = $.fn.DataTable.isDataTable('#txTable') ? $('#txTable').DataTable() : null;
 
-    // Voller (Neu-)Aufbau nur beim allerersten Laden, wenn die Tabelle komplett leer
-    // ist/wird, oder wenn sich Kompakt-/Desktop-Modus geändert hat (andere Spalten-
-    // struktur). Sonst: inkrementelles Patchen einzelner Zeilen (siehe unten), damit
-    // Scrollposition, aktuelle Seite und aktiver Suchfilter erhalten bleiben.
+    // full rebuild only on first load, empty table, or a compact/desktop mode change; otherwise patch rows incrementally to preserve scroll/page/filter state
     const compactChanged = _lastTxIsCompact !== null && _lastTxIsCompact !== isCompact;
     _lastTxIsCompact = isCompact;
     const needsFullRebuild = !existingTable || data.length === 0 || compactChanged;
@@ -638,26 +565,16 @@ function renderTxTable(data) {
                 paginate:   { previous: t('dt.previous'), next: t('dt.next') }
             },
             columnDefs: [{ orderable: false, targets: [0, 1] }],
-            // Jeder Draw (initial, Suche, Solo-Filter, Sortierung) hält die
-            // Kartenansicht synchron — siehe _overviewRenderTxCardsIfActive().
+            // every draw keeps the card view in sync, see _overviewRenderTxCardsIfActive()
             drawCallback: () => _overviewRenderTxCardsIfActive()
         });
         _txRowHtmlById = newHtmlById;
-        // Neu aufgebaute Tabelle hat keine mehr angehakten Checkboxen (z.B. nach
-        // Bulk-Löschen) — Toolbar-Count/Select-All-Status sonst fälschlich stehen.
+        // a rebuilt table has no checked checkboxes, refresh the toolbar count/select-all state
         _updateBulkToolbar();
         return;
     }
 
-    // ── Inkrementelles Update ────────────────────────────────
-    // Wichtig: DataTables hängt bei aktiver Seitengröße/Suche NUR die gerade sichtbaren
-    // Zeilen ins DOM ein — alle anderen Zeilen existieren nur intern (nicht per
-    // document.querySelector auffindbar). Deshalb wird hier ausschließlich über die
-    // DataTables-Row-API mit einer Funktions-Selektor gesucht (Default-Modifier
-    // {page:'all', search:'none'} durchsucht wirklich ALLE Zeilen, unabhängig von
-    // aktueller Seite/Filter) — das war der Grund, warum der Puls-Effekt bisher nur
-    // "manchmal" auftrat (nämlich nur, wenn die betroffene Zeile zufällig auf der
-    // aktuell sichtbaren Seite lag und zum aktiven Suchfilter passte).
+    // ── Incremental update: DataTables only inserts visible rows into the DOM, so lookups must go through the row API (page:'all', search:'none') to find rows on any page/filter ──
     const table = existingTable;
     const changedIds = [];
 
@@ -676,13 +593,11 @@ function renderTxTable(data) {
     for (const [id, html] of newHtmlById) {
         const oldHtml = _txRowHtmlById.get(id);
         if (oldHtml === undefined) {
-            // Neue Zeile (Duplikat) — bekommt den Puls, da sie sonst leicht übersehen wird.
-            table.row.add($(html)); // Position/Seite regelt draw()
+            // new row (duplicate), gets the pulse so it isn't missed
+            table.row.add($(html)); // position/page handled by draw()
             changedIds.push(id);
         } else if (oldHtml !== html) {
-            // Bearbeitete Zeile — nur in-place patchen, bewusst OHNE Puls (siehe changedIds
-            // unten). Die Tabelle scrollt/paginiert dabei ohnehin nicht weg, der Nutzer bleibt
-            // an der relevanten Stelle, ein zusätzlicher visueller Hinweis ist hier nicht nötig.
+            // edited row: patch in-place, no pulse needed since the table doesn't scroll away
             const node = _findTxRowNode(id);
             if (node) {
                 _replaceTxRowInPlace(node, html);
@@ -691,21 +606,15 @@ function renderTxTable(data) {
         }
     }
 
-    table.draw(false); // false = aktuelle Seite/Sortierung beibehalten statt auf Seite 1 zu springen
+    table.draw(false); // keep current page/sort instead of jumping to page 1
     _markDuplicates();
     _overviewRenderTxCardsIfActive();
     _txRowHtmlById = newHtmlById;
-    // Entfernte/neu aufgebaute Zeilen (z.B. nach Bulk-Löschen) haben keine
-    // angehakte Checkbox mehr — Toolbar-Count sonst fälschlich stehen (Fund:
-    // "2 selected" blieb nach dem Löschen der beiden Transaktionen sichtbar).
+    // removed/rebuilt rows lose their checked state, refresh the toolbar count
     _updateBulkToolbar();
 
-    // Kurzer grüner Fade-Pulse auf geänderten/duplizierten Zeilen (siehe .tx-row-pulse in depot.css).
-    // Knoten erst NACH draw() über die DataTables-API erneut auflösen (bei frisch
-    // hinzugefügten Zeilen ist der Knoten vor dem Draw ggf. noch nicht zuverlässig
-    // verfügbar). Läuft nur sichtbar ab, wenn die Zeile gerade auf der aktuellen Seite
-    // angezeigt wird — das ist beabsichtigt, eine Animation auf einer unsichtbaren
-    // Zeile wäre ohnehin nicht wahrnehmbar.
+    // brief green pulse on changed/duplicated rows (see .tx-row-pulse in depot.css);
+    // resolve the node after draw() since freshly added rows aren't reliably findable before it
     changedIds.forEach(id => {
         const node = _findTxRowNode(id);
         if (!node) return;
@@ -714,19 +623,10 @@ function renderTxTable(data) {
     });
 }
 
-// ── "Alle Transaktionen": Kartenansicht ───────────────────────────────────
-// Eigenständige, unabhängige Implementierung (eigener Namensraum, siehe
-// depot.css .overview-tx-card). Aktiv, sobald die Kachel sich eine Grid-Row
-// mit einer anderen Kachel teilt (siehe updateOverviewRowCols) oder der
-// Viewport mobil ist. Die Tabelle (samt DataTables-Suche/Sortierung/Solo-
-// Filter) bleibt dabei die ALLEINIGE Wahrheitsquelle — sie wird nur unsicht-
-// bar (d-none) geschaltet. Die Karten sind eine reine Anzeige-Ableitung aus
-// den aktuell sichtbaren (gefilterten) <tr>-Zeilen in #txTableBody (DataTables
-// hängt bei aktivem Filter ohnehin nur die passenden Zeilen ins DOM ein, siehe
-// Kommentar in renderTxTable oben). Auswahl-Checkboxen in Karten wirken als
-// Fernbedienung auf die zugehörige (unsichtbare) Zeilen-Checkbox — dadurch
-// funktionieren Mehrfachauswahl, Bulk-Toolbar und Rechtsklick-Menü unverändert
-// in beiden Ansichten, ohne die bestehende Auswahl-Logik zu duplizieren.
+// ── "All transactions" card view: active once the tile shares a grid row or on mobile.
+// The table stays the sole source of truth (just hidden); cards are a display-only
+// derivation of the visible <tr> rows, with card checkboxes remote-controlling the
+// hidden row checkboxes so selection/bulk toolbar/context menu work unchanged. ──
 const OVERVIEW_TX_MOBILE_BREAKPOINT = 767;
 let _overviewTxCardModeActive = false;
 
@@ -739,10 +639,7 @@ function _overviewShouldUseTxCards() {
     return row.querySelectorAll('.overview-draggable').length > 1;
 }
 
-/** Prüft, ob umgeschaltet werden muss (Layout-Änderung, Resize) und rendert
- *  bei Bedarf die Karten neu. Aufrufstellen: initOverviewLayout, nach jeder
- *  Layout-Änderung (Drag&Drop-Ende, Pfeil-Buttons, Reset) sowie debounced
- *  auf window "resize" (siehe unten). */
+// Checks whether the view mode needs to change (layout change, resize) and re-renders cards if so
 function _overviewApplyTxViewMode() {
     const wrap  = document.getElementById('txTableWrap');
     const cards = document.getElementById('txCardsList');
@@ -755,11 +652,7 @@ function _overviewApplyTxViewMode() {
     wrap.classList.toggle('d-none', useCards);
     cards.classList.toggle('d-none', !useCards);
 
-    // Bulk-Toolbar: In der Kartenansicht sind die 7 einzelnen Buttons zu breit
-    // (die Kachel ist ja gerade deshalb schmal) — dort kompakt als Dropdown +
-    // eigene Select-All-Checkbox (Tabellen-Kopfzeile mit #txSelectAll ist in
-    // der Kartenansicht unsichtbar). In der Tabellenansicht bleibt es wie
-    // gehabt bei den inline Buttons.
+    // card view uses a compact dropdown toolbar instead of 7 inline buttons (too wide for a narrow tile)
     const inline   = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-inline');
     const dropdown = document.getElementById('bulkToolbar')?.querySelector('.bulk-actions-dropdown');
     if (inline)   inline.classList.toggle('d-none', useCards);
@@ -768,27 +661,16 @@ function _overviewApplyTxViewMode() {
     if (useCards && changed) renderOverviewTxCards();
 }
 
-// ── "Wallets & Börsen": Kartenansicht ─────────────────────────────────────
-// Eigenständige, unabhängige Implementierung. Anders als bei "Alle Trans-
-// aktionen" (jede Row-Teilung genügt) wird hier erst umgeschaltet, wenn die
-// Kachel wirklich auf 1 von 3 Slots einer vollen Row gequetscht wird — bei
-// nur 2 Kacheln in der Row (halbe Breite) bleibt die schmalere Wallets-
-// Tabelle noch als Tabelle lesbar. Da die Positionsliste rein serverseitig
-// per Thymeleaf gerendert wird (kein JS-Fetch, Hinzufügen/Bearbeiten/Löschen
-// lösen ohnehin einen Seiten-Reload aus) genügt hier ein reines Sichtbar-
-// keits-Umschalten zwischen #posTableWrap und #posCardsList — anders als bei
-// den Transaktionen ist kein Re-Render/Sync nötig.
+// ── "Wallets & exchanges" card view: switches later than the tx view (needs a
+// full 3-slot row squeeze, not just any row split) since the positions list is
+// server-rendered (Thymeleaf), so a pure visibility toggle is enough, no re-render. ──
 function _overviewShouldUsePosCards() {
     if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
 
     const block = document.getElementById('overview-block-wallets');
     const row   = block ? block.closest('.overview-grid-row') : null;
     if (!row) return false;
-    // Schwelle bewusst bei 2 (statt OVERVIEW_MAX_COLS) — seit Kennzahlen/Donut auf
-    // die Bestandsansicht verschoben wurden, gibt es auf der Übersicht nur noch 2
-    // Kacheln insgesamt (Wallets + Transaktionen), eine Row kann also nie mehr 3
-    // erreichen. Trigger daher: sobald sich Wallets die Row mit irgendeiner
-    // anderen Kachel teilt (nicht mehr erst bei voller 3er-Row).
+    // threshold is 2, not OVERVIEW_MAX_COLS: only 2 tiles remain on this page since metrics/donut moved to holdings
     return row.querySelectorAll('.overview-draggable').length >= 2;
 }
 
@@ -802,11 +684,7 @@ function _overviewApplyPosViewMode() {
     cards.classList.toggle('d-none', !useCards);
 }
 
-// ── "Import-Historie": Kartenansicht ──────────────────────────────────────
-// Gleiches Muster wie bei Wallets/Börsen oben: rein serverseitig gerendert
-// (Thymeleaf, kein JS-Fetch), Umschalten genügt daher als reines Sichtbarkeits-
-// Toggle zwischen #importHistoryTableWrap und #importHistoryCardsList — Listen-
-// ansicht, sobald die Kachel allein in ihrer Row steht, sonst Kartenansicht.
+// ── "Import history" card view: same pattern as wallets/exchanges above ──
 function _overviewShouldUseHistoryCards() {
     if (window.innerWidth <= OVERVIEW_TX_MOBILE_BREAKPOINT) return true;
 
@@ -826,8 +704,7 @@ function _overviewApplyHistoryViewMode() {
     cards.classList.toggle('d-none', !useCards);
 }
 
-/** Von renderTxTable()/drawCallback nach jedem Tabellen-Redraw aufgerufen,
- *  damit die Kartenansicht (falls gerade aktiv) synchron bleibt. */
+// Called after every table redraw to keep the card view in sync, if active
 function _overviewRenderTxCardsIfActive() {
     if (_overviewTxCardModeActive) renderOverviewTxCards();
 }
@@ -850,12 +727,7 @@ function renderOverviewTxCards() {
         })
         .join('');
 
-    // Safari/WebKit-Reflow-Fix: Wird dieser Container im selben Zug erst von
-    // d-none auf sichtbar geschaltet UND befüllt (genau der Fall beim allerersten
-    // Rendern nach dem Laden auf dem Handy), berechnet WebKit das Flex-Layout der
-    // neu eingefügten Karten manchmal nicht sofort korrekt — Labels erscheinen,
-    // Werte bleiben bis zur nächsten Layout-Änderung (z.B. Klick) leer/unsichtbar.
-    // Erzwungenes Reflow durch Lesen von offsetHeight behebt das zuverlässig.
+    // Safari/WebKit reflow fix: force a reflow by reading offsetHeight, since WebKit sometimes miscalculates the flex layout when unhiding + filling a container in one step.
     void container.offsetHeight;
 }
 
@@ -866,11 +738,7 @@ const OVERVIEW_TX_BADGE_MAP = {
     TRANSFER_OUT: { cls: 'type-transfer-out', key: 'flow.panel.transferOut' }
 };
 
-/** Baut eine Karte aus den Roh-Transaktionsdaten (für Inhalt/Formatierung —
- *  eigenständige Berechnung, analog zu _buildTxRowHtml) plus der zugehörigen,
- *  bereits gerenderten <tr> (für Auswahl-/Status-Zustand: checked/selected/
- *  warning/warning-duplicate/solo-transfer/last-import — so bleibt die Karte
- *  immer exakt konsistent mit dem, was die Tabelle aktuell anzeigt). */
+// Builds a card from raw tx data (content) plus the matching rendered <tr> (selection/status state), keeping the card consistent with the table.
 function _buildTxCardHtml(tx, row) {
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
@@ -915,11 +783,7 @@ function _buildTxCardHtml(tx, row) {
     const transferLine = tx.transferId
         ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
         : '';
-    // Kommentar kann beliebig lang sein — rechtsbündig (wie die übrigen Felder)
-    // hat er die Kachel unnötig in die Breite gezogen, da eine lange Zeile ohne
-    // Umbruch den Flex-Container aufweitet. Daher: fest auf 20 Zeichen kürzen
-    // (mit …, voller Text im title-Tooltip) UND linksbündig statt rechtsbündig
-    // darstellen (siehe .overview-tx-field-value.align-left in depot.css).
+    // truncate to 20 chars (full text in the tooltip) and left-align, otherwise a long comment widens the card
     const commentText = tx.comment && tx.comment.length > 20 ? tx.comment.substring(0, 20) + '…' : tx.comment;
     const commentLine = tx.comment
         ? _overviewTxFieldRow(t('modal.field.comment'), esc(commentText), tx.comment, true)
@@ -964,10 +828,7 @@ function _overviewTxFieldRow(label, value, title, alignLeft) {
     </div>`;
 }
 
-/** Fernbedienung: Karten-Checkbox-Änderung auf die tatsächliche (unsichtbare)
- *  Zeilen-Checkbox übertragen und dort ein echtes change-Event feuern — der
- *  bestehende globale change-Listener (siehe unten) übernimmt danach ganz
- *  normal .selected-Klasse + _updateBulkToolbar(), unverändert. */
+// Remote-control: forwards a card checkbox change to the hidden row checkbox and fires a real change event there
 function _overviewOnTxCardCheckChange(cb) {
     const id = cb.dataset.id;
     const rowCb = document.querySelector(`#txTableBody tr[data-id="${id}"] .tx-row-check`);
@@ -985,11 +846,7 @@ function _overviewToggleTxCard(cardEl) {
     _overviewOnTxCardCheckChange(cb);
 }
 
-/** Re-merged Wallets-/Transaktions-Row bei Bedarf nach einem Resize (z.B.
- *  Fenster von Desktop- auf Tablet/Phone-Breite verkleinert, ohne Reload) —
- *  ohne Reload würde sonst ein bereits im DOM getrenntes Layout stehen
- *  bleiben, bis die Seite neu geladen wird. Kein Effekt, wenn schon gemergt
- *  oder auf Desktop-Breite. */
+// Re-merges the wallets/transactions row after a resize to tablet/phone width without a reload
 function _overviewReapplyMobileRowConstraint() {
     const grid = document.getElementById('overviewGrid');
     if (!grid || !_isOverviewMobileLayout()) return;
@@ -1018,15 +875,7 @@ function _overviewReapplyMobileRowConstraint() {
     });
 })();
 
-// ── Sichtbares Suchfeld in der Bulk-Toolbar (Transaktionstabelle) ──────────
-// Das native DataTables-Suchfeld liegt INNERHALB von #txTable_wrapper, das
-// selbst scrollt (max-height + overflow-y:auto) — sticky hat dort nicht
-// zuverlässig funktioniert. Workaround: natives Feld per CSS ausgeblendet
-// (siehe #txTable_wrapper .dt-search in depot.css), stattdessen dieses Feld
-// hier oben in der Bulk-Actions-Toolbar, die IMMER sichtbar bleibt, weil sie
-// außerhalb von #txTable_wrapper liegt. Steuert die eigentliche DataTables-
-// Suche direkt über die API und hält das (verstecktes) native Feld nur der
-// Vollständigkeit halber im Wert synchron.
+// ── Visible search field in the bulk toolbar, since the native DataTables search inside #txTable_wrapper doesn't stick reliably; this drives the search API directly ──
 function onTxVisibleSearchInput(value) {
     const hiddenInput = document.querySelector('#txTable_wrapper .dt-search input');
     if (hiddenInput) hiddenInput.value = value;
@@ -1045,11 +894,7 @@ function clearTxVisibleSearch() {
     input?.focus();
 }
 
-// Gleicher Workaround wie oben, für die Positions-/Wallets-Tabelle (#posTable).
-// Filtert zusätzlich die Kartenansicht mit (siehe _applyPosCardFilters) — die
-// Karten sind serverseitig gerendert und wurden von der DataTables-Suche bisher
-// gar nicht erfasst, dadurch ging die Suche auf Tablet/Phone (dort aktive
-// Kartenansicht) faktisch ins Leere.
+// Same workaround as above for the positions table, also filters the card view via _applyPosCardFilters()
 function onPosVisibleSearchInput(value) {
     const hiddenInput = document.querySelector('#posTable_wrapper .dt-search input');
     if (hiddenInput) hiddenInput.value = value;
@@ -1129,13 +974,7 @@ function fmt8(val) {
 
 const csvImport = { rawData: [], headers: [] };
 
-// ── CSV Import – neuer 3-Step-Assistent (ersetzt importCsv() unten für
-// normale .csv-Dateien; importCsv() bleibt unverändert im Code, wird aber
-// nicht mehr aufgerufen — .enc-Importe laufen weiterhin unverändert über
-// _importEnc(), siehe unten). Datei-Upload läuft als echtes Formular-POST an
-// die Step-1-Route (siehe Absprache: serverseitiges Parsen ersetzt PapaParse
-// für den Upload-Schritt) statt per fetch(), damit der Browser direkt auf die
-// gerenderte Mapping-Seite navigiert. ──
+// ── CSV import: 3-step wizard (replaces importCsv() below for plain .csv; that function stays unused, .enc imports still go through _importEnc()). Uploads via a real form POST so the browser navigates to the rendered mapping page. ──
 function onCsvFileSelected(input) {
     const file = input.files[0];
     if (!file) return;
@@ -1177,7 +1016,7 @@ function importCsv(input) {
  
     // Plain CSV: existing PapaParse + column mapping flow
 	Papa.parse(file, {
-	    header:         false,   // ← wichtig: kein automatisches Header-Parsing
+	    header:         false,   // no automatic header parsing
 	    skipEmptyLines: true,
 	    quoteChar:      '"',
 	    complete(results) {
@@ -1186,7 +1025,7 @@ function importCsv(input) {
 	            return;
 	        }
 
-	        // Erste Zeile = Header, doppelte Namen mit Suffix versehen
+	        // first row = headers; suffix duplicate names
 	        const rawHeaders = results.data[0];
 	        const seen = {};
 	        const headers = rawHeaders.map(h => {
@@ -1200,7 +1039,7 @@ function importCsv(input) {
 	            }
 	        });
 
-	        // Restliche Zeilen als Objekte mappen
+	        // map remaining rows to objects
 	        const data = results.data.slice(1).map(row => {
 	            const obj = {};
 	            headers.forEach((h, i) => { obj[h] = row[i] || ''; });
@@ -1827,7 +1666,7 @@ function doExport() {
 
 // ── Multi-Select + Bulk Actions ───────────────────────────
 
-// Kontextmenü-Element einmalig anlegen
+// context menu element, created once
 const _ctxMenu = (() => {
     const el = document.createElement('div');
     el.id = 'bulkContextMenu';
@@ -1852,11 +1691,9 @@ function _updateBulkToolbar() {
     const toolbar = document.getElementById('bulkToolbar');
     const count   = document.getElementById('bulkCount');
     if (!toolbar) return;
-//    toolbar.classList.toggle('d-none', n === 0);
     if (count) count.textContent = n + ' selected';
 
-    // Sync select-all checkbox state (Tabellen-Kopfzeile UND die Kompakt-
-    // Toolbar-Checkbox in der Kartenansicht — beide steuern dieselbe Auswahl).
+    // sync select-all checkbox state (table header + compact card-view toolbar checkbox)
     const all  = document.querySelectorAll('.tx-row-check');
     [document.getElementById('txSelectAll'), document.getElementById('txCardsSelectAll')]
         .forEach(selAll => {
@@ -1873,13 +1710,11 @@ function toggleSelectAll(cb) {
         el.closest('tr').classList.toggle('selected', cb.checked);
     });
     _updateBulkToolbar();
-    // Kartenansicht wird aus den (jetzt aktualisierten) <tr>-Zeilen gebaut —
-    // ohne diesen Re-Render bleiben die bereits gerenderten Karten optisch auf
-    // dem alten Auswahlstatus stehen (Checkbox + Rahmen-Highlight).
+    // re-render the card view so it reflects the updated selection state
     _overviewRenderTxCardsIfActive();
 }
 
-// Row-Checkbox click (stopPropagation damit Row-Click nicht feuert)
+// row checkbox click (stopPropagation so the row click doesn't also fire)
 document.addEventListener('change', e => {
 	if (e.target.classList.contains('tx-row-check')) {
         e.target.closest('tr').classList.toggle('selected', e.target.checked);
@@ -1887,9 +1722,7 @@ document.addEventListener('change', e => {
     }
 });
 
-// Rechtsklick auf txTableBody → Kontextmenü (funktioniert unverändert auch in
-// der Kartenansicht: ein Rechtsklick auf eine .overview-tx-card wird auf die
-// zugehörige, unsichtbare <tr> aufgelöst — der Rest der Logik bleibt gleich).
+// Right-click on txTableBody or a .overview-tx-card resolves to the matching <tr> for the context menu
 document.addEventListener('contextmenu', e => {
     let row = e.target.closest('#txTableBody tr');
     if (!row) {
@@ -1899,7 +1732,7 @@ document.addEventListener('contextmenu', e => {
     if (!row) return;
     e.preventDefault();
 
-    // Wenn die geklickte Row nicht selektiert ist → nur diese selektieren
+    // if the clicked row isn't selected, select only it
     const cb = row.querySelector('.tx-row-check');
     if (cb && !cb.checked) {
 		document.querySelectorAll('.tx-row-check').forEach(c => {
@@ -1914,7 +1747,7 @@ document.addEventListener('contextmenu', e => {
     const ids = _getSelectedIds();
     if (!ids.length) return;
 
-	// Typen der Selektion ermitteln
+	// determine the types in the selection
     const selectedTypes = [...document.querySelectorAll('.tx-row-check:checked')]
         .map(tr => tr.closest('tr').dataset.type);
     const isAllTransfer = selectedTypes.every(t => t === 'TRANSFER_IN' || t === 'TRANSFER_OUT');
@@ -2052,8 +1885,7 @@ function openBulkMove() {
     modal.show();
 }
 
-/** Blendet das Freitext-Feld für eine neue Position ein/aus, je nachdem ob
- *  "＋ New position..." im Select gewählt ist. */
+// shows/hides the free-text field when "+ New position..." is selected
 function onBulkMoveSelectChange(sel) {
     document.getElementById('bulkMoveNewRow').classList.toggle('d-none', sel.value !== '__new__');
 }
@@ -2192,7 +2024,7 @@ function showConfirm(title, body) {
 
         const modalEl = document.getElementById('confirmModal');
         const okBtn   = document.getElementById('confirmModalOk');
-        // Alten Listener entfernen um Doppel-Trigger zu vermeiden
+        // remove the old listener to avoid double-triggering
         const newOk = okBtn.cloneNode(true);
         okBtn.parentNode.replaceChild(newOk, okBtn);
         newOk.addEventListener('click', () => {
@@ -2200,7 +2032,7 @@ function showConfirm(title, body) {
             resolve(true);
         });
 
-        // Enter bestätigt, wenn der OK-Button fokussiert (markiert) ist
+        // Enter confirms when the OK button is focused
         const onKeydown = (e) => {
             if (e.key === 'Enter' && document.activeElement === newOk) {
                 e.preventDefault();
@@ -2222,7 +2054,7 @@ function showConfirm(title, body) {
     });
 }
 
-// ── Import-Historie: Eintrag löschen ──────────────────────
+// ── Import history: delete entry ──────────────────────
 let _deleteImportHistoryId = null;
 
 function openDeleteImportHistoryModal(id, linkedTransactionCount, filename) {
@@ -2288,11 +2120,10 @@ function clearDuplicateMark() {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Sicherstellen, dass CURRENCY Objekt existiert
     if (typeof CURRENCY !== 'undefined' && CURRENCY.current) {
         const symbol = CURRENCY.symbol(CURRENCY.current());
         
-        // Alle Währungssymbol-Platzhalter im Dokument finden und füllen
+        // fill in all currency-symbol placeholders in the document
         document.querySelectorAll('.currency-symbol').forEach(function(el) {
             el.textContent = ' ' + symbol;
         });

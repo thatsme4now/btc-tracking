@@ -2,13 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--
-  Edit Transaction modal — shared fragment.
-  Included by both overview.html (main dashboard) and flow.html (Flow Diagram
-  page) so editing a transaction always opens the exact same dialog. Requires
-  tx-form.js (openEditTx/saveOrAddTx/onExchangeSelectChange/...), flatpickr
-  and bootstrap.bundle.min.js to be loaded on the including page.
--->
+<!-- Edit Transaction modal, shared by overview.html and flow.html. Requires tx-form.js, flatpickr, bootstrap.bundle.min.js. -->
 <div th:fragment="editTxModal">
     <div class="modal fade" id="txModal" tabindex="-1">
         <div class="modal-dialog modal-lg">

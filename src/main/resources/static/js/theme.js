@@ -1,15 +1,11 @@
-// ── Theme (Dark/Light) ─────────────────────────────────────────────────────
-// Gemeinsam genutzt von overview.html (mit Toggle-Button), sowie flow.html und
-// holdings.html (übernehmen das gespeicherte Theme nur passiv, ohne eigenen
-// Toggle-Button — der Button existiert nur auf der Hauptseite).
+// ── Theme (dark/light), shared across all pages; toggle button only exists on the main page ──
 (function initTheme() {
     const saved = localStorage.getItem('depot-theme') || 'dark';
     applyTheme(saved);
 })();
 
 function toggleTheme() {
-    // Im Einundzwanzig-Modus ist Dark-Theme fix — Button ist zusätzlich per
-    // CSS (pointer-events:none) gesperrt, dies hier ist die JS-seitige Absicherung.
+    // Theme locked to dark in 21-mode (button also disabled via CSS)
     if (document.body.classList.contains('mode-21')) return;
     const current = document.body.classList.contains('light') ? 'light' : 'dark';
     const next    = current === 'dark' ? 'light' : 'dark';
@@ -25,19 +21,11 @@ function applyTheme(theme) {
     }
 }
 
-// ── Font + Text-Size (Density) ──────────────────────────────────────────────
-// Waren früher Teil von depot.js und liefen dadurch NUR auf der Hauptseite —
-// flow.html/holdings.html/yearly.html luden depot.js nie, daher griff die
-// gespeicherte Schriftart/Textgröße dort nie, obwohl beides in localStorage
-// global (seitenübergreifend) abgelegt wird. Jetzt hier in theme.js (auf allen
-// 4 Seiten geladen), damit beide Einstellungen überall wirken, nicht nur dort,
-// wo gerade der Button dafür sitzt.
+// ── Font + text size (density), loaded on all 4 pages so settings apply everywhere ──
 const DENSITY_CYCLE  = ['default', 'comfortable'];
 const DENSITY_ICONS  = { default: 'bi-type', comfortable: 'bi-type-bold' };
 const DENSITY_LABELS = { default: 'A', comfortable: 'A+' };
-// IBM Plex Mono bewusst nicht mehr auswählbar (siehe Font-Auswahl-Aufräumung),
-// bleibt aber als @font-face + hartcodierte Nutzung (Chart-Schrift in
-// holdings.js, Lot-Qty/Gain-Badges in yearly.css/flow.css) unangetastet.
+// IBM Plex Mono is no longer user-selectable but stays hardcoded for chart/badge fonts.
 const FONTS = [
     { key: 'inter',       label: 'Inter',       family: "'Inter', sans-serif" },
     { key: 'roboto',      label: 'Roboto',      family: "'Roboto', sans-serif" },
@@ -55,11 +43,7 @@ function applyFont(key) {
     localStorage.setItem('depot-font', key);
 }
 
-// ── Einundzwanzig-Modus ──────────────────────────────────────────────────
-// Additiver Theme/Font-Override: setzt beim Aktivieren einmalig Dark-Theme +
-// Inconsolata (merkt sich vorherigen Theme/Font-Wert), bleibt danach aber
-// frei änderbar über die normalen Theme-/Font-Controls — kein Lock. Beim
-// Deaktivieren wird der gemerkte Zustand von vor der Aktivierung wiederhergestellt.
+// ── 21-mode: sets dark theme + Inconsolata once, remembering the previous values to restore on deactivation ──
 (function initMode21() {
     const saved = localStorage.getItem('depot-mode21') || 'off';
     if (saved === 'on') document.body.classList.add('mode-21');

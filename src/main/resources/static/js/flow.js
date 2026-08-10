@@ -26,15 +26,10 @@ let _flowCardHighlight = null; // { linkId, txId } | null — Card-Klick, hebt n
 let _flowTxSearchTerm = '';
 let _flowHoveredLinkId = null;
 
-// Eigenständiger, UNGEFILTERTER Fetch aller Transaktionen für die portfolio-weite
-// FIFO-Berechnung (Verkauf-Card-Zusatzinfos) — bewusst unabhängig vom (evtl. per
-// Datum/Position gefilterten) _flowGraphCache, da FIFO die komplette chronologische
-// Historie braucht, siehe _flowLoadFifo/_flowComputeFifo.
+// Separate, unfiltered fetch of all transactions for the portfolio-wide FIFO calculation, independent of the (possibly filtered) _flowGraphCache since FIFO needs full chronological history.
 let _flowSellMeta = new Map(); // sellId (string) -> [{ buyTx, qty, days }]
 
-// Stichtag (Settings, siehe navbar.js#saveSettings), ab dem die 365-Tage-
-// Regel für NEU angeschaffte Coins nicht mehr gilt — siehe _flowIsTaxFree().
-// Lazy geladen zusammen mit der FIFO-Berechnung (_flowLoadFifo).
+// Tax cutoff date (settings, see navbar.js#saveSettings) after which the 365-day rule no longer applies to newly bought coins, see _flowIsTaxFree().
 let _flowTaxCutoffDate = null;
 
 async function initFlow() {
@@ -51,9 +46,7 @@ function onTxSaved() {
     _flowLoadFifo().then(loadFlowGraph);
 }
 
-/** Lädt/berechnet die FIFO-Lot-Zuordnung neu — vor dem ersten Render (initFlow)
- *  und nach jeder Transaktionsänderung (onTxSaved), damit _renderFlowTxCard
- *  synchron auf bereits aktuelle Daten zugreifen kann. */
+// Reloads/recomputes the FIFO lot assignment before the first render and after every transaction change
 async function _flowLoadFifo() {
     try {
         const [allTx, settingsRes] = await Promise.all([
@@ -68,12 +61,7 @@ async function _flowLoadFifo() {
     }
 }
 
-/**
- * Eigenständige, globale (portfolio-weite) FIFO-Berechnung — bewusst NICHT mit
- * yearly.js/holdings.js geteilt (siehe dortige Entscheidung zur unabhängigen
- * Implementierung). Läuft einmal chronologisch über alle BUY/SELL und liefert
- * pro Verkauf die verbrauchten Kauf-Lots (Menge, Kauf-Transaktion, Haltedauer).
- */
+// Standalone, portfolio-wide FIFO calculation (not shared with yearly.js/holdings.js): walks all BUY/SELL chronologically and returns each sell's consumed buy lots.
 function _flowComputeFifo(allTx) {
     const list = allTx
         .filter(tx => tx.type === 'BUY' || tx.type === 'SELL')
@@ -111,13 +99,9 @@ function _flowDaysBetween(dateA, dateB) {
     return Math.max(0, Math.round((b - a) / 86400000));
 }
 
-const FLOW_TAX_FREE_DAYS = 365; // DE Spekulationsfrist — rein informativ, keine Steuerberatung
+const FLOW_TAX_FREE_DAYS = 365; // German tax holding period, informational only, not tax advice
 
-/** Steuerfrei, wenn Haltedauer >= 365 Tage UND das Kaufdatum des Lots vor
- *  einem ggf. in den Einstellungen hinterlegten Stichtag liegt (siehe
- *  _flowTaxCutoffDate) — ab dem Stichtag neu angeschaffte Coins sind immer
- *  steuerpflichtig, unabhängig von der Haltedauer. Rein informativ, keine
- *  Steuerberatung. */
+// Tax-free if held >= 365 days and bought before the cutoff date; coins bought on/after the cutoff are always taxable. Informational only.
 function _flowIsTaxFree(c) {
     if (c.days < FLOW_TAX_FREE_DAYS) return false;
     if (_flowTaxCutoffDate && c.buyTx.date
@@ -127,7 +111,7 @@ function _flowIsTaxFree(c) {
     return true;
 }
 
-/** Gesamt-Kostenbasis eines Kaufs in der Anzeigewährung (inkl. Gebühren, währungskonvertiert). */
+// Total cost basis of a buy in the display currency (incl. fees, currency-converted)
 function _flowBuyPaid(tx, displayCurrency) {
     if (tx.pricePerBtc == null) return null;
     const fees = tx.fees != null ? Number(tx.fees) : 0;
@@ -136,7 +120,7 @@ function _flowBuyPaid(tx, displayCurrency) {
     return cost * Number(tx.exchangeRate || 1);
 }
 
-/** tx.quantityFiat (bereits Gesamtbetrag) in die Anzeigewährung umgerechnet. */
+// Converts tx.quantityFiat (already a total) into the display currency
 function _flowFiatInDisplayCurrency(tx, displayCurrency) {
     if (tx.quantityFiat == null) return null;
     if (tx.currency === displayCurrency) return Number(tx.quantityFiat);
@@ -222,17 +206,7 @@ async function loadFlowGraph() {
     _scheduleFlowSettleRerender();
 }
 
-/**
- * Sicherheitsnetz gegen einen Chrome-DevTools-Device-Toolbar-Bug: Beim (Re-)Load mit
- * aktivem Device-Emulator wird die Seite manchmal kurzzeitig noch mit der alten/Desktop-
- * Viewport-Breite gelayoutet, bevor die Media Query auf die Mobile-/Tablet-Breakpoints
- * (siehe flow.css) umschaltet. DevTools korrigiert das zwar wenig später, feuert dabei
- * aber weder ein reguläres 'resize'-Event noch ändert sich die Box-Größe von
- * #flowChartWrapper nach außen sichtbar – der ResizeObserver greift also nicht.
- * Ergebnis: Das Sankey-SVG bleibt mit der falschen (zu breiten) Größe stehen, bis man
- * manuell resized. Dieser einmalige Nachzügler-Redraw kurz nach dem Erstrender fängt
- * genau dieses Zeitfenster ab, unabhängig davon, ob ein Resize-Event ausgelöst wurde.
- */
+// Safety net for a Chrome DevTools device-toolbar bug where the page briefly lays out at the old width without firing a resize event; a delayed one-off redraw catches it.
 function _scheduleFlowSettleRerender() {
     setTimeout(() => {
         if (_flowGraphCache) renderSankey(_flowGraphCache);
@@ -243,8 +217,7 @@ window.addEventListener('resize', () => {
     if (_flowGraphCache) renderSankey(_flowGraphCache);
 });
 
-// Reagiert explizit auf den .flow-main-row-Breakpoint (siehe flow.css), unabhängig davon,
-// ob dabei ein 'resize'-Event feuert (z.B. bei DevTools-Device-Toolbar-Metrikwechseln).
+// Reacts to the .flow-main-row breakpoint directly, in case no 'resize' event fires (e.g. DevTools device-toolbar changes).
 if (typeof window.matchMedia === 'function') {
     window.matchMedia('(max-width: 991px)').addEventListener('change', () => {
         if (_flowGraphCache) renderSankey(_flowGraphCache);
@@ -253,12 +226,7 @@ if (typeof window.matchMedia === 'function') {
 
 let _flowResizeObserver = null;
 
-/**
- * Beobachtet die tatsächliche Box-Größe des Chart-Containers (statt nur window-resize).
- * Fängt u.a. den Fall ab, dass die Seite direkt in einem schmalen Tablet-/Phone-Viewport
- * geladen wird und clientWidth beim allerersten Render noch nicht die endgültige,
- * bereits umgebrochene Flex-Layout-Breite widerspiegelt (z.B. DevTools-Device-Toolbar).
- */
+// Observes the chart container's actual box size (not just window resize), catching cases where clientWidth isn't final yet at first render.
 function _ensureFlowResizeObserver() {
     if (_flowResizeObserver || typeof ResizeObserver === 'undefined') return;
     const wrapper = document.getElementById('flowChartWrapper');
@@ -274,8 +242,7 @@ let _flowResizeTimeout = null;
 function renderSankey(data) {
     clearTimeout(_flowResizeTimeout);
     _flowResizeTimeout = setTimeout(() => {
-        // Zwei rAF-Ticks abwarten, damit das Flex-/Media-Query-Layout sicher final
-        // eingerastet ist, bevor wir clientWidth/clientHeight für die SVG messen.
+        // wait two rAF ticks so the flex/media-query layout has settled before measuring
         requestAnimationFrame(() => requestAnimationFrame(() => _doRenderSankey(data)));
     }, 50);
 }
@@ -427,12 +394,7 @@ function _showNodeTooltip(event, d, tooltip) {
     _positionTooltip(event, tooltip);
 }
 
-/**
- * Positioniert das Tooltip relativ zum Cursor und klappt es nach links bzw. oben um,
- * falls es sonst rechts oder unten über den sichtbaren Viewport hinausragen würde
- * (z.B. bei Nodes/Links ganz am rechten Rand des Sankey-Diagramms). Gilt für jede
- * Fenstergröße, nicht nur Tablet/Phone-Breakpoints.
- */
+// Positions the tooltip relative to the cursor, flipping left/up if it would otherwise overflow the viewport
 function _positionTooltip(event, tooltip) {
     tooltip.style.display = 'block';
 
@@ -467,7 +429,7 @@ function esc(str) {
         .replace(/>/g, '&gt;');
 }
 
-// ── Node/Link-Klick → Auswahl & Transaktionsliste rechts ──────────────────
+// ── Node/link click → selection & transaction list on the right ──────────────────
 
 function onFlowNodeClick(d) {
     _toggleFlowSelection('node', d.id);
@@ -479,11 +441,11 @@ function onFlowLinkClick(d) {
 
 function _toggleFlowSelection(type, id) {
     if (_flowSelection && _flowSelection.type === type && _flowSelection.id === id) {
-        _flowSelection = null; // erneuter Klick auf gleiche Auswahl → zurücksetzen
+        _flowSelection = null; // clicking the same selection again clears it
     } else {
-        _flowSelection = { type, id }; // Klick auf andere Node/Link → sofort umschalten
+        _flowSelection = { type, id }; // clicking another node/link switches immediately
     }
-    _flowCardHighlight = null; // Chart-Auswahl hat Vorrang vor einer reinen Card-Vorschau
+    _flowCardHighlight = null; // chart selection takes priority over a card preview
     _flowHoveredLinkId = null;
     _applyFlowHighlight();
     _renderFlowTxPanel();
@@ -497,14 +459,7 @@ function clearFlowSelection() {
     _renderFlowTxPanel();
 }
 
-/**
- * Klick auf eine Transaktions-Card rechts hebt NUR die zugehörige Transaktion im
- * Sankey hervor – im Gegensatz zum Klick auf eine Node/Link im Diagramm selbst
- * filtert das NICHT die Liste und ändert nicht deren Titel/Zähler. Ein Link kann
- * mehrere Transaktionen bündeln (mehrere Cards teilen sich dieselbe linkId),
- * daher wird zusätzlich die konkrete tx-Id verglichen, damit ein Klick auf eine
- * ANDERE Card derselben Gruppe nicht fälschlich als "gleiche Auswahl" gilt.
- */
+// Clicking a transaction card only highlights it in the Sankey (unlike clicking a node/link, which also filters the list). Compares tx id too since multiple cards can share a linkId.
 function _toggleFlowCardHighlight(linkId, txId) {
     txId = txId ?? null;
     const isSame = _flowCardHighlight
@@ -524,11 +479,7 @@ function _applyFlowCardPinnedClass() {
     });
 }
 
-/**
- * Hover über eine Transaktions-Card zeigt immer eine reine Vorschau-Hervorhebung
- * im Sankey (temporär, ändert keinen Zustand). Klick pinnt die Hervorhebung für
- * genau diese Transaktion, ohne die Liste zu filtern.
- */
+// Hovering a transaction card shows a temporary preview highlight in the Sankey; clicking pins it without filtering the list.
 function _wireFlowTxListEvents() {
     const listEl = document.getElementById('flowTxList');
     if (!listEl || listEl._flowWired) return;
@@ -566,14 +517,7 @@ function _flowLinksForNode(nodeId) {
     return _flowGraphCache.links.filter(l => l.source === nodeId || l.target === nodeId);
 }
 
-/**
- * Zeichnet Highlight/Dimmed-Klassen im Sankey. Ohne Argument gilt Priorität:
- * 1) die "harte" Chart-Auswahl (_flowSelection, filtert auch die Liste),
- * 2) sonst eine per Card-Klick gepinnte reine Hervorhebung (_flowCardHighlight).
- * Mit expliziter selection (auch null) kann eine rein visuelle Vorschau (Hover
- * über eine Transaktions-Card) angezeigt werden, ohne einen der beiden
- * Zustände zu verändern.
- */
+// Applies highlight/dimmed classes in the Sankey; priority is the chart selection, then a pinned card highlight, unless an explicit override (hover preview) is passed.
 function _applyFlowHighlight(selectionOverride) {
     const sel = selectionOverride !== undefined
         ? selectionOverride
@@ -608,7 +552,7 @@ function _applyFlowHighlight(selectionOverride) {
         .classed('flow-dimmed', d => !nodeIds.has(d.id));
 }
 
-// ── Transaktionsliste rechts ───────────────────────────────────────────────
+// ── Transaction list on the right ───────────────────────────────────────────────
 
 function _flowTxListFromLinks(links) {
     const list = [];
@@ -629,12 +573,7 @@ function _flowTxListFromLinks(links) {
     return list;
 }
 
-/**
- * Baut einen durchsuchbaren Text aus allen auf der Card sichtbaren Feldern.
- * Zahlenwerte werden sowohl mit Punkt (Rohwert, z.B. aus der API) als auch mit
- * Komma (so wie sie auf der Card angezeigt werden, de-DE-Format) aufgenommen,
- * damit die Suche unabhängig vom eingegebenen Dezimaltrennzeichen funktioniert.
- */
+// Builds searchable text from all visible card fields; numbers included with both . and , so search works regardless of decimal separator.
 function _flowTxSearchHaystack(item) {
     const tx = item.tx;
     const parts = [
@@ -769,11 +708,7 @@ function _renderFlowTxCard(item) {
         ? `<div style="color:var(--text-muted);font-size:.62rem;letter-spacing:.03em;text-transform:uppercase;margin:-.2rem 0 .35rem">${esc(tx.positionType)}</div>`
         : '';
 
-    // Zusatzinfos nur bei Verkäufen: realisierter G/V + Aufschlüsselung, aus
-    // welchen historischen Käufen sich dieser Verkauf zusammensetzt (Menge,
-    // Kaufdatum, Haltedauer, Steuerfrei/-pflichtig-Badge ab 365 Tagen). Eigene,
-    // unabhängige FIFO-Berechnung (siehe _flowComputeFifo) — bewusst nicht mit
-    // der Kauf-Card geteilt, um diese nicht unübersichtlich zu machen.
+    // sell-only extras: realized P/L + FIFO lot breakdown (qty, buy date, holding period, tax badge), see _flowComputeFifo
     let gvLine    = '';
     let lotsBlock = '';
     if (tx.type === 'SELL') {

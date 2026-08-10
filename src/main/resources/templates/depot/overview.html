@@ -18,7 +18,7 @@
 </head>
 <body class="depot-body">
 
-<!-- ── Navbar (shared fragment, alle 4 Seiten) ── -->
+<!-- ── Navbar (shared fragment, all 4 pages) ── -->
 <div th:replace="~{depot/fragments/navbar :: navbar(true, 'nav.btn.overview')}"></div>
 
 <main class="container-fluid px-4 py-4">
@@ -243,11 +243,7 @@
 			        </button>
 			    </div>
 
-			    <!-- Kompakte Toolbar für die Kartenansicht (Kachel teilt sich eine Row):
-			         dieselben 7 Bulk-Aktionen im Dropdown statt einzeln inline, plus eine
-			         Select-All-Checkbox (die Tabellen-Kopfzeile mit #txSelectAll ist in der
-			         Kartenansicht unsichtbar). Sichtbarkeit wird per JS umgeschaltet, siehe
-			         depot.js _overviewApplyTxViewMode(). -->
+			    <!-- Compact dropdown toolbar for card view, toggled via depot.js _overviewApplyTxViewMode() -->
 			    <div class="bulk-actions-dropdown d-none">
 			        <label class="tx-select-all-wrap" data-i18n-title="table.action.selectAll" title="Alle auswählen">
 			            <input type="checkbox" id="txCardsSelectAll" style="accent-color:var(--accent)"
@@ -648,7 +644,7 @@
                             <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
                             <textarea id="addTxComment" class="form-control depot-input"></textarea>
                         </div>
-                        <!-- Transfer pairing (nur bei TRANSFER_OUT) -->
+                        <!-- Transfer pairing (TRANSFER_OUT only) -->
 						<div class="col-12 d-none" id="transferPairSection">
 						    <hr style="border-color:var(--border)"/>
 						    <div class="depot-card-header mb-2">
@@ -741,7 +737,7 @@
         </div>
     </div>
 
-    <!-- Bulk: Wallet/Börse anpassen -->
+    <!-- Bulk: change wallet/exchange -->
     <div class="modal fade" id="bulkMoveModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
@@ -772,7 +768,7 @@
         </div>
     </div>
 
-    <!-- Import-Historie: Eintrag löschen -->
+    <!-- Import history: delete entry -->
     <div class="modal fade" id="deleteImportHistoryModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
@@ -797,7 +793,7 @@
         </div>
     </div>
 
-    <!-- Bulk: Wechselkurs anpassen -->
+    <!-- Bulk: change exchange rate -->
     <div class="modal fade" id="bulkExRateModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">

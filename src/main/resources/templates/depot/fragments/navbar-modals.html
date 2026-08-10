@@ -2,13 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--
-  Modals belonging to the shared navbar (fragments/navbar.html) — settings
-  (language/currency/font), sats/lightning, and app-lock (set + locked).
-  Bundled as one fragment so every page only needs a single th:replace call.
-  Requires navbar.js (openSettings/saveSettings/sendSomeSats/copySatsAddress)
-  and applock.js (AppLock.*) loaded on the including page.
--->
+<!-- Modals for the shared navbar: settings, sats/lightning, app-lock. Requires navbar.js and applock.js. -->
 <div th:fragment="navbarModals">
 
     <!-- Settings Modal -->
@@ -80,7 +74,7 @@
     </div>
 
 
-    <!-- App gesperrt (nicht schließbar) -->
+    <!-- App locked (non-dismissible) -->
     <div class="modal fade" id="appLockedModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-sm">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
@@ -129,7 +123,7 @@
         </div>
     </div>
 
-    <!-- App sperren -->
+    <!-- Lock app -->
     <div class="modal fade" id="appLockSetModal" tabindex="-1">
         <div class="modal-dialog modal-sm">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">

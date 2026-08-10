@@ -1,6 +1,5 @@
 'use strict';
-// Step 2 des Import-Assistenten: Review der Staging-Tabelle (Duplikate/FX-
-// Warnungen/Fehler, Editieren, Löschen, Transfer-Pairing) + finaler Commit.
+// Import wizard step 2: review the staging table (duplicates/FX warnings/errors, edit, delete, transfer pairing) + final commit.
 
 let _stagingRows = [];
 let _stagingPositionsLoaded = false;
@@ -19,9 +18,7 @@ function formatDate(iso) {
     });
 }
 
-// ── Flatpickr für das Datumsfeld im Bearbeiten-Modal — gleiche Konfiguration
-//    (inkl. Sekunden) wie beim normalen Add/Edit-Transaction-Modal in
-//    tx-form.js, damit Zeiten hier nicht auf Minutenauflösung gekappt werden.
+// ── Flatpickr for the edit modal's date field, same config (incl. seconds) as tx-form.js ──
 let _fpStagingEdit = null;
 
 function _stagingFpLocale() {
@@ -146,8 +143,7 @@ function toggleSelectAllStaging(cb) {
     _updateStagingBulkCount();
 }
 
-// Checkbox-Klick soll den Zeilen-Klick (Toggle) nicht doppelt auslösen und
-// den 'selected'-Rahmen synchron halten (analog Übersichtsseite).
+// keep the 'selected' row style in sync with the checkbox
 document.addEventListener('change', e => {
     if (e.target.classList.contains('staging-row-check')) {
         e.target.closest('tr').classList.toggle('selected', e.target.checked);
@@ -189,7 +185,7 @@ function bulkRemoveTransferStaging() {
     }).then(() => loadStaging()).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
-// ── Bulk: Wechselkurs anpassen ────────────────────────────
+// ── Bulk: change exchange rate ────────────────────────────
 function openStagingBulkExRate() {
     const ids = _selectedStagingIds();
     if (!ids.length) return;
@@ -216,7 +212,7 @@ function confirmStagingBulkExRate() {
     }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
-// ── Bulk: Wallet/Börse anpassen ────────────────────────────
+// ── Bulk: change wallet/exchange ────────────────────────────
 function openStagingBulkMove() {
     const ids = _selectedStagingIds();
     if (!ids.length) return;
@@ -259,7 +255,7 @@ function confirmStagingBulkMove() {
     }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
-// ── Bulk: Als Solo-Transfer markieren ─────────────────────
+// ── Bulk: mark as solo transfer ─────────────────────
 function bulkSoloTransferStaging() {
     const ids = _selectedStagingIds();
     if (!ids.length) return;
@@ -277,7 +273,7 @@ function bulkSoloTransferStaging() {
     }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
-// ── Bulk: Löschen ──────────────────────────────────────────
+// ── Bulk: delete ──────────────────────────────────────────
 function bulkDeleteStaging() {
     const ids = _selectedStagingIds();
     if (!ids.length) return;
@@ -291,7 +287,7 @@ function bulkDeleteStaging() {
     }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
-// ── Rechtsklick-Kontextmenü (analog Übersichtsseite) ──────
+// ── Right-click context menu ──────
 const _stagingCtxMenu = (() => {
     const el = document.createElement('div');
     el.id = 'stagingBulkContextMenu';
@@ -360,10 +356,7 @@ function openStagingEdit(id) {
     loadPositionsDatalist();
 
     document.getElementById('stagingEditId').value = id;
-    // Volle Präzision (inkl. Sekunden) übernehmen — vorher wurde hier mit
-    // substring(0, 16) auf Minuten gekappt, wodurch Sekunden beim Bearbeiten
-    // stillschweigend verloren gingen. Über Flatpickr setzen (dateFormat
-    // 'Y-m-d H:i:S'), damit sie wie im normalen Add/Edit-Modal erhalten bleiben.
+    // preserve full precision (incl. seconds) via Flatpickr's dateFormat
     if (_fpStagingEdit) {
         if (row.dateParsed) _fpStagingEdit.setDate(row.dateParsed, true);
         else _fpStagingEdit.clear();
@@ -389,9 +382,7 @@ function openStagingEdit(id) {
     (bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el)).show();
 }
 
-// Fiat-Betrag × Wechselkurs = Wert in der aktuell gewählten Anzeigewährung
-// (gleiche Formel wie DepotService#getAllPositions) — zeigt sofort, ob ein
-// angepasster Kurs plausibel ist, ohne erst zu speichern.
+// fiat amount × exchange rate = value in the current display currency, same formula as DepotService#getAllPositions
 function _updateStagingEditExchangeRatePreview() {
     const previewEl = document.getElementById('stagingEditExchangeRatePreview');
     if (!previewEl) return;
