@@ -178,12 +178,25 @@ body.mode-21 #btnTheme {
 .mode21-ticker {
     display:  none;
     flex:     1 1 auto;
+    min-width: 0; /* verhindert, dass der nowrap-Textinhalt den Flex-Container
+                     sprengt und dadurch navbar-actions-desktop umbricht */
     overflow: hidden;
     margin:   0 1rem;
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
             mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
 body.mode-21 .mode21-ticker { display: block; }
+/* Bootstrap vererbt .navbar's flex-wrap:wrap an .container-fluid (flex-wrap:
+   inherit), wodurch navbar-actions-desktop bei aktivem Ticker in eine neue
+   Zeile umbrechen würde. Auf Desktop/Tablet explizit unterbinden — der
+   @media(max-width:768px)-Block weiter unten überschreibt das für Mobile
+   bewusst wieder mit flex-wrap:wrap. */
+.depot-navbar .container-fluid:nth-of-type(2) {
+    flex-wrap: nowrap;
+}
+.navbar-actions-desktop {
+    flex-shrink: 0;
+}
 .mode21-ticker-track {
     display:        inline-flex;
     white-space:    nowrap;
