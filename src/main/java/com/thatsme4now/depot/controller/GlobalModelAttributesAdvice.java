@@ -4,20 +4,18 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 /**
- * Stellt Model-Attribute bereit, die auf allen Seiten verfügbar sein sollen —
- * aktuell nur "appVersion" für den Navbar-Titel (siehe fragments/navbar.html).
- *
- * Die Version wird aus dem JAR-Manifest gelesen (Implementation-Version),
- * welches der Spring-Boot-Gradle-Plugin beim `bootJar`-Task automatisch aus
- * build.gradle's `version = '...'` befüllt — keine manuelle Duplizierung
- * nötig. Einschränkung: beim direkten Start aus der IDE (Eclipse/Gradle
- * "Run", kein gepacktes JAR) ist kein Manifest vorhanden, dann bleibt der
- * Wert leer und der Navbar-Titel zeigt keine Versionsnummer an — betrifft
- * nur die lokale Entwicklung, nicht den gepackten/produktiven Betrieb.
+ * Supplies model attributes available on every page — currently just
+ * {@code appVersion}, used by the navbar title (see fragments/navbar.html).
  */
 @ControllerAdvice
 public class GlobalModelAttributesAdvice {
 
+    /**
+     * Reads the app version from the JAR manifest (populated by the
+     * Spring Boot Gradle plugin from build.gradle's {@code version}).
+     * Falls back to a hardcoded value when run unpacked from the IDE,
+     * where no manifest is present.
+     */
     @ModelAttribute("appVersion")
     public String appVersion() {
         String v = getClass().getPackage().getImplementationVersion();

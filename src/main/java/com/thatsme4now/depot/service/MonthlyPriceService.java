@@ -65,14 +65,14 @@ public class MonthlyPriceService {
     }
 
     /**
-     * Reine Kurs-Historie für den Bitcoin-Kurs-Chart der Gesamtansicht — ALLE
-     * Monate, die in der monthly_price Tabelle für diese Währung vorhanden
-     * sind, plus der laufende Monat mit dem aktuell hinterlegten Live-Kurs.
-     * Bewusst NICHT auf den Zeitraum der ersten eigenen Transaktion begrenzt
-     * (anders als getMonthly()/MonthlyOverviewService#getOverview) — dieser
-     * Chart soll die komplette verfügbare historische Kurskurve zeigen, auch
-     * für Jahre vor dem eigenen Einstieg. Eigene, unabhängige Abfrage statt
-     * Wiederverwendung von getOverview()'s Bereichslogik.
+     * Plain price history for the "overall view" BTC price chart — every month
+     * present in the monthly_price table for this currency, plus the current
+     * month with the live price. Deliberately NOT limited to the range of the
+     * user's own transactions (unlike {@link #getMonthly} /
+     * {@link MonthlyOverviewService#getOverview}), since this chart should
+     * show the full available historical price curve, including years before
+     * the user's own entry. Independent query rather than reusing
+     * getOverview()'s range logic.
      */
     public List<MonthlyPriceDTO> getPriceHistory(String currency) {
         String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
@@ -81,7 +81,7 @@ public class MonthlyPriceService {
         List<MonthlyPriceDTO> result = new ArrayList<>();
         for (MonthlyPrice mp : monthlyPriceRepo.findByTickerAndCurrencyOrderByYearAscMonthAsc(TICKER, cur)) {
             YearMonth ym = YearMonth.of(mp.getYear(), mp.getMonth());
-            if (!ym.isBefore(currentYm)) continue; // laufender/zukünftiger Monat s.u. mit Live-Kurs
+            if (!ym.isBefore(currentYm)) continue; // current/future month is added below with the live price
             MonthlyPriceDTO dto = new MonthlyPriceDTO();
             dto.setYear(mp.getYear());
             dto.setMonth(mp.getMonth());
@@ -102,6 +102,7 @@ public class MonthlyPriceService {
         return result;
     }
 
+    /** Creates or updates the manual reference price for one month/currency. */
     @Transactional
     public MonthlyPriceDTO upsert(Integer year, Integer month, String currency, BigDecimal price) {
         if (year == null || month == null) throw new IllegalArgumentException("Year and month required");

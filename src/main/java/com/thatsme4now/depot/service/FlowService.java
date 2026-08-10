@@ -19,6 +19,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Builds the Sankey flow graph data for the "Flow" page: how BTC moved
+ * between buys, sells, external transfers and the user's own positions
+ * over time, optionally traced upstream/downstream from one anchor position
+ * using FIFO lot matching.
+ */
 @Service
 @RequiredArgsConstructor
 public class FlowService {
@@ -29,6 +35,12 @@ public class FlowService {
 
     // ── Public entry point ───────────────────────────────────────────────
 
+    /**
+     * Builds the flow graph for the given date range. If {@code anchorPositionId}
+     * is set, the graph is limited to flows that trace back to (upstream) or
+     * derive from (downstream) that position via FIFO lot matching; otherwise
+     * every edge is included at its full quantity.
+     */
     public FlowGraphDTO buildFlowGraph(LocalDate from, LocalDate to, Long anchorPositionId) {
         List<Position> positions = positionRepo.findAll();
         List<Transaction> allTx = transactionRepo.findAll();
@@ -37,15 +49,15 @@ public class FlowService {
         Map<Long, BigDecimal> balances = computeBalances(positions, allTx);
 
         LocalDateTime fromDt = from != null ? from.atStartOfDay() : null;
-        LocalDateTime toDt   = to   != null ? to.plusDays(1).atStartOfDay() : null; // exklusiv
+        LocalDateTime toDt   = to   != null ? to.plusDays(1).atStartOfDay() : null; // exclusive
 
         List<Transaction> filteredTx = allTx.stream()
                 .filter(tx -> fromDt == null || !tx.getDate().isBefore(fromDt))
                 .filter(tx -> toDt == null || tx.getDate().isBefore(toDt))
                 .collect(Collectors.toList());
 
-        // Pairing-Lookup auf ALLEN Transaktionen, damit ein Transfer nicht fälschlich als
-        // Solo-Transfer erscheint, nur weil die Gegenbuchung außerhalb des Datumsfilters liegt.
+        // Pairing lookup runs on ALL transactions so a transfer isn't mistaken for a
+        // solo transfer just because its counterpart falls outside the date filter.
         Map<String, List<Transaction>> byTransferId = allTx.stream()
                 .filter(t -> t.getTransferId() != null)
                 .collect(Collectors.groupingBy(Transaction::getTransferId));
@@ -53,7 +65,7 @@ public class FlowService {
         List<FlowEdge> edges = buildRawEdges(filteredTx, byTransferId);
 
         if (anchorPositionId == null) {
-            // Kein Filter -> "relevant" = jede Kante in voller Menge (identisch zur alten Logik)
+            // No filter -> "relevant" = every edge at its full quantity (same as before anchoring existed)
             Map<String, BigDecimal> identity = new LinkedHashMap<>();
             for (FlowEdge e : edges) identity.put(e.id, e.debitQty);
             return aggregateToGraph(positions, balances, edges, identity, null);
@@ -86,28 +98,29 @@ public class FlowService {
         return aggregateToGraph(positions, balances, edges, relevantQty, anchorPositionId);
     }
 
-    // ── Raw-Edge-Modell (Transaktions-Ebene, noch nicht pro Monat gruppiert) ─
+    // ── Raw edge model (transaction level, not yet grouped by month) ────────
 
     private static class FlowEdge {
         String id;
         String sourceNode;
         String targetNode;
-        Long sourcePositionId; // gesetzt, wenn sourceNode = "pos-X" (Edge ist Outflow dieser Position)
-        Long targetPositionId; // gesetzt, wenn targetNode = "pos-X" (Edge ist Inflow dieser Position)
-        BigDecimal debitQty;   // aus sourcePositionId abgeflossene Menge
-        BigDecimal creditQty;  // bei targetPositionId angekommene Menge (kann wg. Fee < debitQty sein)
+        Long sourcePositionId; // set when sourceNode = "pos-X" (edge is an outflow of this position)
+        Long targetPositionId; // set when targetNode = "pos-X" (edge is an inflow of this position)
+        BigDecimal debitQty;   // quantity that left sourcePositionId
+        BigDecimal creditQty;  // quantity that arrived at targetPositionId (may be < debitQty due to fees)
         LocalDateTime date;
         String transactionId;
-        Transaction tx;        // primäre Transaktion (z.B. TRANSFER_OUT-Seite bei Transfers)
-        Transaction pairedTx;  // gepaarte Gegenbuchung (TRANSFER_IN), null wenn nicht anwendbar
+        Transaction tx;        // primary transaction (e.g. the TRANSFER_OUT side of a transfer)
+        Transaction pairedTx;  // paired counter-booking (TRANSFER_IN), null if not applicable
     }
 
     private static class Allocation {
         FlowEdge outflowEdge;
-        FlowEdge inflowEdge; // null = unbekannte Herkunft (Datenlücke, z.B. fehlender initialer Bestand)
+        FlowEdge inflowEdge; // null = unknown origin (data gap, e.g. missing initial balance)
         BigDecimal qty;
     }
 
+    /** Converts raw transactions into flow edges, pairing up TRANSFER_OUT/TRANSFER_IN by transferId. */
     private List<FlowEdge> buildRawEdges(List<Transaction> filteredTx, Map<String, List<Transaction>> byTransferId) {
         List<FlowEdge> edges = new ArrayList<>();
         Set<Long> processed = new HashSet<>();
@@ -136,7 +149,7 @@ public class FlowService {
                                     tx.getPosition().getId(), pairIn.getPosition().getId(),
                                     tx.getQuantity(), pairIn.getQuantity(), tx, pairIn));
                         }
-                        // sonst: Self-Transfer (SELF-Import) -> kein Edge
+                        // else: self-transfer (SELF import) -> no edge
                     } else {
                         edges.add(mkEdge("e" + edges.size(), "pos-" + tx.getPosition().getId(), "ext-out-" + tx.getPosition().getId(),
                                 tx.getPosition().getId(), null, tx.getQuantity(), null, tx, null));
@@ -146,14 +159,14 @@ public class FlowService {
                 case TRANSFER_IN -> {
                     Transaction pairOut = findPaired(tx, byTransferId, TransactionType.TRANSFER_OUT);
                     if (pairOut != null) {
-                        processed.add(tx.getId()); // bereits über OUT-Seite verarbeitet
+                        processed.add(tx.getId()); // already processed via the OUT side
                     } else {
                         edges.add(mkEdge("e" + edges.size(), "ext-in-" + tx.getPosition().getId(), "pos-" + tx.getPosition().getId(),
                                 null, tx.getPosition().getId(), null, tx.getQuantity(), tx, null));
                         processed.add(tx.getId());
                     }
                 }
-                default -> { } // DEPOSIT / WITHDRAW aktuell ungenutzt
+                default -> { } // DEPOSIT / WITHDRAW currently unused here
             }
         }
         return edges;
@@ -185,8 +198,9 @@ public class FlowService {
                 .findFirst().orElse(null);
     }
 
-    // ── FIFO-Ledger je Position: erzeugt Allocations (welcher Eingang deckt welchen Ausgang) ─
+    // ── FIFO ledger per position: produces allocations (which inflow covers which outflow) ─
 
+    /** Matches each position's outflows against its inflows in date order, oldest inflow first (FIFO). */
     private void runFifoLedger(List<FlowEdge> inflows, List<FlowEdge> outflows,
                                 Map<String, List<Allocation>> allocByOutflow,
                                 Map<String, List<Allocation>> allocByInflow) {
@@ -198,7 +212,7 @@ public class FlowService {
         for (FlowEdge e : outflows) timeline.add(new TimelineEntry(e.date, false, e));
         timeline.sort(Comparator.comparing(TimelineEntry::date));
 
-        // Deque von [FlowEdge Ursprungs-Edge, BigDecimal verbleibende Menge]
+        // Deque of [FlowEdge originating edge, BigDecimal remaining quantity]
         Deque<Object[]> lots = new ArrayDeque<>();
 
         for (TimelineEntry te : timeline) {
@@ -231,7 +245,7 @@ public class FlowService {
             }
 
             if (remaining.compareTo(BigDecimal.ZERO) > 0) {
-                // Datenlücke: nicht genug erfasste Eingangs-Historie (z.B. initialer, nicht importierter Bestand)
+                // Data gap: not enough recorded inflow history (e.g. an initial balance that was never imported)
                 Allocation alloc = new Allocation();
                 alloc.outflowEdge = te.edge();
                 alloc.inflowEdge = null;
@@ -241,16 +255,17 @@ public class FlowService {
         }
     }
 
-    // ── Rekursive Herkunfts-/Ziel-Verfolgung ausgehend von der Ankerposition ─
+    // ── Recursive origin/destination tracing starting from the anchor position ─
 
+    /** Recursively follows an edge's inflow allocations back to their origin (BUY / external-in). */
     private void traceUpstream(FlowEdge edge, BigDecimal neededQty,
                                 Map<String, List<Allocation>> allocByOutflow,
                                 Map<String, BigDecimal> relevantQty, Set<String> guard) {
         BigDecimal clipped = neededQty.min(edge.creditQty);
         relevantQty.merge(edge.id, clipped, BigDecimal::add);
 
-        if (edge.sourcePositionId == null) return; // terminal: BUY oder EXTERNAL_IN
-        if (!guard.add("UP:" + edge.id)) return;   // Schutz gegen theoretische Zyklen
+        if (edge.sourcePositionId == null) return; // terminal: BUY or EXTERNAL_IN
+        if (!guard.add("UP:" + edge.id)) return;   // guard against theoretical cycles
 
         BigDecimal remaining = clipped;
         for (Allocation a : allocByOutflow.getOrDefault(edge.id, List.of())) {
@@ -263,13 +278,14 @@ public class FlowService {
         }
     }
 
+    /** Recursively follows an edge's outflow allocations forward to their destination (SELL / external-out). */
     private void traceDownstream(FlowEdge edge, BigDecimal neededQty,
                                   Map<String, List<Allocation>> allocByInflow,
                                   Map<String, BigDecimal> relevantQty, Set<String> guard) {
         BigDecimal clipped = neededQty.min(edge.debitQty);
         relevantQty.merge(edge.id, clipped, BigDecimal::add);
 
-        if (edge.targetPositionId == null) return; // terminal: SELL oder EXTERNAL_OUT
+        if (edge.targetPositionId == null) return; // terminal: SELL or EXTERNAL_OUT
         if (!guard.add("DOWN:" + edge.id)) return;
 
         BigDecimal remaining = clipped;
@@ -281,8 +297,9 @@ public class FlowService {
         }
     }
 
-    // ── Aggregation zu Monats-Links + Node-Liste ────────────────────────────
+    // ── Aggregation into monthly links + node list ──────────────────────────
 
+    /** Aggregates relevant edges into monthly {@link FlowLinkDTO}s and builds the node list. */
     private FlowGraphDTO aggregateToGraph(List<Position> positions, Map<Long, BigDecimal> balances,
                                            List<FlowEdge> edges, Map<String, BigDecimal> relevantQty,
                                            Long anchorPositionId) {
@@ -329,8 +346,9 @@ public class FlowService {
         return new FlowGraphDTO(buildNodes(positions, balances, usedNodeIds), new ArrayList<>(links.values()));
     }
 
-    // ── Bestände & Node-Aufbau ───────────────────────────────────────────────
+    // ── Balances & node construction ─────────────────────────────────────────
 
+    /** Sums each position's current BTC balance across all transactions. */
     private Map<Long, BigDecimal> computeBalances(List<Position> positions, List<Transaction> allTx) {
         Map<Long, BigDecimal> balances = new HashMap<>();
         for (Position p : positions) balances.put(p.getId(), BigDecimal.ZERO);

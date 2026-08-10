@@ -20,6 +20,11 @@ import com.thatsme4now.depot.service.ImportWizardService.UploadResult;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * MVC controller that renders the application's Thymeleaf pages: the main
+ * overview/transaction-management page, the three visualization pages
+ * (flow, holdings, yearly), and the 3-step CSV import wizard.
+ */
 @Controller
 @RequiredArgsConstructor
 public class DepotViewController {
@@ -27,29 +32,37 @@ public class DepotViewController {
     private final DepotService depotService;
     private final ImportWizardService importWizardService;
 
+    /** Redirects the app root to the holdings visualization page. */
     @GetMapping("/")
     public String root() {
     	return "redirect:/btc-tracking/holdings";
     }
-    
+
+    /** Renders the flow diagram (Sankey) visualization page. */
     @GetMapping("/btc-tracking/flow")
     public String flow() {
         return "depot/flow";
     }
 
+    /** Renders the holdings visualization page. */
     @GetMapping("/btc-tracking/holdings")
     public String holdings() {
         return "depot/holdings";
     }
 
+    /** Renders the yearly overview visualization page. */
     @GetMapping("/btc-tracking/yearly")
     public String yearly() {
         return "depot/yearly";
     }
 
+    /**
+     * Renders the main overview page: positions, the current BTC price for
+     * the selected display currency, and the recent import history.
+     */
     @GetMapping("/btc-tracking")
     public String overview(Model model, HttpServletRequest request) {
-        // Read currency from cookie (set by JS when user changes setting)
+        // currency is set by JS via cookie when the user changes the setting
         String currency = depotService.readCookie(request, "depot-currency", "EUR");
 
         List<PositionDTO> positions = depotService.getAllPositions(currency);
@@ -57,10 +70,10 @@ public class DepotViewController {
         model.addAttribute("positions",      positions);
         model.addAttribute("currency",       currency);
 
-        // BTC price for header badge – from selected currency
+        // BTC price for the header badge, in the selected currency
 		depotService.getCurrentPrice(currency).ifPresentOrElse(p -> {
     			model.addAttribute("btcPrice", p.getPrice());
-    			model.addAttribute("btcPriceDate", 
+    			model.addAttribute("btcPriceDate",
     					p.getPriceDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
                 model.addAttribute("currentPrice", p.getPrice());
 
@@ -70,26 +83,23 @@ public class DepotViewController {
             model.addAttribute("currentPrice", new BigDecimal(0L));
 
     	});
-        
-        // Flag: no price available for selected currency
+
         boolean noPriceAvailable = positions.stream()
             .allMatch(p -> p.getCurrentPrice() == null);
         model.addAttribute("noPriceAvailable", noPriceAvailable);
 
-        // Import-Historie-Kachel — einfache Liste, siehe ImportWizardService#getHistory
         model.addAttribute("importHistory", importWizardService.getHistory(20));
 
         return "depot/overview";
     }
 
-    // ── Import-Assistent (3 Steps) ─────────────────────────────────────────
+    // ── Import wizard (3 steps) ─────────────────────────────────────────
 
     /**
-     * Step 1: Datei-Upload → serverseitiges Parsen (ersetzt PapaParse für
-     * diesen Schritt) → Mapping-Seite mit eingebetteten Rohdaten. Kein Redirect
-     * (die Daten leben nur im Response, nicht serverseitig zwischengespeichert) —
-     * Mapping-Änderungen laufen danach komplett clientseitig gegen die
-     * eingebetteten Daten, siehe import-mapping.js.
+     * Import wizard step 1: parses the uploaded file server-side and renders
+     * the mapping page with the raw data embedded in it. No redirect — the
+     * parsed data lives only in this response (not persisted server-side);
+     * mapping changes then run entirely client-side, see import-mapping.js.
      */
     @PostMapping("/btc-tracking/import/mapping")
     public String importMapping(@RequestParam("file") MultipartFile file, Model model) {
@@ -109,11 +119,13 @@ public class DepotViewController {
         return "depot/import-mapping";
     }
 
+    /** Import wizard step 2: renders the staging table for review before commit. */
     @GetMapping("/btc-tracking/import/review")
     public String importReview() {
         return "depot/import-review";
     }
 
+    /** Import wizard step 3: renders the import result summary. */
     @GetMapping("/btc-tracking/import/status")
     public String importStatus() {
         return "depot/import-status";

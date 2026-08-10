@@ -54,6 +54,7 @@ public class HistoricalPriceService {
         return result;
     }
 
+    /** Creates or updates the year-end reference price for one year/currency. */
     @Transactional
     public HistoricalPriceDTO upsert(Integer year, String currency, BigDecimal price) {
         if (year == null) throw new IllegalArgumentException("Year required");

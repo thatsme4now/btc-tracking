@@ -42,14 +42,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Backend für den 3-Step-Import-Assistenten (Mapping-Vorschau → Review →
- * Status). Ersetzt für den normalen CSV-Import NICHT die bestehende
- * {@link CsvImportService} (die bleibt für .enc-Importe und als Basis für
- * Datums-Parsing/Positions-Resolution im Einsatz), sondern ergänzt sie um
- * eine fehlertolerante Staging-Stufe: Zeilen, die nicht sauber gemappt
- * werden konnten, verschwinden nicht mehr still, sondern landen sichtbar
- * (mit Fehlergrund) in der import_staging_row-Tabelle und können dort vom
- * Nutzer repariert oder gelöscht werden, bevor final importiert wird.
+ * Backend for the 3-step import wizard (mapping preview -> review -> status).
+ * Does NOT replace the existing {@link CsvImportService} for normal CSV
+ * imports (that stays in use for date parsing / position resolution), but
+ * adds an error-tolerant staging stage on top of it: rows that couldn't be
+ * mapped cleanly no longer silently disappear — they show up (with an error
+ * reason) in the import_staging_row table where the user can fix or delete
+ * them before the final import.
  */
 @Slf4j
 @Service
@@ -62,13 +61,13 @@ public class ImportWizardService {
     private final DepotService               depotService;
     private final CsvImportService           csvImportService;
 
-    // ── Step 1: Datei-Upload → Header/Rohzeilen parsen ─────────────────────────
+    // ── Step 1: file upload -> parse header/raw rows ─────────────────────────
 
     /**
-     * Parst die hochgeladene CSV-Datei serverseitig (ersetzt PapaParse im
-     * Browser für diesen Schritt) und liefert Header + Rohzeilen für die
-     * Mapping-Seite. Leert defensiv die Staging-Tabelle, falls von einem
-     * abgebrochenen vorherigen Import noch Datenreste vorhanden sind.
+     * Parses the uploaded CSV file server-side (replacing the browser's PapaParse
+     * for this step) and returns headers + raw rows for the mapping page.
+     * Defensively clears the staging table in case a previous, aborted import
+     * left data behind.
      */
     @Transactional
     public UploadResult parseUpload(MultipartFile file) throws IOException {
@@ -105,8 +104,8 @@ public class ImportWizardService {
             return result;
         }
 
-        // Header-Zeile, doppelte Namen mit Suffix versehen — exakt wie bisher
-        // clientseitig in openMappingModal() (depot.js).
+        // Header row, suffixing duplicate names — exactly matching the previous
+        // client-side logic in openMappingModal() (depot.js).
         List<String> rawHeaders = allRows.get(0);
         Map<String, Integer> seen = new HashMap<>();
         List<String> headers = new ArrayList<>();
@@ -139,12 +138,12 @@ public class ImportWizardService {
     }
 
     /**
-     * Erkennt das CSV-Trennzeichen anhand der ersten (Header-)Zeile, da
-     * CSVFormat.DEFAULT fest auf Komma steht. Exportformate wie CoinTracking
-     * nutzen Komma, viele Wallet-/Hardware-Wallet-Exporte dagegen Semikolon
-     * oder Tab — ohne diese Erkennung landet die gesamte Header-Zeile als ein
-     * einziger Spaltenname und das Mapping kann keine Felder mehr zuordnen
-     * (vorher hat clientseitiges PapaParse den Delimiter automatisch erkannt).
+     * Detects the CSV delimiter from the first (header) line, since
+     * CSVFormat.DEFAULT is hardcoded to comma. Export formats like CoinTracking
+     * use commas, but many wallet/hardware-wallet exports use semicolons or tabs
+     * instead — without this detection, the whole header line becomes a single
+     * column name and mapping can't assign any fields (the client-side PapaParse
+     * used to auto-detect the delimiter).
      */
     private char detectDelimiter(String content) {
         int firstLineEnd = content.indexOf('\n');
@@ -167,11 +166,12 @@ public class ImportWizardService {
         return bestCount > 0 ? best : ',';
     }
 
-    // ── Step 1 → Step 2: gemappte Zeilen in die Staging-Tabelle übernehmen ────
+    // ── Step 1 → Step 2: commit mapped rows into the staging table ──────────
 
+    /** Builds and stages rows from the client-mapped data, then runs transfer pairing, duplicate and FX checks. */
     @Transactional
     public StageResult stageRows(List<MappedRow> mappedRows, String displayCurrency) {
-        stagingRepo.deleteAllInBatch(); // defensiv, falls doppelt aufgerufen
+        stagingRepo.deleteAllInBatch(); // defensive, in case this is called twice
 
         List<ImportStagingRow> built = new ArrayList<>();
         int skippedNoBtc = 0;
@@ -187,9 +187,9 @@ public class ImportWizardService {
             }
         }
 
-        // Chronologische Reihenfolge (Dateien sind i.d.R. neueste-zuerst) — wie
-        // im bestehenden Mapped-Import (csvRows.reversed()) — nötig für das
-        // Transfer-Pairing unten.
+        // Chronological order (files are usually newest-first) — same as the
+        // existing mapped import (csvRows.reversed()) — needed for transfer
+        // pairing below.
         Collections.reverse(built);
         for (int i = 0; i < built.size(); i++) {
             built.get(i).setRowIndex(i);
@@ -208,15 +208,15 @@ public class ImportWizardService {
         return result;
     }
 
-    /** Signalisiert, dass eine Zeile (Trade/Einzahlung/Auszahlung) ohne BTC-Bezug
-     *  beim Staging übersprungen werden soll, statt als Fehler angezeigt zu werden. */
+    /** Signals that a row (Trade/Einzahlung/Auszahlung) with no BTC involved
+     *  should be skipped during staging instead of shown as an error. */
     private static class NoBtcTradeException extends RuntimeException {
     }
 
     private static final BigDecimal SATS_PER_BTC = BigDecimal.valueOf(100_000_000);
 
-    /** true für Satoshi-Einheiten (case-insensitive) — wie sie z.B. Wallet-Exports
-     *  (Sparrow, BlueWallet, ...) statt "BTC" als Amount-Einheit liefern. */
+    /** True for satoshi units (case-insensitive) — as delivered by some wallet
+     *  exports (Sparrow, BlueWallet, ...) instead of "BTC" as the amount unit. */
     private static boolean isSatoshiUnit(String cur) {
         if (cur == null) return false;
         String c = cur.trim();
@@ -224,16 +224,16 @@ public class ImportWizardService {
             || c.equalsIgnoreCase("satoshi") || c.equalsIgnoreCase("satoshis");
     }
 
-    /** true für "BTC" sowie alle Satoshi-Bezeichner — die eigentliche BTC-Bezug-
-     *  Prüfung (ersetzt die bisherigen reinen "BTC".equalsIgnoreCase(...)-Checks). */
+    /** True for "BTC" as well as any satoshi unit — the actual BTC-relevance
+     *  check (replaces the previous plain "BTC".equalsIgnoreCase(...) checks). */
     private static boolean isBtcUnit(String cur) {
         return cur != null && (cur.trim().equalsIgnoreCase("BTC") || isSatoshiUnit(cur));
     }
 
-    /** Satoshi-Ganzzahlwerte (z.B. 1904) in BTC (8 Nachkommastellen, exakt, da
-     *  1 Satoshi = 0.00000001 BTC glatt in scale 8 aufgeht) umrechnen. BTC-Werte
-     *  bleiben unverändert, damit bestehende CoinTracking-Importe (bereits in
-     *  BTC) unangetastet bleiben. */
+    /** Converts integer satoshi amounts (e.g. 1904) to BTC (8 decimal places,
+     *  exact since 1 satoshi = 0.00000001 BTC fits scale 8 cleanly). BTC values
+     *  pass through unchanged so existing CoinTracking imports (already in BTC)
+     *  are unaffected. */
     private static BigDecimal toBtc(BigDecimal amount, String cur) {
         if (amount == null) return null;
         return isSatoshiUnit(cur) ? amount.divide(SATS_PER_BTC, 8, RoundingMode.HALF_UP) : amount;
@@ -254,8 +254,8 @@ public class ImportWizardService {
         String buyCur  = blankToNull(r.getBuyCurrency());
         String sellCur = blankToNull(r.getSellCurrency());
 
-        // Fee ebenfalls Satoshi->BTC umrechnen (z.B. Netzwerk-Fee bei Wallet-
-        // Exporten), Label entsprechend normalisieren — analog buildSelfRows().
+        // Also convert the fee from satoshi to BTC where applicable (e.g. wallet
+        // export network fees), normalizing the label accordingly — same as buildSelfRows().
         String feeCur = blankToNull(r.getFeeCurrency());
         BigDecimal fee = toBtc(decimal(r.getFee()), feeCur);
         row.setFees(fee);
@@ -293,8 +293,8 @@ public class ImportWizardService {
                         ? buyQty.divide(quantity, 2, RoundingMode.HALF_UP) : null;
                     currency = buyCur != null ? buyCur : "EUR";
                 } else {
-                    // Weder Kauf- noch Verkaufswährung ist BTC/Satoshi -> kein BTC-Bezug,
-                    // Zeile wird nicht gestaged, sondern in stageRows() gezählt.
+                    // Neither the buy nor sell currency is BTC/satoshi -> not BTC-related,
+                    // the row isn't staged but counted in stageRows().
                     throw new NoBtcTradeException();
                 }
             }
@@ -303,7 +303,7 @@ public class ImportWizardService {
                     txType = TransactionType.TRANSFER_IN;
                     quantity = toBtc(buyQty, buyCur);
                 } else {
-                    // Einzahlung einer Nicht-BTC-Währung -> kein BTC-Bezug, überspringen.
+                    // Deposit of a non-BTC currency -> not BTC-related, skip.
                     throw new NoBtcTradeException();
                 }
             }
@@ -312,7 +312,7 @@ public class ImportWizardService {
                     txType = TransactionType.TRANSFER_OUT;
                     quantity = toBtc(sellQty, sellCur);
                 } else {
-                    // Auszahlung einer Nicht-BTC-Währung -> kein BTC-Bezug, überspringen.
+                    // Withdrawal of a non-BTC currency -> not BTC-related, skip.
                     throw new NoBtcTradeException();
                 }
             }
@@ -336,9 +336,10 @@ public class ImportWizardService {
         return List.of(row);
     }
 
-    /** SELF-Zeilen (Wallet-Export): Abgang mit Netzwerk-Fee + Zugang auf derselben
-     *  Position, gepaart über eine gemeinsame transferId — analog CsvImportService#mapSelfRows,
-     *  aber fehlertolerant (fehlende Werte führen zu hasError statt stillem Verwerfen). */
+    /** "Selbst" rows (wallet export): an outflow with a network fee plus an inflow to
+     *  the same position, paired via a shared transferId — mirrors
+     *  {@code CsvImportService.mapSelfRows}, but error-tolerant (missing values
+     *  set hasError instead of being silently dropped). */
     private List<ImportStagingRow> buildSelfRows(MappedRow r) {
         String exchange = blankToNull(r.getExchange());
         LocalDateTime dateTime = parseDate(r.getDate());
@@ -361,9 +362,9 @@ public class ImportWizardService {
             if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount;
         }
 
-        // Nach der Umrechnung ist der numerische Wert unabhängig vom Original-CSV
-        // immer in BTC — Label entsprechend normalisieren statt "satoshi" stehen
-        // zu lassen (würde sonst mit dem jetzt in BTC umgerechneten Zahlenwert nicht mehr zusammenpassen).
+        // After conversion, the numeric value is always in BTC regardless of the
+        // original CSV — normalize the label instead of leaving "satoshi" (which
+        // would no longer match the now BTC-converted numeric value).
         String feeCurrency = isSatoshiUnit(feeCur) ? "BTC" : (feeCur != null ? feeCur : "BTC");
         String comment = blankToNull(r.getComment());
         String transferId = UUID.randomUUID().toString();
@@ -412,8 +413,8 @@ public class ImportWizardService {
         return pair;
     }
 
-    /** Automatisches Transfer-Pairing — Portierung von CsvImportService#assignTransferIds
-     *  (4er-Lookahead-Fenster, Mengen-/Gebühren-Toleranz) auf ImportStagingRow. */
+    /** Automatic transfer pairing — ports {@code CsvImportService.assignTransferIds}'s
+     *  4-row lookahead window and quantity/fee tolerance to {@link ImportStagingRow}. */
     private void assignTransferIds(List<ImportStagingRow> rows) {
         for (int i = 0; i < rows.size() - 1; i++) {
             ImportStagingRow curr = rows.get(i);
@@ -438,9 +439,9 @@ public class ImportWizardService {
         }
     }
 
-    /** Duplikat-Kriterium: Datum+Typ+Menge, gegen die bestehende DB UND innerhalb
-     *  des neuen Batches selbst (siehe Absprache) — Zeilen mit transactionId werden
-     *  nie über dieses Kriterium markiert. */
+    /** Duplicate criterion: date+type+quantity, checked against the existing DB AND
+     *  within the new batch itself — rows with a transactionId are never flagged
+     *  by this criterion. */
     private void markDuplicates(List<ImportStagingRow> rows) {
         Map<String, List<ImportStagingRow>> byKey = new HashMap<>();
         for (ImportStagingRow row : rows) {
@@ -460,8 +461,8 @@ public class ImportWizardService {
         }
     }
 
-    /** FX-Kriterium: currency weicht von der aktuell gewählten Oberflächenwährung
-     *  ab UND exchangeRate fehlt/=1 — nur bei BUY/SELL relevant (siehe Absprache). */
+    /** FX criterion: currency differs from the currently selected display currency
+     *  AND exchangeRate is missing/=1 — only relevant for BUY/SELL. */
     private void markFxWarnings(List<ImportStagingRow> rows, String displayCurrency) {
         String display = (displayCurrency == null || displayCurrency.isBlank()) ? "EUR" : displayCurrency.toUpperCase();
         for (ImportStagingRow row : rows) {
@@ -473,12 +474,14 @@ public class ImportWizardService {
         }
     }
 
-    // ── Step 2: Review — Staging-CRUD ──────────────────────────────────────────
+    // ── Step 2: Review — staging CRUD ──────────────────────────────────────────
 
+    /** Lists all staged rows in their original order for the review step. */
     public List<ImportStagingRowDTO> listStaging() {
         return stagingRepo.findAllByOrderByRowIndexAsc().stream().map(this::toDTO).toList();
     }
 
+    /** Applies field edits to a staged row and recomputes its error/duplicate/FX-warning flags. */
     @Transactional
     public ImportStagingRowDTO updateStaging(Long id, StagingUpdateRequest req, String displayCurrency) {
         ImportStagingRow row = stagingRepo.findById(id)
@@ -537,11 +540,13 @@ public class ImportWizardService {
         row.setFxWarning(isTrade && differentCurrency && noRate);
     }
 
+    /** Deletes a single staged row. */
     @Transactional
     public void deleteStaging(Long id) {
         stagingRepo.deleteById(id);
     }
 
+    /** Pairs consecutive staged rows two at a time under a fresh shared transferId. */
     @Transactional
     public int bulkPairStaging(List<Long> ids) {
         int paired = 0;
@@ -558,6 +563,7 @@ public class ImportWizardService {
         return paired;
     }
 
+    /** Clears the transfer pairing of the given staged rows. */
     @Transactional
     public int bulkRemoveTransferStaging(List<Long> ids) {
         int removed = 0;
@@ -571,8 +577,8 @@ public class ImportWizardService {
         return removed;
     }
 
-    /** Setzt den Wechselkurs für mehrere Staging-Zeilen auf einmal und
-     *  rechnet die FX-Warnung je Zeile neu (analog Einzel-Edit). */
+    /** Sets the exchange rate for multiple staged rows at once and recomputes
+     *  each row's FX warning (same as a single-row edit). */
     @Transactional
     public int bulkExRateStaging(List<Long> ids, BigDecimal exchangeRate, String displayCurrency) {
         int updated = 0;
@@ -587,7 +593,7 @@ public class ImportWizardService {
         return updated;
     }
 
-    /** Löscht mehrere Staging-Zeilen auf einmal endgültig. */
+    /** Permanently deletes multiple staged rows at once. */
     @Transactional
     public int bulkDeleteStaging(List<Long> ids) {
         List<Long> existing = ids.stream().filter(stagingRepo::existsById).toList();
@@ -595,10 +601,10 @@ public class ImportWizardService {
         return existing.size();
     }
 
-    /** Setzt Wallet/Börse für mehrere Staging-Zeilen auf einmal (reines Label,
-     *  keine Position-Erstellung — die passiert wie beim Einzel-Edit erst beim
-     *  finalen Commit über {@link CsvImportService#resolvePosition}). Rechnet
-     *  den missing_exchange-Fehler je Zeile neu. */
+    /** Sets the wallet/exchange label for multiple staged rows at once (label only —
+     *  no position is created yet; that happens on final commit via
+     *  {@link CsvImportService#resolvePosition}, same as a single-row edit).
+     *  Recomputes the missing_exchange error for each row. */
     @Transactional
     public int bulkMoveStaging(List<Long> ids, String targetExchange) {
         String label = blankToNull(targetExchange);
@@ -622,10 +628,10 @@ public class ImportWizardService {
         return updated;
     }
 
-    /** Markiert mehrere Staging-Zeilen als bewusst einseitigen Transfer:
-     *  jede Zeile bekommt eine eigene, frische Transfer-ID (kein gemeinsames
-     *  Pairing mehr) — analog zu {@code DepotRestController#bulkSoloTransfer}
-     *  für bereits gebuchte Transaktionen. Nur für TRANSFER_IN/TRANSFER_OUT. */
+    /** Marks multiple staged rows as deliberately solo transfers: each row gets
+     *  its own fresh transfer ID (no shared pairing anymore) — mirrors
+     *  {@code DepotRestController#bulkSoloTransfer} for already-booked
+     *  transactions. Only allowed for TRANSFER_IN/TRANSFER_OUT. */
     @Transactional
     public int bulkSoloTransferStaging(List<Long> ids) {
         for (Long id : ids) {
@@ -646,23 +652,24 @@ public class ImportWizardService {
         return marked;
     }
 
+    /** Cancels the wizard and discards all staged rows. */
     @Transactional
     public void cancelImport() {
         stagingRepo.deleteAllInBatch();
     }
 
-    // ── Step 2 → Step 3: finaler Commit ────────────────────────────────────────
+    // ── Step 2 → Step 3: final commit ────────────────────────────────────────
 
+    /** Commits all staged rows as real transactions, recording an {@link ImportHistory} entry. */
     @Transactional
     public ConfirmResult confirmImport(String filename, Integer totalRowsHint) {
         List<ImportStagingRow> rows = stagingRepo.findAllByOrderByRowIndexAsc();
 
         seedCurrentPriceFromStaging(rows);
 
-        // History-Eintrag wird VOR der Zeilen-Schleife angelegt (mit
-        // Platzhalter-Zählern), damit seine ID für die neue
-        // transaction.import_history_id-Verknüpfung schon feststeht. Die
-        // Zählerfelder werden nach der Schleife nachgetragen (zweites Save).
+        // The history entry is created BEFORE the row loop (with placeholder counters)
+        // so its ID is already known for the new transaction.import_history_id link.
+        // The counter fields are filled in after the loop (second save).
         ImportHistory history = new ImportHistory();
         history.setFilename(filename != null && !filename.isBlank() ? filename : "import.csv");
         history.setTotalRows(totalRowsHint != null ? totalRowsHint : rows.size());
@@ -725,6 +732,7 @@ public class ImportWizardService {
         return result;
     }
 
+    /** Seeds the current price for the staged rows' currency if none is set yet, using the last staged price. */
     private void seedCurrentPriceFromStaging(List<ImportStagingRow> rows) {
         ImportStagingRow lastPriceRow = rows.stream()
             .filter(r -> r.getPricePerBtc() != null)
@@ -755,18 +763,18 @@ public class ImportWizardService {
         return i;
     }
 
-    // ── Historie ────────────────────────────────────────────────────────────
+    // ── History ────────────────────────────────────────────────────────────
 
+    /** Lists the most recent completed imports, newest first. */
     public List<ImportHistoryDTO> getHistory(int limit) {
         return historyRepo.findAllByOrderByImportedAtDesc(PageRequest.of(0, Math.max(1, limit))).stream()
             .map(this::toDTO)
             .toList();
     }
 
-    /** Löscht einen Import-Historie-Eintrag. Bei {@code deleteTransactions=false}
-     *  bleiben die verknüpften Transaktionen erhalten (Verknüpfung wird nur
-     *  aufgelöst); bei {@code true} werden sie mitgelöscht. Wirft, falls der
-     *  Eintrag nicht existiert. */
+    /** Deletes an import history entry. With {@code deleteTransactions=false} the linked
+     *  transactions are kept (only the link is cleared); with {@code true} they're deleted
+     *  too. Throws if the entry doesn't exist. */
     @Transactional
     public void deleteHistory(Long id, boolean deleteTransactions) {
         if (!historyRepo.existsById(id)) {
@@ -780,7 +788,7 @@ public class ImportWizardService {
         historyRepo.deleteById(id);
     }
 
-    // ── Mapping-Helfer ──────────────────────────────────────────────────────
+    // ── Mapping helpers ───────────────────────────────────────────────────────
 
     private LocalDateTime parseDate(String date) {
         if (date == null || date.isBlank()) return null;
@@ -802,7 +810,7 @@ public class ImportWizardService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    // ── DTO-Mapping ─────────────────────────────────────────────────────────
+    // ── DTO mapping ─────────────────────────────────────────────────────────
 
     private ImportStagingRowDTO toDTO(ImportStagingRow row) {
         ImportStagingRowDTO dto = new ImportStagingRowDTO();
@@ -843,7 +851,7 @@ public class ImportWizardService {
         return dto;
     }
 
-    // ── Interne Transport-Klassen ──────────────────────────────────────────
+    // ── Internal transport classes ──────────────────────────────────────────
 
     public static class UploadResult {
         public String filename;

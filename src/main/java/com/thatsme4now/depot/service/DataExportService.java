@@ -38,19 +38,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * "Backup erstellen" / "Backup einspielen" (frühere Bezeichnung: DB-Export/-Import)
- * — kompletter Snapshot der Anwendungsdaten als JSON (optional passwortverschlüsselt).
+ * "Create backup" / "Restore backup" (formerly DB export/import) — a complete
+ * snapshot of the application data as JSON, optionally password-encrypted.
  *
- * Seit Version 2 des Export-Formats deckt das Backup neben position/transaction
- * auch import_history sowie die vier Kurs-Tabellen (price_history, current_price,
- * historical_price, monthly_price) ab — siehe FullExportDTO. Die Sektionen sind
- * bewusst einzeln nullable: fehlt eine Sektion in der eingespielten Datei (z.B.
- * ein Backup von vor diesem Update), bleibt die entsprechende Tabelle beim
- * Restore unangetastet statt geleert zu werden (siehe importFull).
+ * Since export format version 2, the backup covers position/transaction plus
+ * import_history and the four price tables (price_history, current_price,
+ * historical_price, monthly_price) — see {@link FullExportDTO}. Each section
+ * is deliberately nullable: if a section is missing from the restored file
+ * (e.g. a backup from before this update), the corresponding table is left
+ * untouched during restore instead of being cleared (see {@link #importFull}).
  *
- * import_staging_row (Zwischenspeicher eines laufenden Imports) ist bewusst
- * NICHT Teil des Backups — rein transientes Arbeitsergebnis, wird ohnehin bei
- * jedem neuen Datei-Upload vollständig geleert.
+ * import_staging_row (the working state of an in-progress import) is deliberately
+ * NOT part of the backup — it's purely transient and is cleared on every new upload anyway.
  */
 @Slf4j
 @Service
@@ -80,6 +79,7 @@ public class DataExportService {
 
     // ── Export ──────────────────────────────────────────────
 
+    /** Serializes all app data to JSON, encrypting it with the password if given. */
     public byte[] exportFull(String password) {
         FullExportDTO dto = new FullExportDTO();
         dto.setExportedAt(LocalDateTime.now());
@@ -108,8 +108,9 @@ public class DataExportService {
         }
     }
 
-    // ── Import (Init-Process: DELETE ALL, then insert with original IDs) ────
+    // ── Import (init process: DELETE ALL, then insert with original IDs) ────
 
+    /** Restores a full backup: decrypts if needed, wipes all covered tables, and reinserts with original IDs. */
     @Transactional
     public ImportSummary importFull(byte[] fileBytes, String password) {
         byte[] json = (password != null && !password.isBlank())
@@ -127,10 +128,9 @@ public class DataExportService {
             throw new RuntimeException("Export file missing positions or transactions.");
         }
 
-        // Reihenfolge wichtig: transaction hat einen echten FK auf position
-        // (ON DELETE CASCADE) sowie eine lose (FK-lose) Referenz auf
-        // import_history — daher position und import_history VOR transaction
-        // leeren/neu befüllen.
+        // Order matters: transaction has a real FK to position (ON DELETE CASCADE)
+        // plus a loose (non-FK) reference to import_history — so position and
+        // import_history must be cleared/refilled before transaction.
         jdbcTemplate.update("DELETE FROM `transaction`");
         jdbcTemplate.update("DELETE FROM `position`");
 
@@ -176,9 +176,9 @@ public class DataExportService {
         return summary;
     }
 
-    /** @return false, falls die Sektion im Backup fehlte (Tabelle bleibt unangetastet). */
+    /** @return false if the section was missing from the backup (table is left untouched). */
     private boolean restoreImportHistory(java.util.List<ImportHistoryExportDTO> rows) {
-        if (rows == null) return false; // altes Backup ohne diese Sektion -> Tabelle unangetastet lassen
+        if (rows == null) return false; // old backup without this section -> leave the table untouched
         jdbcTemplate.update("DELETE FROM import_history");
         long maxId = 0;
         for (ImportHistoryExportDTO h : rows) {
@@ -217,7 +217,7 @@ public class DataExportService {
                 "INSERT INTO current_price (ticker, currency, price, price_date, loaded_at) VALUES (?,?,?,?,?)",
                 c.getTicker(), c.getCurrency(), c.getPrice(), c.getPriceDate(), c.getLoadedAt());
         }
-        return rows.size(); // kein Auto-Increment (Composite-PK ticker+currency) -> kein ALTER TABLE nötig
+        return rows.size(); // no auto-increment (composite PK ticker+currency) -> no ALTER TABLE needed
     }
 
     private int restoreHistoricalPrices(java.util.List<HistoricalPriceExportDTO> rows) {
@@ -341,12 +341,12 @@ public class DataExportService {
         public int transactions;
     }
 
-    // ── Clear (für App-Lock) ──────────────────────────────────
-    // Muss 1:1 zum Umfang von exportFull() passen — sonst blieben beim Sperren
-    // Reste einzelner Tabellen unverschlüsselt in der DB liegen (siehe
-    // AppLockService#lock: erst exportFull() als Snapshot sichern, dann hier
-    // alles leeren).
+    // ── Clear (for app lock) ───────────────────────────────────
+    // Must match the scope of exportFull() 1:1 — otherwise locking would leave
+    // leftover unencrypted data in the DB (see AppLockService#lock: it snapshots
+    // via exportFull() first, then clears everything here).
 
+    /** Deletes all data covered by {@link #exportFull} — used when locking the app. */
     @Transactional
     public void clearAll() {
         jdbcTemplate.update("DELETE FROM `transaction`");

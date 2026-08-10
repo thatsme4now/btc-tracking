@@ -14,6 +14,11 @@ import com.thatsme4now.depot.service.CsvEncryptionService;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST endpoints for the application's password lock: checking lock status,
+ * setting a password, unlocking with it, and resetting all data when the
+ * password is forgotten.
+ */
 @RestController
 @RequestMapping("/api/btc-tracking")
 @RequiredArgsConstructor
@@ -21,11 +26,13 @@ public class AppLockController {
 
     private final AppLockService appLockService;
 
+    /** Returns whether the app is currently locked. */
     @GetMapping("/lock/status")
     public ResponseEntity<Map<String, Object>> status() {
         return ResponseEntity.ok(Map.of("locked", appLockService.isLocked()));
     }
 
+    /** Sets a new lock password, encrypting the stored data with it. */
     @PostMapping("/lock")
     public ResponseEntity<Map<String, Object>> lock(@RequestBody LockRequest req) {
         try {
@@ -36,6 +43,10 @@ public class AppLockController {
         }
     }
 
+    /**
+     * Unlocks the app with the given password and returns the decrypted
+     * positions/transactions. Rate-limited against brute-force attempts.
+     */
     @PostMapping("/unlock")
     public ResponseEntity<Map<String, Object>> unlock(@RequestBody UnlockRequest req) {
         try {
@@ -57,6 +68,7 @@ public class AppLockController {
         }
     }
 
+    /** Permanently deletes all data when the lock password is forgotten. */
     @PostMapping("/lock/reset")
     public ResponseEntity<Map<String, Object>> reset(@RequestBody ResetRequest req) {
         try {

@@ -41,6 +41,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Main REST API for the depot app: transaction/position CRUD, current and
+ * historical BTC prices, portfolio metrics, the flow/yearly/holdings
+ * visualization data, CSV/JSON import-export, and app settings.
+ */
 @RestController
 @RequestMapping("/api/btc-tracking")
 @RequiredArgsConstructor
@@ -56,6 +61,7 @@ public class DepotRestController {
     private final MonthlyPriceService monthlyPriceService;
     private final MonthlyOverviewService monthlyOverviewService;
 
+    /** Returns the yearly holdings breakdown (per-year balance, buys/sells, P/L) for the holdings page. */
     @GetMapping("/holdings/yearly")
     public List<com.thatsme4now.depot.dto.YearlyHoldingsDTO> getYearlyHoldings(
             @RequestParam(required = false, name = "currency") String currency,
@@ -66,6 +72,7 @@ public class DepotRestController {
         return holdingsYearlyService.getYearlyHoldings(cur);
     }
 
+    /** Returns the year-end historical BTC prices used for unrealized P/L calculations. */
     @GetMapping("/historical-prices")
     public List<com.thatsme4now.depot.dto.HistoricalPriceDTO> getHistoricalPrices(
             @RequestParam(required = false, name = "currency") String currency,
@@ -76,6 +83,7 @@ public class DepotRestController {
         return historicalPriceService.getYearly(cur);
     }
 
+    /** Sets a manual year-end reference price for a given year/currency. */
     @PutMapping("/historical-prices")
     public ResponseEntity<Map<String, Object>> upsertHistoricalPrice(@RequestBody HistoricalPriceUpdateRequest req) {
         try {
@@ -91,6 +99,7 @@ public class DepotRestController {
         }
     }
 
+    /** Returns the manual monthly reference prices used for unrealized P/L calculations. */
     @GetMapping("/monthly-prices")
     public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPrices(
             @RequestParam(required = false, name = "currency") String currency,
@@ -101,8 +110,11 @@ public class DepotRestController {
         return monthlyPriceService.getMonthly(cur);
     }
 
-    /** Reine Kurs-Historie (alle in monthly_price vorhandenen Monate + laufender Live-Kurs) für
-     *  den Bitcoin-Kurs-Chart der Jahresansicht-Gesamtansicht — siehe MonthlyPriceService#getPriceHistory. */
+    /**
+     * Returns the full monthly price history (every month in the
+     * {@code monthly_price} table plus the current live price) for the
+     * yearly overview's Bitcoin price chart, see {@link MonthlyPriceService#getPriceHistory}.
+     */
     @GetMapping("/monthly-prices/history")
     public List<com.thatsme4now.depot.dto.MonthlyPriceDTO> getMonthlyPriceHistory(
             @RequestParam(required = false, name = "currency") String currency,
@@ -113,6 +125,7 @@ public class DepotRestController {
         return monthlyPriceService.getPriceHistory(cur);
     }
 
+    /** Sets a manual monthly reference price. */
     @PutMapping("/monthly-prices")
     public ResponseEntity<Map<String, Object>> upsertMonthlyPrice(@RequestBody MonthlyPriceUpdateRequest req) {
         try {
@@ -129,6 +142,7 @@ public class DepotRestController {
         }
     }
 
+    /** Returns balance/value time series for the yearly view, either the full overview or a single year. */
     @GetMapping("/yearly-overview")
     public com.thatsme4now.depot.dto.YearlyOverviewDTO getYearlyOverview(
             @RequestParam(required = false, name = "year") Integer year,
@@ -140,6 +154,7 @@ public class DepotRestController {
         return monthlyOverviewService.getOverview(year, cur);
     }
 
+    /** Returns the Sankey flow graph (nodes/links) for the flow diagram page, optionally filtered by date range or position. */
     @GetMapping("/flow")
     public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
             @RequestParam(required = false, name = "from") String from,
@@ -149,13 +164,16 @@ public class DepotRestController {
 		java.time.LocalDate toDate = (to != null && !to.isBlank()) ? java.time.LocalDate.parse(to) : null;
 		return flowService.buildFlowGraph(fromDate, toDate, positionId);
     }
-    
+
+    /** Returns the raw daily BTC price history. */
     @GetMapping("/history")
     public List<PriceHistory> getHistory() {
         return depotService.getHistory();
     }
 
-    // ── Mapped import from PapaParse frontend ─────────────────────────────────
+    // ── Mapped import from the legacy PapaParse frontend flow ──────────────────
+
+    /** Imports transactions from rows already mapped client-side (legacy CSV import path). */
     @PostMapping("/import-mapped")
     public ResponseEntity<Map<String, Object>> importMapped(
             @RequestBody MappedImportRequest req) {
@@ -265,11 +283,16 @@ public class DepotRestController {
 
     // ── Transactions CRUD ─────────────────────────────────────────────────────
 
+    /** Returns all transactions. */
     @GetMapping("/transactions")
     public List<TransactionDTO> getAllTransactions() {
         return depotService.getAllTransactions();
     }
     
+    /**
+     * Creates a new transaction. For a TRANSFER_OUT with a transfer target,
+     * also creates the paired TRANSFER_IN transaction with a shared transfer id.
+     */
     @PostMapping("/transactions")
     public ResponseEntity<TransactionDTO> addTransaction(
             @RequestBody TransactionUpdateRequest req) {
@@ -282,7 +305,7 @@ public class DepotRestController {
         Position position = csvImportService.resolvePosition(req.getExchange());
         tx.setPosition(position);
         tx.setTransactionId(UUID.randomUUID().toString());
-        // Pairing: wenn TRANSFER_OUT + transferTarget gesetzt → UUID vergeben
+        // pairing: assign a shared transfer id when TRANSFER_OUT has a transferTarget
         if (tx.getType() == TransactionType.TRANSFER_OUT
                 && req.getTransferTarget() != null
                 && !req.getTransferTarget().isBlank()) {
@@ -310,6 +333,7 @@ public class DepotRestController {
                 .stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow());
     }
 
+    /** Updates an existing transaction's fields. */
     @PutMapping("/transactions/{id}")
     public ResponseEntity<TransactionDTO> updateTransaction(
             @PathVariable("id") Long id,
@@ -323,6 +347,7 @@ public class DepotRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+	/** Applies non-null fields from the request onto the transaction entity. */
 	private void mapTransactionRequestToTransaction(TransactionUpdateRequest req, Transaction tx) {
 		LocalDateTime dateTime = csvImportService.getLocalDateTimeByString(req.getDate());
 		
@@ -346,21 +371,25 @@ public class DepotRestController {
 		tx.setComment(req.getComment());
 	}
     
-	// "App zurücksetzen" (früher "Alle löschen") — leert dieselben Tabellen
-	// wie der App-Lock-Reset (siehe AppLockService#reset), damit die App
-	// danach exakt einer frischen Installation ohne Daten entspricht.
+	/**
+	 * "Reset app": clears the same tables as the app-lock reset (see
+	 * {@link com.thatsme4now.depot.service.AppLockService#reset}), leaving
+	 * the app equivalent to a fresh install with no data.
+	 */
 	@DeleteMapping("/")
     public ResponseEntity<Void> deleteAllTransaction() {
         dataExportService.clearAll();
         return ResponseEntity.noContent().build();
     }
 	
+	/** Deletes a single transaction. */
 	@DeleteMapping("/transactions/{id}")
     public ResponseEntity<Void> deleteTransaction(@PathVariable("id") Long id) {
         depotService.deleteTransaction(id);
         return ResponseEntity.noContent().build();
     }
 	
+	/** Clears the duplicate flag on the selected transactions. */
 	@PostMapping("/transactions/bulk-clear-duplicate")
     public ResponseEntity<Map<String, Object>> bulkClearDuplicate(@RequestBody BulkClearDuplicateRequest req) {
         if (req.getIds() == null || req.getIds().isEmpty()) {
@@ -380,12 +409,10 @@ public class DepotRestController {
 
 
 	/**
-     * POST /api/depot/export
-     * Body (JSON): { "password": "optional-secret" }
-     *
-     * - password null/blank → plain CSV (transactions_export.csv)
-     * - password present    → AES-256-GCM encrypted (transactions_export.enc)
-     */
+	 * Exports transactions as CSV, either the internal re-importable format
+	 * or a CoinTracking-compatible format. If a password is given, the CSV
+	 * is AES-256-GCM encrypted before being returned.
+	 */
 	@PostMapping("/export")
 	public void exportCsv(
 	        @RequestBody(required = false) ExportRequest req,
@@ -428,7 +455,7 @@ public class DepotRestController {
 	    }
 	}
 
-	/** Internal re-importable format (bisheriges Verhalten, jetzt in eigene Methode ausgelagert) */
+	/** Writes the internal, re-importable CSV format. */
 	private void writeInternalCsv(List<TransactionDTO> transactions, java.io.ByteArrayOutputStream baos) throws java.io.IOException {
 	    try (org.apache.commons.csv.CSVPrinter printer = new org.apache.commons.csv.CSVPrinter(
 	            new java.io.OutputStreamWriter(baos, java.nio.charset.StandardCharsets.UTF_8),
@@ -500,11 +527,7 @@ public class DepotRestController {
 	    }
 	}
 
-	/**
-	 * CoinTracking-kompatibles CSV (Standard CoinTracking Import-Template, deutsche Spalten).
-	 * Duplizierte "Cur." Header sind bei CoinTracking so vorgesehen.
-	 * Type-Werte: Trade, Einzahlung, Auszahlung (CoinTracking-kompatibel).
-	 */
+	/** Writes a CoinTracking-compatible CSV (standard import template, German column headers; duplicate "Cur." headers are expected by CoinTracking). */
 	private void writeCoinTrackingCsv(List<TransactionDTO> transactions, java.io.ByteArrayOutputStream baos) throws java.io.IOException {
 	    try (org.apache.commons.csv.CSVPrinter printer = new org.apache.commons.csv.CSVPrinter(
 	            new java.io.OutputStreamWriter(baos, java.nio.charset.StandardCharsets.UTF_8),
@@ -570,12 +593,12 @@ public class DepotRestController {
 	    }
 	}
     
+    /** Returns the current BTC price in the given currency (0 if none is set). */
     @GetMapping("/current-price")
     public ResponseEntity<Map<String, Object>> getCurrentPriceValue(
             @RequestParam(required = false, name = "currency") String currency) {
         String cur = currency != null ? currency.toUpperCase() : "EUR";
-        // Nur price/currency zurückgeben (kein priceDate) — Map.of() erlaubt keine
-        // null-Werte, und priceDate ist hier nicht garantiert nötig/gesetzt.
+        // only price/currency returned; Map.of() disallows nulls and priceDate isn't guaranteed to be set
         BigDecimal price = depotService.getCurrentPrice(cur)
             .map(CurrentPrice::getPrice)
             .orElse(BigDecimal.ZERO);
@@ -585,6 +608,7 @@ public class DepotRestController {
         ));
     }
 
+    /** Manually sets the current BTC price for a currency. */
     @PutMapping("/current-price")
     public ResponseEntity<Map<String, Object>> setCurrentPrice(
             @RequestBody CurrentPriceRequest req) {
@@ -608,6 +632,7 @@ public class DepotRestController {
 
     // ── App Settings ──────────────────────────────────────────────────────────
 
+    /** Returns the app settings (currently just the tax holding-period cutoff date). */
     @GetMapping("/settings")
     public ResponseEntity<Map<String, Object>> getSettings() {
         AppSettings settings = depotService.getAppSettings();
@@ -616,6 +641,7 @@ public class DepotRestController {
         return ResponseEntity.ok(body);
     }
 
+    /** Updates the app settings. */
     @PutMapping("/settings")
     public ResponseEntity<Map<String, Object>> updateSettings(@RequestBody AppSettingsUpdateRequest req) {
         AppSettings settings = depotService.getAppSettings();
@@ -626,6 +652,7 @@ public class DepotRestController {
         return ResponseEntity.ok(body);
     }
 
+    /** Returns a single wallet/exchange position. */
     @GetMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
         return depotService.getPosition(id)
@@ -637,6 +664,7 @@ public class DepotRestController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Creates a new wallet/exchange position. */
     @PostMapping("/positions")
     public ResponseEntity<Map<String, Object>> createPosition(@RequestBody PositionRequest req) {
         Position p = new Position();
@@ -646,6 +674,7 @@ public class DepotRestController {
         return ResponseEntity.ok(Map.of("id", p.getId(), "label", p.getLabel()));
     }
 
+    /** Updates a wallet/exchange position's label/type. */
     @PutMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> updatePosition(
             @PathVariable("id") Long id,
@@ -658,6 +687,7 @@ public class DepotRestController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /** Deletes a position, refusing if it still has transactions. */
     @DeleteMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> deletePosition(@PathVariable("id") Long id) {
         if (depotService.getPosition(id).isEmpty()) {
@@ -673,6 +703,7 @@ public class DepotRestController {
         return ResponseEntity.ok(Map.of("id", id));
     }
 
+    /** Returns all positions with their current value and BTC balance. */
     @GetMapping("/positions")
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
@@ -685,8 +716,10 @@ public class DepotRestController {
             .collect(Collectors.toList());
     }
 
-    // Portfolio-weite Kennzahlen (Kennzahlen-Kachel, Bestandsansicht) — geteilte Berechnung,
-    // siehe HoldingsYearlyService.computePortfolioMetrics für Details/Begründung.
+    /**
+     * Returns portfolio-wide metrics (total value, invested, realized/unrealized
+     * P/L) for the holdings metrics tile, shared with {@link HoldingsYearlyService#computePortfolioMetrics}.
+     */
     @GetMapping("/metrics")
     public PortfolioMetricsDTO getMetrics(
             @RequestParam(required = false, name = "currency") String currency,
@@ -697,13 +730,14 @@ public class DepotRestController {
         return holdingsYearlyService.computePortfolioMetrics(cur);
     }
 
+    /** Deletes the given transactions. */
     @DeleteMapping("/transactions/bulk")
     public ResponseEntity<Map<String, Object>> bulkDelete(@RequestBody List<Long> ids) {
         ids.forEach(depotService::deleteTransaction);
         return ResponseEntity.ok(Map.of("deleted", ids.size()));
     }
 
-    // Bulk Transfer Pairing
+    /** Pairs consecutive transactions (as TRANSFER_IN/OUT pairs) by assigning each pair a shared transfer id. */
     @PostMapping("/transactions/bulk-pair")
     public ResponseEntity<Map<String, Object>> bulkPair(@RequestBody BulkPairRequest req) {
         if (req.getIds() == null || req.getIds().size() < 2 || req.getIds().size() % 2 != 0) {
@@ -723,7 +757,7 @@ public class DepotRestController {
         return ResponseEntity.ok(Map.of("paired", paired));
     }
 
-    // Bulk Move Position
+    /** Reassigns the given transactions to a different wallet/exchange. */
     @PostMapping("/transactions/bulk-move")
     public ResponseEntity<Map<String, Object>> bulkMove(@RequestBody BulkMoveRequest req) {
         if (req.getIds() == null || req.getTargetExchange() == null || req.getTargetExchange().isBlank()) {
@@ -737,7 +771,7 @@ public class DepotRestController {
         return ResponseEntity.ok(Map.of("moved", req.getIds().size()));
     }
 
-    // Bulk Exchange Rate
+    /** Applies a new exchange rate to the given transactions. */
     @PostMapping("/transactions/bulk-exrate")
     public ResponseEntity<Map<String, Object>> bulkExRate(@RequestBody BulkExRateRequest req) {
         if (req.getIds() == null || req.getExchangeRate() == null) {
@@ -749,15 +783,19 @@ public class DepotRestController {
         }));
         return ResponseEntity.ok(Map.of("updated", req.getIds().size()));
     }
-    
- // Bulk Mark Solo Transfer (einseitiger Transfer: erhaltene Einzahlung / bezahlte Leistung)
+
+    /**
+     * Marks the given TRANSFER_IN/OUT transactions as solo transfers (e.g. a
+     * received deposit or paid-out service with no matching counterpart) by
+     * assigning each its own unique transfer id.
+     */
     @PostMapping("/transactions/bulk-solo-transfer")
     public ResponseEntity<Map<String, Object>> bulkSoloTransfer(@RequestBody BulkSoloTransferRequest req) {
         if (req.getIds() == null || req.getIds().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
         }
 
-        // Vorab validieren: nur TRANSFER_IN / TRANSFER_OUT erlaubt
+        // only TRANSFER_IN / TRANSFER_OUT are allowed
         for (Long id : req.getIds()) {
             Transaction tx = depotService.getTransaction(id).orElse(null);
             if (tx != null
@@ -777,8 +815,8 @@ public class DepotRestController {
         }
         return ResponseEntity.ok(Map.of("marked", marked));
     }
-    
- // Bulk Remove TransferId
+
+    /** Clears the transfer id on the given transactions, unpairing them. */
     @PostMapping("/transactions/bulk-remove-transfer")
     public ResponseEntity<Map<String, Object>> bulkRemoveTransfer(@RequestBody BulkRemoveTransferRequest req) {
         if (req.getIds() == null || req.getIds().isEmpty()) {
@@ -796,6 +834,7 @@ public class DepotRestController {
         return ResponseEntity.ok(Map.of("removed", removed));
     }
     
+    /** Exports the full app database (all tables) as a JSON backup, optionally AES-256-GCM encrypted. */
     @PostMapping("/export-full")
     public void exportFull(@RequestBody(required = false) ExportRequest req,
                             HttpServletResponse response) throws java.io.IOException {
@@ -812,6 +851,7 @@ public class DepotRestController {
         response.getOutputStream().write(data);
     }
 
+    /** Restores a full JSON backup previously created by {@link #exportFull}. */
     @PostMapping(value = "/import-full", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> importFull(
             @org.springframework.web.bind.annotation.RequestParam("file") org.springframework.web.multipart.MultipartFile file,
@@ -867,7 +907,6 @@ public class DepotRestController {
 
     @lombok.Data
     public static class TransactionUpdateRequest {
-//        private java.time.LocalDateTime date;
     	private String date;
         private TransactionType type;
         private java.math.BigDecimal quantity;
@@ -878,9 +917,9 @@ public class DepotRestController {
         private java.math.BigDecimal exchangeRate;
         private String comment;
         private String exchange;
-        private String transferTarget;                    // Position-Label für TRANSFER_IN
-        private String transferInDate;   // optional, sonst = date (Format wie "date": "yyyy-MM-dd HH:mm:ss")
-        private java.math.BigDecimal transferInQuantity;  // optional, sonst = quantity
+        private String transferTarget;                   // position label for the paired TRANSFER_IN
+        private String transferInDate;                    // optional, defaults to date; format "yyyy-MM-dd HH:mm:ss"
+        private java.math.BigDecimal transferInQuantity;  // optional, defaults to quantity
     }
     
     @lombok.Data

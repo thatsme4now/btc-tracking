@@ -28,6 +28,11 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Core CRUD and mapping service for positions, transactions, current/historical
+ * prices and app settings — the shared data layer behind most of the app's
+ * REST endpoints.
+ */
 @Service
 @RequiredArgsConstructor
 public class DepotService {
@@ -43,6 +48,7 @@ public class DepotService {
 
     // ── Positions ─────────────────────────────────────────
 
+    /** Lists all positions as DTOs, with value/gain fields priced in the given currency. */
     public List<PositionDTO> getAllPositions(String currency) {
         String cur = normalizeCurrency(currency);
         CurrentPrice cp = currentPriceRepo.findByTickerAndCurrency(TICKER, cur).orElse(null);
@@ -77,8 +83,9 @@ public class DepotService {
         return currentPriceRepo.save(cp);
     }
 
-    // ── App Settings (Singleton-Zeile) ────────────────────
+    // ── App Settings (singleton row) ───────────────────────
 
+    /** Returns the single app settings row, creating it with defaults on first access. */
     public AppSettings getAppSettings() {
         return appSettingsRepo.findById(1L).orElseGet(() -> {
             AppSettings s = new AppSettings();
@@ -143,6 +150,7 @@ public class DepotService {
 
     // ── DTO Mapping ───────────────────────────────────────
 
+    /** Maps a position + its transactions into a {@link PositionDTO} with computed quantity, cost basis and gain/loss. */
     private PositionDTO toDTO(Position p, CurrentPrice cp) {
         List<Transaction> txs = transactionRepo.findByPositionIdOrderByDateAsc(p.getId());
 
@@ -158,8 +166,8 @@ public class DepotService {
                 .map(Transaction::getQuantity)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Kaufgebühren zählen mit zur Kostenbasis (Fund 4) — konsistent zur G/V-Spalte der
-        // Haupttabelle und zum "Gewinn/Verlust je Kauf"-Chart (dort: quantityFiat + fees).
+        // Buy fees count toward the cost basis, consistent with the main table's
+        // gain/loss column and the "gain/loss per buy" chart.
         BigDecimal totalBuyCost = txs.stream()
                 .filter(tx -> tx.getType() == TransactionType.BUY && tx.getPricePerBtc() != null)
                 .map(tx -> {
@@ -178,13 +186,10 @@ public class DepotService {
                 ? totalBuyCost.divide(totalBuyQty, 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
-        // Hinweis: "realized" ist hier bewusst der Brutto-Verkaufserlös dieser Position
-        // (Kostenbasis wird NICHT abgezogen) — dient nur noch der Positions-Tabelle,
-        // NICHT mehr der Gesamt-Kachel "Realized" oben (die nutzt seit Fund 1/3 die
-        // portfolio-weite Gewinn/Verlust-Berechnung aus HoldingsYearlyService).
-        // quantityFiat ist bereits ein fertiger Gesamtbetrag (Menge × Preis) — bei
-        // Fremdwährung reicht die Umrechnung über den Wechselkurs, OHNE nochmal mit
-        // pricePerBtc zu multiplizieren (das quadrierte vorher fälschlich die Preis-Dimension).
+        // "realized" here is the gross sell proceeds of this position (cost basis is NOT
+        // subtracted) — used only by the position table, not the portfolio-wide "Realized"
+        // tile (see HoldingsYearlyService for that). quantityFiat is already a total amount
+        // (quantity × price), so foreign currency just needs the exchange rate applied.
         BigDecimal realized = txs.stream()
                 .filter(tx -> tx.getType() == TransactionType.SELL)
                 .filter(tx -> tx.getQuantityFiat() != null)
@@ -230,6 +235,7 @@ public class DepotService {
         return dto;
     }
 
+    /** Maps a {@link Transaction} entity to its DTO. */
     TransactionDTO toTransactionDTO(Transaction tx) {
         TransactionDTO dto = new TransactionDTO();
         dto.setId(tx.getId());
@@ -250,14 +256,12 @@ public class DepotService {
         dto.setDuplicate(tx.isDuplicate());
 
         if (tx.getQuantityFiat() != null) {
-            //BigDecimal rate  = tx.getExchangeRate() != null ? tx.getExchangeRate() : BigDecimal.ONE;
-            //BigDecimal total = tx.getQuantity().multiply(tx.getPricePerBtc()).multiply(rate);
-            //if (tx.getFees() != null) total = total.add(tx.getFees());
             dto.setQuantityFiat(tx.getQuantityFiat().setScale(2, RoundingMode.HALF_UP));
         }
         return dto;
     }
-    
+
+    /** Reads a cookie value by name, or returns {@code defaultValue} if absent. */
     public String readCookie(HttpServletRequest request, String name, String defaultValue) {
     	if (request.getCookies() == null) return defaultValue;
     	return Arrays.stream(request.getCookies())
