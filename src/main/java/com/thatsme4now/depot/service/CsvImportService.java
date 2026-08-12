@@ -129,7 +129,7 @@ public class CsvImportService {
         	} else {
         		cp.setPrice(new BigDecimal(50000));
         	}
-        	cp.setPriceDate(lastPrice.dateTime != null ? lastPrice.dateTime.toLocalDate() : java.time.LocalDate.now());
+        	cp.setPriceDate(lastPrice != null && lastPrice.dateTime != null ? lastPrice.dateTime.toLocalDate() : java.time.LocalDate.now());
         	cp.setLoadedAt(java.time.LocalDateTime.now());
         	depotService.saveCurrentPrice(cp);
         }
