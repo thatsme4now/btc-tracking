@@ -369,10 +369,7 @@
       <tr><td class="field">Port</td><td class="desc">Port your mempool instance listens on.</td></tr>
       <tr><td class="field">Left empty</td><td class="desc">All mempool features stay disabled — nothing is ever called until both fields are filled.</td></tr>
     </table>
-    <figure>
-      <img src="images/mempool_settings.png" alt="Settings dialog with the Mempool integration host/port fields" onclick="openLightbox(this)">
-      <figcaption>Settings → Mempool integration: host + port <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
-    </figure>
+
     <div class="note">
       <span>🔒</span>
       <span><b>Privacy:</b> this app's own server — not your browser — connects to the configured
@@ -415,10 +412,7 @@
       Open a position for editing → section <b>“Bitcoin addresses”</b> → enter the address
       (e.g. <span class="inline-code">bc1q…</span>) and an optional label, then <b>“Add address”</b>.
     </p>
-    <figure>
-      <img src="images/mempool_address_add.png" alt="Position edit dialog with the Bitcoin addresses section and add-address form" onclick="openLightbox(this)">
-      <figcaption>Position dialog: address list + “Add address” <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
-    </figure>
+
     <h3>Fetching a balance</h3>
     <p>
       Each address has <b>“View balance”</b> / <b>“Fetch”</b>. The first fetch calls your mempool
@@ -444,10 +438,7 @@
       instantly from cache. A separate <b>“Refetch all (live)”</b> button triggers a fresh call for
       every address in one go.
     </p>
-    <figure>
-      <img src="images/mempool_address_overview.png" alt="Bundled address overview dialog showing all addresses of a position at once" onclick="openLightbox(this)">
-      <figcaption>Address overview: all addresses of a position, cached view + live refetch <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
-    </figure>
+
     <h3>On-Chain column in the positions table</h3>
     <p>
       The Data Management table has an <b>“On-Chain”</b> column, computed purely from the cached
@@ -460,10 +451,7 @@
       <tr><td class="field">⚠ partial</td><td class="desc">Not every address has been fetched at least once — the shown sum only covers the ones that have.</td></tr>
       <tr><td class="field">highlighted</td><td class="desc">On-chain sum differs from your tracked BTC amount for this position — worth a look, even while partial.</td></tr>
     </table>
-    <figure>
-      <img src="images/mempool_onchain_column.png" alt="Positions table with the On-Chain column, showing a partial-fetch hint and a highlighted difference" onclick="openLightbox(this)">
-      <figcaption>Data Management: On-Chain column with partial hint + diff highlighting <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
-    </figure>
+
   </section>
 
   <section class="step" id="link-import">
@@ -486,10 +474,7 @@
         everything else stay exactly as you entered them.</li>
       <li>If several candidates match, all of them are listed — pick the right one yourself.</li>
     </ol>
-    <figure>
-      <img src="images/mempool_link_candidate.png" alt="Match candidate found for an on-chain transaction, with the Link button" onclick="openLightbox(this)">
-      <figcaption>Match found: link instead of creating a duplicate <span class="zoom-hint">Click to enlarge ↗</span></figcaption>
-    </figure>
+
     <h3>Importing as a new transaction</h3>
     <p>
       No match, or none of the candidates are right? <b>“Import anyway”</b> creates a brand-new
