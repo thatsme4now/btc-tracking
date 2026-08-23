@@ -3,6 +3,7 @@ package com.thatsme4now.depot.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * Monthly (Ultimo, i.e. last day of the month) reference price for BTC, per
@@ -44,4 +45,11 @@ public class MonthlyPrice {
     /** BTC price on the last day of {@link #month}/{@link #year}, in {@link #currency}. */
     @Column(nullable = false, precision = 18, scale = 2)
     private BigDecimal price;
+
+    /** "MANUAL" (Standard: CSV-Seed oder manuelle Eingabe) oder "MEMPOOL" (per Bulk-Fill von der mempool-API geholt). */
+    @Column(length = 20)
+    private String source = "MANUAL";
+
+    @Column(name = "loaded_at")
+    private LocalDateTime loadedAt;
 }

@@ -26,5 +26,14 @@ public class PositionDTO {
     private BigDecimal totalValue;      // quantity * currentPrice in EUR
     private BigDecimal gainLoss;        // totalValue - invested in EUR
     private BigDecimal performancePct;  // gainLoss / invested * 100
+
+    // on-chain balance (from cached mempool address lookups — see position_address), for the
+    // "On-Chain" table column. hasAddresses distinguishes "no addresses configured" (column shows
+    // nothing) from "addresses configured but onchainBalanceSats still null" (nothing fetched yet).
+    private boolean hasAddresses;
+    private Long       onchainBalanceSats;      // null: no addresses, or none fetched yet
+    private BigDecimal onchainBalanceBtc;       // same value as onchainBalanceSats, pre-divided for display
+    private boolean    onchainBalancePartial;   // true: not every address has been fetched at least once
+    private boolean    onchainBalanceDiffers;   // true: onchainBalanceSats != quantityInSats (shown even while partial)
 }
  

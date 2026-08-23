@@ -10,6 +10,11 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Password-based app lock: encrypts all data into a single lock file on
+ * disk (clearing the live tables) and decrypts it back on unlock. Includes
+ * simple in-memory rate limiting against brute-force unlock attempts.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,10 +29,15 @@ public class AppLockService {
     private final AtomicInteger failedAttempts   = new AtomicInteger(0);
     private volatile long       lockedUntilEpoch = 0L;
 
+    /** Returns whether the app is currently locked (the lock file exists). */
     public boolean isLocked() {
         return Files.exists(LOCK_FILE);
     }
 
+    /**
+     * Encrypts all current data into the lock file and clears the live
+     * tables, leaving the app inaccessible until {@link #unlock} is called.
+     */
     public void lock(String password, String passwordConfirm) {
         if (isLocked()) {
             throw new IllegalStateException("App is already locked.");
@@ -50,6 +60,11 @@ public class AppLockService {
         log.info("App locked — data encrypted to {}", LOCK_FILE.toAbsolutePath());
     }
 
+    /**
+     * Decrypts the lock file with the given password, restores its data into
+     * the live tables, and removes the lock file. Rate-limited: repeated
+     * failures temporarily lock out further attempts.
+     */
     public UnlockResult unlock(String password) {
         checkRateLimit();
 
@@ -84,18 +99,13 @@ public class AppLockService {
     }
 
     /**
-     * "Passwort vergessen"-Reset: Die verschlüsselte Lock-Datei kann ohne
-     * Passwort nicht entschlüsselt werden, die darin gesicherten Daten sind
-     * damit unwiderruflich verloren. Löscht die Lock-Datei und leert
-     * vorsorglich nochmal alle Tabellen (falls durch eine ältere Lock-Datei
-     * oder einen inkonsistenten Zwischenzustand noch Reste vorhanden wären),
-     * sodass die App danach wie eine frische Installation dasteht.
-     *
-     * Erwartet den literalen Bestätigungstext "delete" (sprachunabhängig,
-     * siehe applock.reset.* im Frontend) als zusätzliche Absicherung gegen
-     * versehentliche/direkte API-Aufrufe — die App hat keine eigene
-     * Login-Authentifizierung, die UI-Bestätigung allein ist keine echte
-     * Sicherheitsgrenze.
+     * "Forgot password" reset: the encrypted lock file can't be decrypted
+     * without the password, so its data is unrecoverably lost. Deletes the
+     * lock file and clears all tables again defensively, leaving the app
+     * like a fresh install. Requires the literal confirmation text "delete"
+     * (language-independent, see applock.reset.* in the frontend) as a
+     * safeguard against accidental direct API calls — the app has no login
+     * authentication, so this UI confirmation is not a real security boundary.
      */
     public void reset(String confirm) {
         if (!"delete".equals(confirm)) {

@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class FullExportDTO {
     private String format = "btc-tracking-full-export";
-    private int version = 2;
+    private int version = 3;
     private LocalDateTime exportedAt;
     private List<PositionExportDTO> positions;
     private List<TransactionExportDTO> transactions;
@@ -21,4 +21,11 @@ public class FullExportDTO {
     private List<CurrentPriceExportDTO> currentPrices;
     private List<HistoricalPriceExportDTO> historicalPrices;
     private List<MonthlyPriceExportDTO> monthlyPrices;
+
+    // Ab Version 3: Bitcoin-Adressen je Position (inkl. letztem mempool-Abruf-Cache).
+    // Position selbst wird bei jedem Restore immer komplett geleert+neu eingefügt (siehe
+    // importFull) — dadurch werden bestehende position_address-Zeilen per ON DELETE CASCADE
+    // ohnehin immer mit entfernt. Ist diese Liste null (Backup von vor diesem Update), gibt
+    // es schlicht nichts wiederherzustellen, da es die Funktion damals noch nicht gab.
+    private List<PositionAddressExportDTO> positionAddresses;
 }

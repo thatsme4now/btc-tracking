@@ -25,10 +25,14 @@ public class Position {
     /** Exchange or wallet name, e.g. "Binance", "Ledger" */
     @Column(nullable = false, length = 100)
     private String label;
- 
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PositionType type;
+
+    /** Free-text note about this position, e.g. custody details. Purely informational, shown only in the edit dialog. */
+    @Column(columnDefinition = "TEXT")
+    private String description;
  
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

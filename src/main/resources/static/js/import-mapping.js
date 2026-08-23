@@ -1,11 +1,5 @@
 'use strict';
-// Step 1 des Import-Assistenten: Spalten-Zuordnung + Live-Vorschau.
-// Portierung der bisherigen openMappingModal()/refreshTypRemap()/
-// confirmCsvImport()-Logik aus depot.js (dort weiterhin vorhanden, aber
-// nicht mehr verlinkt) — läuft hier komplett clientseitig gegen die vom
-// Server beim Upload eingebetteten Rohdaten (IMPORT_HEADERS/IMPORT_ROWS),
-// als volle Seite statt Modal, mit echter Vorschau-Tabelle statt nur einer
-// Zeilenzahl.
+// Import wizard step 1: column mapping + live preview, runs client-side against IMPORT_HEADERS/IMPORT_ROWS embedded by the server on upload.
 
 let _positionsCache = null;
 
@@ -23,14 +17,13 @@ const FIELDS = [
     { id: 'map_exchangeRate', labelKey: 'csv.import.mapping.fee.exchange.rate', required: false },
     { id: 'map_comment',      labelKey: 'modal.field.comment',                required: false },
     { id: 'map_transactionId',labelKey: 'modal.field.transaction.id',         required: false },
+    { id: 'map_blockchainTxId',labelKey: 'modal.field.blockchainTxId',        required: false },
     { id: 'map_transferId',   labelKey: 'modal.field.transfer.id',            required: false },
 ];
 
 const FIELD_ALIASES = {
     map_typ:          ['Typ', 'typ', 'type', 'Type'],
-    // 'Time' hier bewusst zusätzlich als Date-Alias (z.B. Wallet-Exports mit
-    // einer einzelnen ISO-Datetime-Spalte statt getrennter Date/Time-Spalten)
-    // — siehe renderMappingTable() für die Deduplizierung gegen map_time.
+    // 'Time' also matches as a date alias for single ISO-datetime column exports, see renderMappingTable()
     map_date:         ['Datum', 'datum', 'date', 'Date', 'Datetime', 'Time'],
     map_time:         ['Time', 'time', 'Zeit', 'Uhrzeit'],
     map_exchange:     ['Börse', 'boerse', 'exchange', 'Exchange', 'Börsen'],
@@ -43,6 +36,9 @@ const FIELD_ALIASES = {
     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment', 'Note'],
     map_transactionId:['transactionId', 'Transaction ID'],
+    // 'Tx Hash' matches CoinTracking exports (see DepotRestController#writeCoinTrackingCsv) so
+    // a CoinTracking-format export round-trips its on-chain TXID back in on re-import.
+    map_blockchainTxId:['blockchainTxId', 'Tx Hash', 'TxHash', 'txid', 'TxId', 'blockchain_tx_id'],
     map_transferId:   ['transferId'],
 };
 
@@ -61,10 +57,7 @@ function autoMatch(fieldId) {
 function renderMappingTable() {
     const NONE = `<option value="">${t('modal.csv.field.notMapped')}</option>`;
 
-    // Alle Matches vorab berechnen: falls Date und Time auf dieselbe Spalte
-    // matchen (z.B. eine einzelne ISO-Datetime-Spalte wie "Time"), enthält
-    // sie bereits die volle Zeit — Time NICHT zusätzlich vorbelegen, sonst
-    // würde computeMappedRows() den Zeitanteil doppelt/falsch anhängen.
+    // if date and time match the same column, don't also prefill time (avoids double-appending it in computeMappedRows())
     const autoMatches = {};
     FIELDS.forEach(f => { autoMatches[f.id] = autoMatch(f.id); });
     if (autoMatches.map_time && autoMatches.map_time === autoMatches.map_date) {
@@ -116,10 +109,7 @@ function renderMappingTable() {
     updateExchangeWarning();
 }
 
-/** Hebt die Wallet/Börse-Zeile (map_exchange) + Feste-Position-Zeile
- *  (map_exchangeFixed) hervor, solange keine der beiden Optionen gesetzt ist —
- *  ohne Zuordnung schlägt goToReview() sonst erst beim Klick auf "Weiter" mit
- *  einem leicht übersehbaren Toast fehl, siehe missing.push('exchange') dort. */
+// Highlights the exchange mapping rows while neither option is set, see goToReview()'s missing.push('exchange')
 function updateExchangeWarning() {
     const exchangeSel = document.getElementById('map_exchange');
     const fixedSel     = document.getElementById('map_exchangeFixed');
@@ -203,13 +193,7 @@ function onFixedExchangeChange() {
 
 function _extractTimeValue(timeVal) {
     if (!timeVal) return '';
-    // Zeit-Token muss isoliert stehen (nicht von weiteren Ziffern umgeben) —
-    // sonst würde z.B. ein kaputter/verrutschter Wert wie "1720:21" (fehlendes
-    // Trennzeichen zwischen Stunde und Minute) still zu "20:21" zusammen-
-    // gestutzt und als plausible, aber falsche Uhrzeit übernommen. Ohne
-    // sauberen Match bleibt cleanTime leer, sodass die Zeile beim Server-
-    // seitigen Parsen als "invalid_date"-Fehler sichtbar wird statt mit
-    // einem stillschweigend falschen Datum importiert zu werden.
+    // time token must stand alone (not surrounded by digits), avoids silently truncating malformed values like "1720:21"
     const match = timeVal.match(/(?<!\d)\d{1,2}:\d{2}(:\d{2})?(?!\d)/);
     return match ? match[0] : '';
 }
@@ -236,8 +220,7 @@ function validateDateTimeMapping() {
     if (nextBtn) nextBtn.disabled = blocked;
 }
 
-/** Baut aus der aktuellen Zuordnung die Zeilenliste im MappedRow-Format des
- *  Servers (identisch zum bisherigen confirmCsvImport()-Payload). */
+// Builds the row list in the server's MappedRow format from the current mapping
 function computeMappedRows() {
     const mapping = {
         typ:          document.getElementById('map_typ')?.value,
@@ -253,6 +236,7 @@ function computeMappedRows() {
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
         transactionId:document.getElementById('map_transactionId')?.value,
+        blockchainTxId:document.getElementById('map_blockchainTxId')?.value,
         transferId:   document.getElementById('map_transferId')?.value,
     };
 
@@ -279,13 +263,7 @@ function computeMappedRows() {
             const rawTime = (r[mapping.time] || '').trim();
             if (rawTime) {
                 const cleanTime = _extractTimeValue(rawTime);
-                // Bei sauber erkannter Zeit den bereinigten Wert anhängen (ohne
-                // z.B. "GMT+1"-Suffix, damit das Datumsformat matcht). Schlägt
-                // die Erkennung fehl (kaputter Wert wie "1720:21"), trotzdem den
-                // rohen Zeit-Anteil anhängen statt ihn stillschweigend wegzu-
-                // lassen — die Zeile bleibt ein Datumsfehler, aber dateRaw zeigt
-                // dann den vollständigen Originalwert zur Fehlersuche an, statt
-                // nur den (unauffälligen) Datumsteil.
+                // append the cleaned time if recognized, otherwise fall back to the raw value so the row still shows a useful error
                 dateValue = dateValue + ' ' + (cleanTime || rawTime);
             }
         }
@@ -303,6 +281,7 @@ function computeMappedRows() {
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
             transactionId:mapping.transactionId? (r[mapping.transactionId]|| '').trim() : null,
+            blockchainTxId:mapping.blockchainTxId? (r[mapping.blockchainTxId]|| '').trim() : null,
             transferId:   mapping.transferId   ? (r[mapping.transferId]   || '').trim() : null,
         };
     }).filter(Boolean);
@@ -313,7 +292,7 @@ function renderPreviewTable(rows) {
     document.getElementById('mappingRowCount').textContent = IMPORT_ROWS.length;
 
     if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-3" data-i18n="import.preview.empty">Keine zuordenbaren Zeilen — Zuordnung prüfen.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="14" class="text-center text-muted py-3" data-i18n="import.preview.empty">Keine zuordenbaren Zeilen — Zuordnung prüfen.</td></tr>`;
         I18N.applyI18n();
         return;
     }
@@ -332,10 +311,11 @@ function renderPreviewTable(rows) {
             <td class="text-end">${esc(r.exchangeRate)}</td>
             <td>${esc(r.comment)}</td>
             <td>${esc(r.transactionId)}</td>
+            <td>${esc(r.blockchainTxId)}</td>
             <td>${esc(r.transferId)}</td>
         </tr>`).join('') +
         (rows.length > 500
-            ? `<tr><td colspan="13" class="text-center text-muted py-2" style="font-size:.72rem">… +${rows.length - 500}</td></tr>`
+            ? `<tr><td colspan="14" class="text-center text-muted py-2" style="font-size:.72rem">… +${rows.length - 500}</td></tr>`
             : '');
 }
 

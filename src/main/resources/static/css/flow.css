@@ -3,7 +3,7 @@
 .flow-link { fill: none; stroke-opacity: .35; transition: stroke-opacity .15s; cursor: pointer; }
 .flow-link:hover { stroke-opacity: .75; }
 
-/* ── Selection highlighting (Node/Link-Klick) ─────────────── */
+/* ── Selection highlighting (node/link click) ── */
 .flow-link.flow-dimmed { stroke-opacity: .05; }
 .flow-link.flow-dimmed:hover { stroke-opacity: .2; }
 .flow-link.flow-highlighted { stroke-opacity: .9; }
@@ -12,7 +12,7 @@
 .flow-node.flow-dimmed text { opacity: .4; }
 .flow-node.flow-highlighted rect { stroke: var(--accent); stroke-width: 2px; }
 
-/* ── Layout: Sankey + Transaktionsliste nebeneinander ─────── */
+/* ── Layout: Sankey chart + tx list side by side ── */
 .flow-main-row {
     display: flex;
     align-items: stretch;
@@ -21,7 +21,7 @@
 
 .flow-chart-col {
     flex: 1 1 65%;
-    min-width: 0; /* damit die SVG innerhalb des Flex-Items schrumpfen kann */
+    min-width: 0; /* lets the SVG shrink within the flex item */
 }
 
 .flow-tx-col {
@@ -60,7 +60,7 @@
 
 .flow-tx-empty { color: var(--text-muted); font-size: .78rem; padding: 1rem 0; text-align: center; }
 
-/* ── Transaktions-Card ─────────────────────────────────────── */
+/* ── Transaction card ── */
 .flow-tx-card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -144,13 +144,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0; /* erlaubt dem Flex-Item, unter seine Inhaltsbreite zu schrumpfen —
-                     sonst weitet ein langer Wert (z.B. Kommentar) die ganze Karte
-                     unnötig auf, statt abgeschnitten zu werden. */
+    min-width: 0; /* let long values (e.g. a comment) truncate instead of widening the card */
 }
-/* Kommentar-Feld: linksbündig statt rechtsbündig wie die übrigen Werte (siehe
-   _yearlyTruncateComment()/_yearlyFieldRow in yearly.js) — Text soll direkt
-   neben dem Label beginnen, nicht am rechten Rand. */
+/* Comment field is left-aligned unlike the other values, see yearly.js _yearlyFieldRow. */
 .flow-tx-field-value.align-left {
     text-align: left;
     margin-right: auto;
@@ -158,11 +154,7 @@
 
 .flow-tx-card.warning-duplicate { border-color: var(--warn-duplicate, #b8860b); }
 
-/* ── Verkauf-Card: FIFO-Lot-Aufschlüsselung ────────────────
-   Gleiche Klassennamen/Optik wie auf der Jahresansicht (yearly.css), hier
-   aber eigenständig definiert — yearly.css wird auf dieser Seite nicht
-   geladen. Siehe flow.js _flowComputeFifo für die eigenständige, unabhängige
-   Berechnung (bewusst nicht mit yearly.js/holdings.js geteilt). */
+/* ── Sell card: FIFO lot breakdown, same look as yearly.css but defined standalone here, see flow.js _flowComputeFifo ── */
 .yearly-lots-title {
     font-size: .64rem;
     text-transform: uppercase;
@@ -201,7 +193,7 @@
 .yearly-tax-badge.tax-free   { background: rgba(29, 158, 117, .18); color: var(--pos); }
 .yearly-tax-badge.tax-liable { background: rgba(216, 90, 48, .18); color: var(--neg); }
 
-/* ── Responsive: gestapelt statt nebeneinander ───────────── */
+/* ── Responsive: stacked instead of side by side ── */
 @media (max-width: 991px) {
     .flow-main-row { flex-direction: column; }
     .flow-tx-col { max-width: none; min-width: 0; }

@@ -1,9 +1,6 @@
 'use strict';
-// Step 3 des Import-Assistenten: Ergebnis-Anzeige. Liest primär das Ergebnis
-// des soeben abgeschlossenen Imports aus sessionStorage (vom Confirm-Aufruf
-// in import-review.js) — bei direktem Aufruf/Reload ohne diese Daten wird
-// stattdessen der letzte Historien-Eintrag als Fallback geladen (nur
-// Kennzahlen, keine Zeilen-Details mehr verfügbar).
+// Import wizard step 3: result display. Reads the result from sessionStorage,
+// falling back to the last history entry if reloaded directly.
 
 function metricCard(labelKey, value, colorVar) {
     return `

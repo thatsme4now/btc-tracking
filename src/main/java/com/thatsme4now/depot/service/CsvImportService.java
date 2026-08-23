@@ -35,6 +35,11 @@ import com.thatsme4now.depot.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Parses and persists CSV/mapped-row transaction imports: date-format
+ * detection, buy/sell/transfer classification, automatic transfer pairing,
+ * and duplicate detection.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -50,12 +55,11 @@ public class CsvImportService {
     private static final DateTimeFormatter DATE_FMT_EN_WITHOUT_SEC = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm");
     public static final DateTimeFormatter ISO_LOCAL_FMT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     public static final DateTimeFormatter ISO_INSTANT_FMT = DateTimeFormatter.ISO_INSTANT;
-    // Wallet-Exports (Sparrow, BlueWallet, ...) liefern oft ISO-8601 MIT
-    // Zeitzonen-Offset, z.B. "2022-01-13T15:56:20-03:00" — ISO_LOCAL_FMT allein
-    // scheitert daran (unparsed "-03:00"-Rest). LocalDateTime.parse(...) mit
-    // diesem Formatter übernimmt einfach die im String stehenden lokalen
-    // Datum/Zeit-Anteile und verwirft den Offset, konsistent dazu, dass auch
-    // alle anderen Formate hier ohne jede Zeitzonen-Umrechnung behandelt werden.
+    // Wallet exports (Sparrow, BlueWallet, ...) often use ISO-8601 WITH a timezone
+    // offset, e.g. "2022-01-13T15:56:20-03:00" — ISO_LOCAL_FMT alone fails on the
+    // unparsed "-03:00" remainder. Parsing with this formatter simply keeps the
+    // local date/time part in the string and discards the offset, consistent with
+    // every other format here being handled without any timezone conversion.
     public static final DateTimeFormatter ISO_OFFSET_FMT = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     public static final DateTimeFormatter RFC_1123_FMT = DateTimeFormatter.RFC_1123_DATE_TIME;
     private static final DateTimeFormatter DATE_FMT_EN_12H = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a", Locale.US);
@@ -89,7 +93,7 @@ public class CsvImportService {
     public ImportResult importMapped(List<MappedRow> rows) {
         if (rows == null || rows.isEmpty()) return null;
 
-        // Convert MappedRow → CsvRow using the same logic as parseCsv
+        // Convert MappedRow -> CsvRow using the same logic as parseCsv
         List<CsvRow> csvRows = new ArrayList<>();
         for (MappedRow r : rows) {
             try {
@@ -125,7 +129,7 @@ public class CsvImportService {
         	} else {
         		cp.setPrice(new BigDecimal(50000));
         	}
-        	cp.setPriceDate(lastPrice.dateTime != null ? lastPrice.dateTime.toLocalDate() : java.time.LocalDate.now());
+        	cp.setPriceDate(lastPrice != null && lastPrice.dateTime != null ? lastPrice.dateTime.toLocalDate() : java.time.LocalDate.now());
         	cp.setLoadedAt(java.time.LocalDateTime.now());
         	depotService.saveCurrentPrice(cp);
         }
@@ -133,9 +137,9 @@ public class CsvImportService {
     }
     
     /**
-     * SELF-Zeilen (Wallet-Export) stellen einen Self-Transfer dar: Abgang mit Netzwerk-Fee
-     * und gleichzeitiger Zugang auf DERSELBEN Position, abzüglich der Fee.
-     * Erzeugt zwei gepaarte Transaktionen (TRANSFER_OUT + TRANSFER_IN, gleiche transferId).
+     * A "Selbst" (self) row from a wallet export represents a self-transfer: an outflow
+     * with a network fee and a simultaneous inflow to the SAME position, minus the fee.
+     * Produces two paired transactions (TRANSFER_OUT + TRANSFER_IN, same transferId).
      */
     private List<CsvRow> mapSelfRows(MappedRow r) {
         if (r.getDate() == null || r.getExchange() == null) return Collections.emptyList();
@@ -146,7 +150,7 @@ public class CsvImportService {
             return Collections.emptyList();
         }
 
-        // Amount kann je nach Mapping in buyQty ODER sellQty stehen (Wallet-Export hat nur eine "Amount"-Spalte)
+        // Amount can be in buyQty OR sellQty depending on mapping (wallet exports have only one "Amount" column)
         BigDecimal amount = decimal(r.getBuyQuantity());
         if (amount == null) amount = decimal(r.getSellQuantity());
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) return Collections.emptyList();
@@ -155,7 +159,7 @@ public class CsvImportService {
         if (fee == null) fee = BigDecimal.ZERO;
 
         BigDecimal inQuantity = amount.subtract(fee);
-        if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount; // Fallback falls Fee >= Amount
+        if (inQuantity.compareTo(BigDecimal.ZERO) <= 0) inQuantity = amount; // fallback if fee >= amount
 
         String feeCurrency = r.getFeeCurrency() != null && !r.getFeeCurrency().isBlank()
                 ? r.getFeeCurrency().trim() : "BTC";
@@ -191,6 +195,7 @@ public class CsvImportService {
         return new ArrayList<>(List.of(in, out));
     }
 
+    /** Maps a single mapped CSV row (Trade/Einzahlung/Auszahlung) to an internal {@link CsvRow}. */
     private CsvRow mapMappedRow(MappedRow r) {
         if (r.getTyp() == null || r.getDate() == null || r.getExchange() == null) return null;
 
@@ -274,6 +279,7 @@ public class CsvImportService {
         return row;
     }
 
+	/** Tries every known date format until one parses; returns null if none match. */
 	public LocalDateTime getLocalDateTimeByString(String date) {
 		LocalDateTime dateTime = null;
        
@@ -289,6 +295,7 @@ public class CsvImportService {
 		return dateTime;
 	}
 
+	/** Saves each row as a transaction, skipping rows whose transactionId already exists. */
 	private ImportResult persistRows(List<CsvRow> rows) {
 	    ImportResult result = new ImportResult();
 	    for (CsvRow row : rows) {
@@ -334,6 +341,7 @@ public class CsvImportService {
 
     // ── CSV Parsing (legacy) ──────────────────────────────────────────────────
 
+    /** Legacy path: parses a raw CSV file directly (superseded by the mapped-row import above). */
     private List<CsvRow> parseCsv(MultipartFile file) throws IOException {
         List<CsvRow> result = new ArrayList<>();
 
@@ -432,6 +440,7 @@ public class CsvImportService {
 
     // ── Transfer pairing ──────────────────────────────────────────────────────
 
+    /** Auto-pairs unmatched TRANSFER_OUT rows with a same/near-quantity TRANSFER_IN within the next 4 rows. */
     private void assignTransferIds(List<CsvRow> rows) {
         for (int i = 0; i < rows.size() - 1; i++) {
             CsvRow curr = rows.get(i);
@@ -469,6 +478,7 @@ public class CsvImportService {
 
     // ── Position resolution ───────────────────────────────────────────────────
 
+    /** Finds a position by label, auto-creating one (guessing WALLET vs. EXCHANGE from the name) if absent. */
     public Position resolvePosition(String label) {
         return positionRepo.findByLabel(label).orElseGet(() -> {
             Position p = new Position();

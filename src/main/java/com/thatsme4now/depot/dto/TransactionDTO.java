@@ -11,6 +11,7 @@ import lombok.Data;
 public class TransactionDTO {
     private Long id;
     private String transactionId;
+    private String blockchainTxId;    // real on-chain BTC TXID, separate from transactionId (import dedup key) — TRANSFER_IN/TRANSFER_OUT only
     private Long positionId;
     private String positionLabel;
     private String positionType;      // EXCHANGE, WALLET, ... (Position.type)

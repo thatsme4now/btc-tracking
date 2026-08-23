@@ -2,21 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--
-  Shared top navbar — used by all 4 pages (overview, flow, holdings, yearly) for a
-  consistent look. The "Aktionen" dropdown (Add Transaction, CSV/DB Import/Export)
-  stays exclusive to the main page (showActions=true there, false everywhere else) —
-  those bulk-management actions only make sense from the main transaction table.
-  "Visualisierung" links to all 4 pages including "Übersicht" (main page) itself,
-  replacing the old page-specific "Zurück" button.
-  Requires on the including page: bootstrap.bundle.min.js, i18n.js, currency.js,
-  theme.js, applock.js, navbar.js (price badge / settings / sats / help
-  logic) — plus the navbar-modals fragment (settings/sats/applock).
-  pageTitleKey: i18n-Key für den Seitennamen hinter Titel/Version (z.B.
-  "nav.btn.holdings"), reuse der bestehenden Visualisierung-Dropdown-Keys,
-  damit keine neuen Übersetzungen nötig sind. Leerstring ('') unterdrückt den
-  Suffix (z.B. auf den Import-Assistent-Seiten).
--->
+<!-- Shared top navbar (all 4 pages). showActions enables the "Aktionen" dropdown; requires bootstrap.bundle.min.js, i18n.js, currency.js, theme.js, applock.js, navbar.js, and the navbar-modals fragment. -->
 <div th:fragment="navbar(showActions, pageTitleKey)">
     <nav class="navbar depot-navbar">
         <div class="container-fluid px-4">
@@ -30,15 +16,13 @@
         </div>
         <div class="container-fluid px-4">
             <div class="d-flex align-items-left gap-3">
-                <!-- Hamburger: nur Tablet/Handy -->
+                <!-- Hamburger: tablet/phone only -->
                 <button class="btn depot-btn-icon px-2 navbar-hamburger-btn ms-auto" style="display:none"
                         type="button" data-bs-toggle="offcanvas" data-bs-target="#navbarActionsOffcanvas"
                         aria-controls="navbarActionsOffcanvas" title="Menu">
                     <i class="bi bi-list"></i>
                 </button>
-                <!-- Live BTC price badge — clientseitig geladen (initNavbarPriceBadge in navbar.js),
-                     damit sie auf allen 4 Seiten gleich funktioniert, ohne dass jede
-                     Controller-Methode eigene Model-Attribute braucht. -->
+                <!-- Live BTC price badge, loaded client-side via initNavbarPriceBadge() in navbar.js -->
                 <span class="btc-price-badge d-none" onclick="openPriceEdit()" style="cursor:pointer" id="btcPriceBadge">
                     BTC
                     <span class="text-pos" id="btcPriceDisplay"></span>
@@ -53,16 +37,18 @@
                     <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
                         <i class="bi bi-check-lg"></i>
                     </button>
+                    <!-- Optional: fetch from the mempool instance configured in Settings → Mempool-Integration. Hidden unless configured + currency supported (THB isn't), see openPriceEdit() in navbar.js. -->
+                    <button class="btn btn-xs depot-btn-outline d-none" id="btcPriceMempoolBtn" onclick="fetchPriceFromMempool()"
+                            data-i18n-title="navbar.price.fetchMempool" title="Preis von mempool abrufen">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </button>
                     <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </span>
             </div>
 
-            <!-- Nur sichtbar bei aktivem Einundzwanzig-Modus (body.mode-21), siehe
-                 depot.css .mode21-ticker. Track-Inhalt bewusst dupliziert (2x dieselbe
-                 Sequenz), damit die Endlosschleife (translateX(-50%) in @keyframes
-                 mode21Marquee) nahtlos wirkt statt sichtbar neu zu starten. -->
+            <!-- 21-mode marquee ticker, content duplicated for a seamless loop, see depot.css .mode21-ticker -->
             <div class="mode21-ticker" aria-hidden="true">
                 <div class="mode21-ticker-track">
                     <span data-i18n="ticker.tax">Steuern sind Raub!</span><span class="mode21-ticker-sep">//</span>

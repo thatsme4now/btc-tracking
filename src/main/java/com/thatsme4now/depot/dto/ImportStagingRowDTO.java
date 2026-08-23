@@ -25,6 +25,7 @@ public class ImportStagingRowDTO {
     private String feesCurrency;
     private String comment;
     private String transactionId;
+    private String blockchainTxId;
     private String transferId;
     private boolean duplicate;
     private boolean fxWarning;

@@ -23,10 +23,7 @@ const I18N = (() => {
 
     // ── Public API ────────────────────────────────────────
 
-    /**
-     * Translate a key. Interpolates {placeholder} tokens.
-     * Falls back to key itself if not found.
-     */
+    // Translate a key, interpolating {placeholder} tokens; falls back to the key itself.
     function t(key, vars) {
         let str = _strings[key] ?? key;
         if (vars) {
@@ -37,24 +34,15 @@ const I18N = (() => {
         return str;
     }
 
-    /**
-     * Returns current language code.
-     */
     function currentLang() {
         return _lang;
     }
 
-    /**
-     * Returns map of supported languages { code: label }.
-     */
     function supported() {
         return SUPPORTED;
     }
 
-    /**
-     * Load language JSON, persist choice, update DOM.
-     * Returns a Promise.
-     */
+    // Load language JSON, persist choice, update DOM.
     function setLanguage(lang) {
         if (!SUPPORTED[lang]) lang = DEFAULT_LANG;
         _lang = lang;
@@ -62,10 +50,7 @@ const I18N = (() => {
         return _load(lang).then(() => applyI18n());
     }
 
-    /**
-     * Walk DOM and replace text of all [data-i18n] elements.
-     * Also handles [data-i18n-placeholder] and [data-i18n-title].
-     */
+    // Replace text of all [data-i18n*] elements in the DOM.
 	function applyI18n() {
 	    document.querySelectorAll('[data-i18n]').forEach(el => {
 	        const key = el.getAttribute('data-i18n');
@@ -96,12 +81,10 @@ const I18N = (() => {
             .then(data => { _strings = data; })
             .catch(err => {
                 console.warn('i18n load error:', err.message);
-                // fallback: keep current strings
             });
     }
 
-    // ── Init: load on module parse ────────────────────────
-    // Returns a promise so callers can await first paint
+    // Loaded on module parse; ready is a promise callers can await
     const ready = _load(_lang);
 
     return { t, currentLang, supported, setLanguage, applyI18n, ready };

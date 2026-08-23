@@ -36,6 +36,18 @@ public class Transaction {
     @Column(name = "transaction_id", nullable = true, length = 100)
     private String transactionId;
 
+    /**
+     * Real on-chain Bitcoin TXID (64 hex chars), entirely separate from
+     * {@link #transactionId} above (which is an internal CSV-import dedup
+     * key, often a synthetic UUID or "-in"/"-out"-suffixed). Optional, only
+     * meaningful for TRANSFER_IN/TRANSFER_OUT. Used to build a jump link
+     * into the mempool instance configured in AppSettings — see
+     * DepotRestController#fetchCurrentPriceFromMempool sibling feature.
+     * Soft-validated only (UI warns, never blocks) — see tx-form.js.
+     */
+    @Column(name = "blockchain_tx_id", length = 64)
+    private String blockchainTxId;
+
     //@ManyToOne(fetch = FetchType.LAZY, optional = false)
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "position_id", nullable = false)

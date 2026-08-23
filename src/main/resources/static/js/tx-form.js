@@ -1,21 +1,8 @@
 'use strict';
 
-/**
- * tx-form.js — shared Add/Edit Transaction modal logic.
- *
- * Used by both the main dashboard (overview.html) and the Flow Diagram page
- * (flow.html) so that editing a transaction always opens the exact same
- * modal dialog with identical behavior, regardless of which page it was
- * opened from.
- *
- * Pages including this file must also load, in this order:
- *   flatpickr.min.js (+ locale files), bootstrap.bundle.min.js,
- *   i18n.js, currency.js, tx-form.js
- *
- * After a successful save/add, this module calls a page-specific hook
- * `onTxSaved()` if it exists (e.g. reload the dashboard's transaction table,
- * or reload the flow graph) — each page defines its own.
- */
+// tx-form.js: shared Add/Edit Transaction modal logic, used by overview.html
+// and flow.html. Requires flatpickr, bootstrap.bundle.min.js, i18n.js,
+// currency.js. Calls the page-specific hook onTxSaved() after a save, if defined.
 
 // ── Bootstrap Modal instances ─────────────────────────────
 let txModal    = null;
@@ -77,7 +64,7 @@ function _fillExchangeDropdown(sel, data) {
         '<option value="">— Select position —</option>' +
         data.map(p => `<option value="${esc(p.label)}" ${p.label === current ? 'selected' : ''}>${esc(p.label)}</option>`).join('') +
         '<option value="__new__">＋ New position...</option>';
-    // Wenn current nicht in Liste → "__new__" vorwählen + Textfeld zeigen
+    // if current isn't in the list, preselect "__new__" and show the text field
     const known = data.some(p => p.label === current);
     if (current && !known) {
         sel.value = '__new__';
@@ -93,10 +80,7 @@ function onExchangeSelectChange(prefix) {
     if (isNew) input.focus();
 }
 
-// ── Live-Umrechnung unter dem Wechselkurs-Feld ────────────
-// Fiat-Betrag × Wechselkurs = Wert in der aktuell gewählten Anzeigewährung
-// (siehe DepotService#getAllPositions, gleiche Formel wie dort) — zeigt
-// sofort, ob ein angepasster Kurs plausibel ist, ohne erst zu speichern.
+// ── Live conversion preview below the exchange-rate field, same formula as DepotService#getAllPositions ──
 function _updateTxExchangeRatePreview(prefix) {
     const previewEl = document.getElementById(prefix + 'TxExchangeRatePreview');
     if (!previewEl) return;
@@ -127,7 +111,7 @@ function _getExchangeValue(prefix) {
 function _setExchangeValue(prefix, label) {
     const sel = document.getElementById(prefix + 'TxExchangeSelect');
     sel.dataset.current = label;
-    // Dropdown neu befüllen mit vorselektiertem Wert
+    // re-populate the dropdown with the preselected value
     if (_positionsCache) {
         _fillExchangeDropdown(sel, _positionsCache);
     }
@@ -149,7 +133,7 @@ function updateRelevantFields() {
 
     if (isOut) {
         _loadPositionsDropdown();
-        // Datum + Quantity aus OUT-Feldern vorausfüllen
+        // prefill date + quantity from the OUT fields
         const date = document.getElementById('addTxDate').value;
         const qty  = document.getElementById('addTxQty').value;
         const tDate = document.getElementById('transferInDate');
@@ -240,12 +224,60 @@ async function openEditTx(tx) {
 
     document.getElementById('editTxType').disabled = true;
     const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
+    const isTransfer = tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT';
     document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
     document.querySelectorAll('.fee-field').forEach(el => el.classList.toggle('d-none', tx.type === 'TRANSFER_IN'));
+    document.querySelectorAll('.transfer-field').forEach(el => el.classList.toggle('d-none', !isTransfer));
+    const bcEl = document.getElementById('editTxBlockchainTxId');
+    if (bcEl) bcEl.value = tx.blockchainTxId || '';
     _updateTxExchangeRatePreview('edit');
+    _updateMempoolJumpButton();
 
     if (!txModal) txModal = new bootstrap.Modal(document.getElementById('txModal'));
     txModal.show();
+}
+
+// ── On-chain TXID: soft validation + jump-link into the configured mempool instance ──
+
+/** Weiche Validierung: hex-length hint only, never blocks typing or saving. */
+function _isPlausibleTxId(v) {
+    return /^[0-9a-fA-F]{64}$/.test(v);
+}
+
+function _updateMempoolJumpButton() {
+    const input   = document.getElementById('editTxBlockchainTxId');
+    const btn     = document.getElementById('editTxMempoolJumpBtn');
+    const warning = document.getElementById('editTxBlockchainTxIdWarning');
+    if (!input || !btn) return;
+
+    const value = input.value.trim();
+    const configured = typeof _mempoolConfigured !== 'undefined' && _mempoolConfigured;
+    btn.disabled = !value || !configured;
+    btn.title = configured ? t('modal.field.blockchainTxId.jump') : t('modal.field.blockchainTxId.notConfigured');
+
+    if (warning) warning.classList.toggle('d-none', !value || _isPlausibleTxId(value));
+}
+
+function openMempoolTxLink() {
+    const input = document.getElementById('editTxBlockchainTxId');
+    const value = input ? input.value.trim() : '';
+    if (!value) return;
+    _openMempoolUrl(value);
+}
+
+/** Table-row jump icon (overview.html's desktop table + mobile card, see depot.js). */
+function jumpToMempoolTx(txId) {
+    if (!txId) return;
+    _openMempoolUrl(txId);
+}
+
+function _openMempoolUrl(txId) {
+    const url = (typeof buildMempoolTxUrl === 'function') ? buildMempoolTxUrl(txId) : null;
+    if (!url) {
+        showToast('✗ ' + t('modal.field.blockchainTxId.notConfigured'), 'error');
+        return;
+    }
+    window.open(url, '_blank', 'noopener');
 }
 
 // ── Save (Add or Edit) ─────────────────────────────────────
@@ -269,6 +301,12 @@ function saveOrAddTx(isAdd) {
         comment:      document.getElementById(pref + 'TxComment').value,
         exchange:     _getExchangeValue(pref)
     };
+
+    // On-chain TXID: edit-modal only (the field doesn't exist in the Add-modal).
+    if (!isAdd) {
+        const bcEl = document.getElementById('editTxBlockchainTxId');
+        if (bcEl) payload.blockchainTxId = bcEl.value.trim() || null;
+    }
 
     // TRANSFER_OUT pairing (Add-modal only)
     if (isAdd && txType === 'TRANSFER_OUT') {

@@ -17,7 +17,7 @@ source in [`src/main/resources/static/docs`](src/main/resources/static/docs).
 
 - Track BTC positions across multiple exchanges and wallets
 - BUY / SELL / TRANSFER_IN / TRANSFER_OUT transactions
-- Manual BTC price entry (EUR, USD, THB, …) — no external price API, works fully offline
+- Manual BTC price entry (EUR, USD, THB, …) — works fully offline; optionally fetch the current price / fill missing monthly prices from your own self-hosted mempool instance (EUR/USD only, opt-in, see Configuration Reference)
 - CSV import with flexible column mapping (PapaParse)
 - CSV export compatible with common tax tools. (Optional with password to encrypt data)
 - Visualizations: Sankey flow diagram of BTC movements, holdings dashboard (allocation, metrics, per-purchase breakdown), yearly performance chart (holdings + value over time)
@@ -155,6 +155,13 @@ All settings in `application.properties` (or override via external file / enviro
 | `spring.datasource.password` | — | MySQL password |
 | `spring.jpa.show-sql` | `false` | Log SQL statements |
 
+**Mempool integration (optional, opt-in):** in-app under Settings → "Mempool integration",
+not an `application.properties` setting. Enter the host/port of your own self-hosted
+mempool instance (e.g. the mempool app on your Umbrel/LAN) to enable fetching the current
+BTC price by button and filling in missing monthly (Ultimo) reference prices in the yearly
+view — EUR/USD only, disabled by default (empty host/port). This app's own server (not your
+browser) connects to that host/port; only use your local network. See Data & Disclaimer below.
+
 
 ## Project Structure
 
@@ -181,10 +188,15 @@ All data, calculations, and exports are provided "as is" without warranty.
 This tool is not financial or tax advice — verify all figures independently
 before relying on them (e.g. for tax filing).
 
-The app makes no outbound network calls — all BTC prices (current and
-historical) are entered manually or come from the bundled CSV seed data.
+By default the app makes no outbound network calls — all BTC prices (current
+and historical) are entered manually or come from the bundled CSV seed data.
+The only exception is the optional, opt-in mempool integration (see
+Configuration Reference): if you explicitly configure a host/port there, this
+app's server will make local-network HTTP requests to the mempool instance
+you specified, only when you press the corresponding button. Nothing is
+contacted unless you configure it yourself.
 This project is not affiliated with, endorsed by, or sponsored by the
-Bitcoin Foundation, Umbrel, Docker, or Proxmox.
+Bitcoin Foundation, Umbrel, Docker, Proxmox, or the mempool project.
 
 See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for third-party licenses.
 

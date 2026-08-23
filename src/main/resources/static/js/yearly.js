@@ -1,10 +1,6 @@
 'use strict';
 
-// ── Jahresansicht ──────────────────────────────────────────
-// Eigene, unabhängige Seite: eigener Fetch der Rohdaten (/api/btc-tracking/
-// transactions, wie auch von holdings.js genutzt) und eine EIGENE FIFO-
-// Berechnung für die Verkauf-Kachel-Aufschlüsselung (bewusst nicht mit
-// holdings.js geteilt — siehe Entscheidung zur unabhängigen Implementierung).
+// ── Yearly view: own fetch of raw transactions and its own FIFO calculation for the sell-tile breakdown, not shared with holdings.js ──
 
 const YEARLY_APEX_DEFAULTS = {
     chart:   { background: 'transparent', fontFamily: "'IBM Plex Mono', monospace", toolbar: { show: false } },
@@ -26,14 +22,10 @@ const YEARLY_APEX_DEFAULTS = {
 
 const YEARLY_BALANCE_COLOR = '#F7931A'; // Bitcoin orange
 const YEARLY_VALUE_COLOR   = '#1d9e75'; // green (matches --pos)
-const YEARLY_PRICE_COLOR   = '#7c5cff'; // violet — bewusst anders als Bestand/Wert, eigener Chart
-const YEARLY_TAX_FREE_DAYS = 365;       // DE Spekulationsfrist — rein informativ, keine Steuerberatung
+const YEARLY_PRICE_COLOR   = '#7c5cff'; // violet, distinct from balance/value since it's its own chart
+const YEARLY_TAX_FREE_DAYS = 365;       // German tax holding period, informational only, not tax advice
 
-/** Steuerfrei, wenn Haltedauer >= 365 Tage UND das Kaufdatum des Lots vor
- *  einem ggf. in den Einstellungen hinterlegten Stichtag liegt (siehe
- *  _yearlyTaxCutoffDate) — ab dem Stichtag neu angeschaffte Coins sind immer
- *  steuerpflichtig, unabhängig von der Haltedauer. Rein informativ, keine
- *  Steuerberatung. */
+// Tax-free if held >= 365 days and bought before the cutoff date; coins bought on/after the cutoff are always taxable. Informational only.
 function _yearlyIsTaxFree(c) {
     if (c.days < YEARLY_TAX_FREE_DAYS) return false;
     if (_yearlyTaxCutoffDate && c.buyTx.date
@@ -46,21 +38,14 @@ function _yearlyIsTaxFree(c) {
 const YEARLY_MONTH_SHORT_DE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
 let _yearlyChart          = null;
-let _yearlyPriceChart     = null; // eigenständiger Kurs-Chart, nur Gesamtansicht
-let _yearlySelectedYear   = null; // null = Gesamtansicht
+let _yearlyPriceChart     = null; // standalone price chart, overview only
+let _yearlySelectedYear   = null; // null = overview (all years)
 let _yearlyAllTx          = null; // lazy-loaded, cached across year switches
 let _yearlyCurrentPrice   = 0;
 let _yearlyAvailableYears = [];
-let _yearlyOverviewSeq    = 0; // Request-Generation-Zähler — verhindert, dass eine spät
-                                // eintreffende Antwort eines vorherigen (z.B. beim schnellen
-                                // Umschalten noch offenen) Fetches die aktuell gewählte
-                                // Ansicht mit veralteten Daten/x-Achsen-Kategorien überschreibt.
+let _yearlyOverviewSeq    = 0; // request generation counter, prevents a late response from a stale fetch overwriting the current view
 
-// ── Persistenz von Jahresauswahl + Kachel-Toggles über F5/Neuladen hinweg ──
-// Eigene, unabhängige localStorage-Keys (analog zu YEARLY_LAYOUT_KEY für die
-// Drag&Drop-Position) — bewusst 3 getrennte Keys statt einem gemeinsamen
-// Objekt, damit ein künftiger Reset/eine künftige Änderung eines einzelnen
-// Werts die anderen nicht mit anfasst.
+// ── Persist year selection + tile toggles across reloads, as 3 separate localStorage keys so resetting one doesn't affect the others ──
 const YEARLY_SELECTED_YEAR_KEY    = 'yearly-selected-year-v1';
 const YEARLY_TILES_FILTER_KEY     = 'yearly-tiles-filter-v1';
 const YEARLY_TRANSFERS_FILTER_KEY = 'yearly-transfers-filter-v1';
@@ -88,9 +73,7 @@ async function initYearly() {
     const priceModal = document.getElementById('yearlyPriceModal');
     if (priceModal) priceModal.addEventListener('show.bs.modal', yearlyLoadPriceModal);
 
-    // Gespeicherte Kachel-Toggle-Zustände (Käufe/Verkäufe-Filter, Transfers-Filter)
-    // VOR dem ersten yearlyLoadOverview() wiederherstellen, damit der erste Render
-    // bereits die richtigen Werte nutzt statt kurz mit den Defaults aufzublitzen.
+    // restore saved tile toggle states before the first render to avoid a flash of defaults
     _yearlyRestoreTilesFilter();
     _yearlyRestoreTransfersFilter();
 
@@ -99,10 +82,7 @@ async function initYearly() {
     await yearlyLoadOverview(savedYear);
 }
 
-// Hook, den tx-form.js (saveOrAddTx) nach erfolgreichem Speichern/Bearbeiten
-// einer Transaktion aus einer Kachel heraus aufruft — lädt Chart + Kacheln
-// mit frischen Daten neu (eine geänderte Transaktion kann Bestand, Wert und
-// die FIFO-Zusammensetzung mehrerer Kacheln gleichzeitig betreffen).
+// Hook called by tx-form.js after saving/editing a transaction from a tile; reloads chart + tiles since one change can affect several at once.
 function onTxSaved() {
     _yearlyAllTx = null;
     yearlyLoadOverview(_yearlySelectedYear);
@@ -136,9 +116,7 @@ async function yearlyLoadOverview(year) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
 
-        // Inzwischen wurde die Auswahl gewechselt (z.B. schnell Jahr → Gesamtansicht) und ein
-        // neuerer Request läuft bereits — diese veraltete Antwort darf die Ansicht (Chart-
-        // Kategorien, Kacheln) nicht mehr überschreiben.
+        // selection may have already changed and a newer request is in flight; don't let this stale response overwrite the view
         if (seq !== _yearlyOverviewSeq) return;
 
         loadingEl.classList.add('d-none');
@@ -157,29 +135,23 @@ async function yearlyLoadOverview(year) {
         contentEl.classList.remove('d-none');
         renderYearlyChart(data.series, currency, year != null);
 
-        // Käufe & Verkäufe in beiden Fällen — für ein gewähltes Jahr auf dieses Jahr
-        // gefiltert, in der Gesamtansicht alle Transaktionen (siehe yearlyRenderTiles).
+        // buys & sells tile: filtered to the selected year, or all transactions in the overview
         tilesSection.classList.remove('d-none');
         await yearlyRenderTiles(year, currency, seq);
-        // Transfers ebenfalls in beiden Fällen sichtbar, gleiches Filter-Muster wie
-        // Käufe & Verkäufe — nutzt die von yearlyRenderTiles bereits geladene/
-        // gecachte _yearlyAllTx (kein zweiter Fetch nötig).
+        // transfers tile: same filter pattern, reuses _yearlyAllTx already loaded by yearlyRenderTiles
         transfersSection.classList.remove('d-none');
         yearlyRenderTransfers(year, seq);
-        // Kurs-Chart ebenfalls in beiden Fällen — für ein gewähltes Jahr auf dieses Jahr
-        // gefiltert, in der Gesamtansicht die komplette Historie (siehe yearlyLoadPriceChart).
+        // price chart: filtered to the selected year, or the full history in the overview
         await yearlyLoadPriceChart(currency, seq, year);
 
-        if (seq !== _yearlyOverviewSeq) return; // erneut prüfen — Tiles/Preis-Chart liefen async
+        if (seq !== _yearlyOverviewSeq) return; // recheck since tiles/price chart ran async
 
-        // Sichtbarkeit von Kacheln kann sich gerade geändert haben (Kurs-Chart/Käufe &
-        // Verkäufe werden je nach Ansicht ein-/ausgeblendet) — Spaltenaufteilung der
-        // betroffenen Grid-Reihen neu berechnen (nur sichtbare Kacheln zählen).
+        // tile visibility may have just changed, so recompute column spans for the affected rows
         const grid = document.getElementById('yearlyGrid');
         if (grid) updateYearlyRowCols(grid);
         _yearlyTriggerChartResize();
     } catch (err) {
-        if (seq !== _yearlyOverviewSeq) return; // veralteter Fehler einer überholten Anfrage
+        if (seq !== _yearlyOverviewSeq) return; // stale error from a superseded request
         loadingEl.classList.add('d-none');
         emptyEl.classList.remove('d-none');
         emptyEl.textContent = 'Error: ' + err.message;
@@ -203,20 +175,16 @@ function yearlyPopulateYearSelect(years, selectedYear) {
         select.appendChild(opt);
     });
 
-    // Immer exakt den tatsächlich geladenen Wert widerspiegeln (null → Gesamtansicht-
-    // Option) statt eines alten DOM-Werts — sonst bleibt das Dropdown z.B. nach
-    // resetYearlyLayout() optisch auf dem vorherigen Jahr stehen, obwohl bereits die
-    // Gesamtansicht geladen wurde.
+    // always reflect the actually loaded value rather than a stale DOM value
     select.value = selectedYear != null ? String(selectedYear) : '';
 }
 
-// ── Linien-Chart: Bestand (BTC, orange) + Wertentwicklung (Währung, grün) ──
+// ── Line chart: balance (BTC, orange) + value (currency, green) ──
 
 function renderYearlyChart(series, currency, singleYear) {
     const categories = series.map((pt, i) => {
         if (singleYear) return YEARLY_MONTH_SHORT_DE[pt.month - 1];
-        // Gesamtansicht: Jahreszahl nur am Januar (bzw. am ersten Punkt), sonst
-        // leer — grobe Zeitachse ohne dass sich viele Jahre gegenseitig überlagern.
+        // overview: year label only on January (or the first point), to avoid overlapping labels
         return (i === 0 || pt.month === 1) ? String(pt.year) : '';
     });
 
@@ -268,11 +236,7 @@ function renderYearlyChart(series, currency, singleYear) {
     };
 
     if (_yearlyChart) {
-        // Bestehende Instanz per updateOptions() wiederverwenden statt destroy()+neu
-        // erstellen — destroy()+recreate zeigte beim schnellen Jahr/Gesamtansicht-Wechsel
-        // hartnäckig veraltete x-Achsen-Beschriftungen (vermutlich ein hängender interner
-        // ApexCharts-Listener/Cache der alten Instanz). updateOptions(options, redrawPaths=true,
-        // animate=true) ersetzt series UND xaxis.categories vollständig auf derselben Instanz.
+        // reuse the existing instance via updateOptions() instead of destroy()+recreate, which left stale x-axis labels on fast year switches
         _yearlyChart.updateOptions(options, true, true, true);
     } else {
         _yearlyChart = new ApexCharts(document.getElementById('yearlyChart'), options);
@@ -287,13 +251,7 @@ function yearlyTooltipX(series, opts) {
     return `${month} ${pt.year}`;
 }
 
-// ── Reiner Bitcoin-Kurs-Chart (Gesamtansicht: komplette Historie; ein
-// gewähltes Jahr: nur dessen 12 Monate) ────────────────────
-// Eigener, unabhängiger Fetch + eigene Render-Funktion — zeigt die komplette
-// in der monthly_price Tabelle verfügbare Kurshistorie, unabhängig vom
-// transaktions-beschränkten Zeitraum des Bestand/Wert-Charts oben. Für ein
-// gewähltes Jahr wird dieselbe vollständige Historie nur client-seitig auf
-// das Jahr gefiltert — kein zusätzlicher Backend-Endpoint nötig.
+// ── Standalone Bitcoin price chart (full history, or 12 months for a selected year): fetches all monthly_price history and filters client-side, no extra backend endpoint needed ──
 
 async function yearlyLoadPriceChart(currency, seq, year) {
     const section  = document.getElementById('yearly-block-pricechart');
@@ -302,7 +260,7 @@ async function yearlyLoadPriceChart(currency, seq, year) {
         const res = await fetch(`/api/btc-tracking/monthly-prices/history?currency=${encodeURIComponent(currency)}`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const rows = await res.json();
-        if (seq !== _yearlyOverviewSeq) return; // Auswahl hat sich zwischenzeitlich geändert
+        if (seq !== _yearlyOverviewSeq) return; // selection changed in the meantime
 
         let priced = rows.filter(row => row.price != null);
         if (year != null) priced = priced.filter(row => row.year === year);
@@ -374,21 +332,17 @@ function yearlyPriceTooltipX(rows, opts) {
     return `${month} ${pt.year}`;
 }
 
-// ── Kauf/Verkauf-Kacheln für das gewählte Jahr ─────────────
+// ── Buy/sell tiles for the selected year ─────────────
 
-// Kauf/Verkauf-Sichtbarkeitsfilter der Kachel (2 unabhängige Toggles) — rein
-// clientseitig, kein Refetch nötig. Standard: beide an (alles sichtbar).
+// Buy/sell visibility filter (2 independent toggles), client-side only, both on by default
 let _yearlyTilesFilter  = { buy: true, sell: true };
-let _yearlyTilesYearTx  = [];      // Jahr-/Gesamtansicht-gefilterte Tx (vor dem Kauf/Verkauf-Toggle)
+let _yearlyTilesYearTx  = [];      // year/overview-filtered tx (before the buy/sell toggle)
 let _yearlyTilesBuyMeta  = new Map();
 let _yearlyTilesSellMeta = new Map();
 let _yearlyTilesCurrency = 'EUR';
-let _yearlyTilesYearLabel = null; // für die leere-Liste-Meldung (Jahr vs. Gesamtansicht)
+let _yearlyTilesYearLabel = null; // for the empty-list message (year vs. overview)
 
-// Stichtag (Settings, siehe navbar.js#saveSettings), ab dem die 365-Tage-
-// Regel für NEU angeschaffte Coins nicht mehr gilt (Kaufdatum >= Stichtag →
-// immer steuerpflichtig, egal wie lange gehalten). null/'' = deaktiviert.
-// Lazy geladen, gleicher Cache-Zyklus wie _yearlyAllTx.
+// Tax cutoff date (settings, see navbar.js#saveSettings): coins bought on/after it are always taxable. null/'' = disabled.
 let _yearlyTaxCutoffDate = null;
 
 async function yearlyRenderTiles(year, currency, seq) {
@@ -398,7 +352,7 @@ async function yearlyRenderTiles(year, currency, seq) {
             fetch(`/api/btc-tracking/current-price?currency=${encodeURIComponent(currency)}`).then(r => r.json()),
             fetch('/api/btc-tracking/settings').then(r => r.json()).catch(() => ({}))
         ]);
-        if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // Auswahl inzwischen gewechselt
+        if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // selection changed in the meantime
         _yearlyAllTx          = txs;
         _yearlyCurrentPrice   = Number(priceRes.price || 0);
         _yearlyTaxCutoffDate  = settingsRes.taxHoldingPeriodCutoffDate || null;
@@ -406,8 +360,7 @@ async function yearlyRenderTiles(year, currency, seq) {
 
     const { buyMeta, sellMeta } = _yearlyComputeFifo(_yearlyAllTx);
 
-    // Gesamtansicht (year == null) zeigt alle Käufe/Verkäufe über alle Jahre hinweg,
-    // ein gewähltes Jahr filtert wie bisher nur auf dessen Transaktionen.
+    // overview (year == null) shows all buys/sells across all years; a selected year filters to it
     const yearTx = _yearlyAllTx
         .filter(tx => (tx.type === 'BUY' || tx.type === 'SELL') && tx.date
             && (year == null || String(tx.date).substring(0, 4) === String(year)))
@@ -422,9 +375,7 @@ async function yearlyRenderTiles(year, currency, seq) {
     _yearlyRenderTilesGrid();
 }
 
-/** Wendet den Kauf/Verkauf-Toggle-Filter auf die zwischengespeicherten,
- *  bereits Jahr-gefilterten Transaktionen an und rendert neu — kein Refetch,
- *  keine erneute FIFO-Berechnung nötig (siehe yearlyRenderTiles). */
+// Applies the buy/sell toggle filter to the cached, year-filtered transactions and re-renders (no refetch/FIFO recompute needed)
 function _yearlyRenderTilesGrid() {
     const grid    = document.getElementById('yearlyTilesGrid');
     const emptyEl = document.getElementById('yearlyTilesEmpty');
@@ -464,7 +415,7 @@ function _yearlyRenderTilesGrid() {
     }).join('');
 }
 
-/** Klick-Handler der beiden unabhängigen Toggle-Buttons ("Käufe"/"Verkäufe"). */
+// Click handler for the two independent "buy"/"sell" toggle buttons
 function yearlyToggleTilesFilter(kind) {
     _yearlyTilesFilter[kind] = !_yearlyTilesFilter[kind];
     const btn = document.querySelector(`.yearly-tiles-filter-btn[data-type="${kind}"]`);
@@ -477,10 +428,7 @@ function _yearlySaveTilesFilter() {
     try { localStorage.setItem(YEARLY_TILES_FILTER_KEY, JSON.stringify(_yearlyTilesFilter)); } catch (e) { /* ignore */ }
 }
 
-/** Liest den gespeicherten Käufe/Verkäufe-Filter (falls vorhanden) und
- *  synchronisiert direkt die Button-Darstellung im (bereits im HTML
- *  vorhandenen) DOM — der eigentliche Render erfolgt erst später über
- *  yearlyRenderTiles/_yearlyRenderTilesGrid. */
+// Reads the saved buy/sell filter and syncs the button display; the actual render happens later via yearlyRenderTiles
 function _yearlyRestoreTilesFilter() {
     try {
         const saved = JSON.parse(localStorage.getItem(YEARLY_TILES_FILTER_KEY));
@@ -493,13 +441,7 @@ function _yearlyRestoreTilesFilter() {
     });
 }
 
-/**
- * Eigenständige, globale (portfolio-weite) FIFO-Berechnung — bewusst NICHT
- * mit holdings.js geteilt. Läuft einmal über alle BUY/SELL chronologisch und
- * liefert in einem Durchgang sowohl die Kauf-Sicht (welche Verkäufe haben
- * diesen Kauf ganz/teilweise verbraucht) als auch die Verkauf-Sicht (aus
- * welchen Käufen setzt sich dieser Verkauf zusammen, inkl. Haltedauer).
- */
+// Standalone, portfolio-wide FIFO calculation (not shared with holdings.js): one pass over all BUY/SELL yields both the buy view (which sells consumed it) and the sell view (which buys it consumed).
 function _yearlyComputeFifo(allTx) {
     const list = allTx
         .filter(tx => tx.type === 'BUY' || tx.type === 'SELL')
@@ -546,15 +488,14 @@ function _yearlyDaysBetween(dateA, dateB) {
     return Math.max(0, Math.round((b - a) / 86400000));
 }
 
-/** Wandelt tx.quantityFiat (bereits ein Gesamtbetrag) in die Anzeigewährung um — dieselbe
- *  Konvention wie überall sonst in der App (kein zweites Mal mit pricePerBtc multiplizieren). */
+// Converts tx.quantityFiat (already a total) into the display currency, same convention as elsewhere in the app
 function _yearlyFiatInDisplayCurrency(tx, displayCurrency) {
     if (tx.quantityFiat == null) return null;
     if (tx.currency === displayCurrency) return Number(tx.quantityFiat);
     return Number(tx.quantityFiat) * Number(tx.exchangeRate || 1);
 }
 
-/** Bezahlter Gesamtbetrag inkl. Gebühren für einen BUY, in der Anzeigewährung. */
+// Total amount paid incl. fees for a BUY, in the display currency
 function _yearlyBuyPaid(tx, displayCurrency) {
     if (tx.pricePerBtc == null) return null;
     const fees = tx.fees != null ? Number(tx.fees) : 0;
@@ -563,9 +504,7 @@ function _yearlyBuyPaid(tx, displayCurrency) {
     return cost * Number(tx.exchangeRate || 1);
 }
 
-/** G/V %+Betrag für eine BUY-Kachel: gehaltene Käufe gegen den aktuellen Kurs,
- *  teilweise/komplett realisierte Käufe blended aus tatsächlichem Verkaufserlös
- *  (für den verbrauchten Teil) + aktuellem Kurs (für einen evtl. noch gehaltenen Rest). */
+// P/L %+amount for a BUY tile: held buys use the current price, partial/realized buys blend actual sell proceeds with the current price for any remaining held portion
 function _yearlyBuyGainLoss(tx, meta, currentPrice, currency) {
     const paid = _yearlyBuyPaid(tx, currency);
     if (paid == null || paid === 0) return { percentage: 0, earningAbs: 0 };
@@ -640,6 +579,10 @@ function _yearlyRenderBuyTile(tx, meta, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -667,10 +610,7 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
         ? _yearlyFieldRow((typeof t === 'function') ? t('modal.field.comment') : 'Kommentar', esc(_yearlyTruncateComment(tx.comment)), tx.comment, true)
         : '';
 
-    // Realisierter G/V dieses Verkaufs: Erlös minus gewichteter Kostenbasis der
-    // tatsächlich verbrauchten FIFO-Lots (nicht der App-weite gewichtete
-    // Durchschnitt — hier bewusst lot-genau, konsistent zur FIFO-Aufschlüsselung
-    // direkt darunter).
+    // realized P/L for this sell: proceeds minus lot-accurate cost basis of the consumed FIFO lots (not the app-wide weighted average)
     const proceeds = _yearlyFiatInDisplayCurrency(tx, currency) || 0;
     let costOfSold = 0;
     consumed.forEach(c => {
@@ -686,10 +626,7 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
         `<span class="${posNeg}">${gain >= 0 ? '+' : ''}${fmt(gain, currency)}</span>`
     );
 
-    // Gewinn/Verlust je einzelnem Lot: Erlösanteil (proportional zur verbrauchten
-    // Menge an der Gesamtmenge dieses Verkaufs) minus Kostenbasis dieses Lots —
-    // dieselbe Grundlage wie beim aggregierten G/V oben (proceeds/costOfSold),
-    // hier nur pro Zeile statt aufsummiert.
+    // per-lot P/L: proceeds share (proportional to consumed qty) minus that lot's cost basis
     const sellQty = Number(tx.quantity) || 1;
     const lotsHtml = consumed.map(c => {
         const taxFree = _yearlyIsTaxFree(c);
@@ -735,6 +672,10 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -746,27 +687,16 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
     </div>`;
 }
 
-// ── Transfers-Kachel (TRANSFER_IN/TRANSFER_OUT) ────────────
-// Eigenständig, analog zur Käufe/Verkäufe-Kachel: gleiches Jahr-/Gesamtansicht-
-// Filtermuster, gleicher Kachel-Grid-Container. Nutzt die von yearlyRenderTiles
-// bereits geladene _yearlyAllTx (kein eigener Fetch). Transfers haben keinen
-// Fiat-Wert/G-V — stattdessen wird die Gegenbuchung (falls vorhanden) über die
-// transferId in der bereits geladenen Gesamtliste gesucht (eigenständige,
-// einfache Suche — NICHT die flow.js-Graph-Paarung, die auf dem Backend-
-// Flow-Endpoint basiert und hier nicht verfügbar ist).
+// ── Transfers tile: same year/overview filter pattern as buys/sells, reusing _yearlyAllTx. Counterpart lookup via transferId is a simple standalone search, not flow.js's backend-based graph pairing. ──
 let _yearlyTransfersTx        = [];
 let _yearlyTransfersYearLabel = null;
 
-// Alle/Paare/Solo-Filter der Transfers-Kachel — im Gegensatz zum unabhängigen
-// Käufe/Verkäufe-Toggle hier bewusst EIN einzelner, sich gegenseitig
-// ausschließender Modus (Radio-artig), da "Paare" und "Solo" sich per
-// Definition ausschließen und "Alle" beide vereint — ein unabhängiges
-// Doppel-Toggle wie bei Käufe/Verkäufe wäre hier nur redundant.
-let _yearlyTransfersFilterMode = 'solo'; // 'all' | 'paired' | 'solo' — Default: nur Solo-Transfers (siehe Reset/HTML-Default)
+// All/paired/solo filter, radio-style single mode (unlike the independent buy/sell toggle) since paired and solo are mutually exclusive
+let _yearlyTransfersFilterMode = 'solo'; // 'all' | 'paired' | 'solo', defaults to solo-only
 
 function yearlyRenderTransfers(year, seq) {
-    if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // Auswahl inzwischen gewechselt
-    if (_yearlyAllTx == null) return; // wird von yearlyRenderTiles im selben Zyklus geladen
+    if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // selection changed in the meantime
+    if (_yearlyAllTx == null) return; // loaded by yearlyRenderTiles in the same cycle
 
     const transferTx = _yearlyAllTx
         .filter(tx => (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT') && tx.date
@@ -812,9 +742,7 @@ function _yearlyRenderTransfersGrid() {
     grid.innerHTML = filtered.map(tx => _yearlyRenderTransferTile(tx)).join('');
 }
 
-/** Klick-Handler der 3 sich gegenseitig ausschließenden Filter-Buttons
- *  ("Alle"/"Nur Paare"/"Nur Solo") — kein Refetch/keine erneute Paarungssuche
- *  nötig, nur ein Re-Render (siehe _yearlyRenderTransfersGrid). */
+// Click handler for the 3 mutually exclusive filter buttons; no refetch, just a re-render
 function yearlyToggleTransfersFilter(mode) {
     _yearlyTransfersFilterMode = mode;
     document.querySelectorAll('.yearly-transfers-filter-btn').forEach(btn => {
@@ -828,8 +756,7 @@ function _yearlySaveTransfersFilter() {
     try { localStorage.setItem(YEARLY_TRANSFERS_FILTER_KEY, _yearlyTransfersFilterMode); } catch (e) { /* ignore */ }
 }
 
-/** Analog zu _yearlyRestoreTilesFilter — liest den gespeicherten Alle/Paare/
- *  Solo-Modus und synchronisiert direkt die Button-Darstellung. */
+// Same pattern as _yearlyRestoreTilesFilter: reads the saved filter mode and syncs the button display
 function _yearlyRestoreTransfersFilter() {
     try {
         const saved = localStorage.getItem(YEARLY_TRANSFERS_FILTER_KEY);
@@ -840,9 +767,7 @@ function _yearlyRestoreTransfersFilter() {
     });
 }
 
-/** Sucht die Gegenbuchung (TRANSFER_IN ↔ TRANSFER_OUT mit gleicher transferId)
- *  in der bereits geladenen Gesamtliste. Liefert null, wenn keine gefunden
- *  wird — dann handelt es sich um einen Solo-Transfer (siehe depot.js). */
+// Finds the counterpart (TRANSFER_IN ↔ TRANSFER_OUT with the same transferId); null means a solo transfer
 function _yearlyFindTransferCounterpart(tx) {
     if (!tx.transferId) return null;
     const wantType = tx.type === 'TRANSFER_OUT' ? 'TRANSFER_IN' : 'TRANSFER_OUT';
@@ -878,6 +803,10 @@ function _yearlyRenderTransferTile(tx) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -907,8 +836,7 @@ function fmtBtc(val) {
     return Number(val).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 }) + ' BTC';
 }
 
-/** Kompakte Variante von fmt() für Achsen-Beschriftungen (0 statt 2 Nachkommastellen) —
- *  eigenständige Kopie analog zu holdings.js' _holdingsFmtCompact() (bewusst nicht geteilt). */
+// Compact variant of fmt() for axis labels (0 decimals), standalone copy analogous to holdings.js' _holdingsFmtCompact()
 function _yearlyFmtAxisPrice(val, currency) {
     if (typeof CURRENCY !== 'undefined') {
         const cur = CURRENCY.get(currency);
@@ -928,9 +856,7 @@ function _yearlyFmt8(val) {
     return Number(val).toLocaleString('de-DE', { minimumFractionDigits: 8, maximumFractionDigits: 8 });
 }
 
-/** Kommentar kann beliebig lang sein — ungekürzt hat er die Karte unnötig in
- *  die Breite gezogen (gleiches Problem/gleicher Fix wie in depot.js). Auf 20
- *  Zeichen kürzen (voller Text bleibt im title-Tooltip erhalten). */
+// Truncate to 20 chars (full text in the tooltip), same fix as depot.js, otherwise a long comment widens the card
 function _yearlyTruncateComment(comment) {
     return comment && comment.length > 20 ? comment.substring(0, 20) + '…' : comment;
 }
@@ -951,7 +877,7 @@ function showToast(msg, type) {
     setTimeout(() => toast.classList.add('d-none'), 5000);
 }
 
-// ── Manueller Monatskurs-Dialog: nach Jahr gruppiert, einklappbar, neuestes Jahr oben ──
+// ── Manual monthly price dialog: grouped by year, collapsible, newest year first ──
 
 async function yearlyLoadPriceModal() {
     const body = document.getElementById('yearlyPriceModalBody');
@@ -975,7 +901,7 @@ async function yearlyLoadPriceModal() {
         body.innerHTML = years.map((year, idx) => {
             const monthsDesc = byYear.get(year).slice().sort((a, b) => b.month - a.month);
             const collapseId = `yearlyPriceYear${year}`;
-            const expanded   = idx < 2; // aktuelles + letztes Jahr standardmäßig offen
+            const expanded   = idx < 2; // current + previous year expanded by default
 
             const rowsHtml = monthsDesc.map(row => {
                 const monthLabel = YEARLY_MONTH_SHORT_DE[row.month - 1];
@@ -997,11 +923,19 @@ async function yearlyLoadPriceModal() {
                 </div>`;
             }).join('');
 
+            const mempoolAvailable = (typeof _mempoolConfigured !== 'undefined') && _mempoolConfigured;
             return `<div class="yearly-price-year-block">
-                <button type="button" class="yearly-price-year-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}"
-                        aria-expanded="${expanded}" aria-controls="${collapseId}">
-                    <i class="bi bi-chevron-down"></i> ${year}
-                </button>
+                <div class="d-flex align-items-center justify-content-between">
+                    <button type="button" class="yearly-price-year-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}"
+                            aria-expanded="${expanded}" aria-controls="${collapseId}">
+                        <i class="bi bi-chevron-down"></i> ${year}
+                    </button>
+                    <button type="button" class="btn btn-xs depot-btn-outline${mempoolAvailable ? '' : ' d-none'}"
+                            onclick="event.stopPropagation(); yearlyFillMissingFromMempool(${year}, this)"
+                            data-i18n-title="yearly.priceModal.fillMissing" title="Fehlende Monate von mempool füllen (EUR+USD)">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </button>
+                </div>
                 <div class="collapse${expanded ? ' show' : ''}" id="${collapseId}">
                     <div class="yearly-price-rows">${rowsHtml}</div>
                 </div>
@@ -1039,21 +973,37 @@ async function yearlySaveMonthlyPrice(btn) {
     }
 }
 
-// ── Draggable grid layout (desktop) ───────────────────────
-// Eigenständige, unabhängige Implementierung — bewusst NICHT mit
-// holdings.js geteilt (gleiche Grundidee, aber andere Regeln): hier gibt es
-// 3 Reihen mit je maximal 2 Slots statt 3, es gibt kein "auf 1 Slot
-// gecapptes" Kachel-Konzept, und Kacheln können je nach Ansicht (Jahr/
-// Gesamtansicht) ein-/ausgeblendet sein — updateYearlyRowCols zählt daher
-// bewusst nur SICHTBARE Kacheln pro Reihe, damit eine einzelne sichtbare
-// Kachel in einer Reihe stets die volle Breite einnimmt, auch wenn eine
-// zweite (aktuell ausgeblendete) Kachel dort ebenfalls "wohnt".
+// Bulk-fills missing (empty) monthly Ultimo prices for one year from the
+// mempool instance configured in Settings → Mempool-Integration (EUR+USD
+// together, one historical-price call per currency on the backend). Never
+// touches months that already have a value (manual, seeded, or from an
+// earlier mempool fill).
+async function yearlyFillMissingFromMempool(year, btn) {
+    if (btn) btn.disabled = true;
+    try {
+        const res = await fetch(`/api/btc-tracking/monthly-prices/fill-missing?year=${year}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+        const msg = (typeof t === 'function')
+            ? t('yearly.toast.fillMissing', { FILLED: data.filled, NOTFOUND: data.notFound })
+            : `${data.filled} Monat(e) befüllt, ${data.notFound} ohne Daten`;
+        showToast('✓ ' + msg, 'success');
+
+        await yearlyLoadPriceModal();
+        yearlyLoadOverview(_yearlySelectedYear);
+    } catch (err) {
+        showToast('✗ ' + err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+// ── Draggable grid layout (desktop), standalone implementation (not shared with holdings.js): 3 rows of max 2 slots, no capped-tile concept, and updateYearlyRowCols counts only visible tiles per row so a lone visible tile takes full width. ──
 
 const YEARLY_LAYOUT_KEY = 'yearly-layout-v1';
 const YEARLY_MAX_COLS   = 2;
-// 3 Reihen. Reihe 1: Bestand/Wert-Chart + Kurs-Chart. Reihe 2: Käufe & Verkäufe
-// + Transfers (teilen sich die Reihe). Reihe 3: leer, für künftige Kacheln
-// reserviert.
+// 3 rows: balance/value chart + price chart, buys/sells + transfers (shared row), and an empty row reserved for future tiles.
 const YEARLY_DEFAULT_LAYOUT = [
     ['yearly-block-chart', 'yearly-block-pricechart'],
     ['yearly-block-tiles', 'yearly-block-transfers'],
@@ -1108,10 +1058,7 @@ function applyYearlyLayout(grid, layout) {
     });
 }
 
-/** Zählt pro Reihe nur SICHTBARE Kacheln (kein .d-none) — eine Kachel kann je
- *  nach Ansicht ausgeblendet sein (Kurs-Chart/Käufe & Verkäufe), soll dann
- *  aber nicht dazu führen, dass die andere, sichtbare Kachel in derselben
- *  Reihe fälschlich nur eine halbe statt die volle Breite bekommt. */
+// Counts only visible tiles per row (excludes .d-none), so a hidden tile doesn't cause the visible one to get half width instead of full
 function updateYearlyRowCols(grid) {
     grid.querySelectorAll('.yearly-grid-row').forEach(row => {
         const visibleBlocks = Array.from(row.querySelectorAll('.yearly-draggable'))
@@ -1123,29 +1070,12 @@ function updateYearlyRowCols(grid) {
     });
 }
 
-/**
- * Nach updateYearlyRowCols() geänderte --cols/--span-Werte ändern die tatsächliche
- * Container-Breite eines Charts per CSS — ApexCharts misst seine SVG-Breite aber
- * nur beim (Neu-)Rendern bzw. bei einem window "resize"-Event, nicht bei reinen
- * CSS-Grid-Änderungen. Ohne diesen Trigger blieb z.B. beim ersten Laden/F5 in der
- * Gesamtansicht der Kurs-Chart (der erst später sichtbar wird, sobald seine Zeile
- * von 1 auf 2 sichtbare Spalten wechselt) auf der zu diesem früheren Zeitpunkt
- * falschen (zu breiten) Größe stehen und überlappte visuell die Nachbar-Kachel.
- * Ein synthetisches resize-Event lässt beide Charts ihre tatsächliche, aktuelle
- * Containerbreite neu einlesen und sich korrekt neu zeichnen.
- */
+// ApexCharts only remeasures its SVG width on a window resize event, not on pure CSS grid changes, so fire one synthetically after column/span changes (same fix as depot.js).
 function _yearlyTriggerChartResize() {
     window.dispatchEvent(new Event('resize'));
 }
 
-/**
- * "Layout zurücksetzen" versteht der Nutzer als vollständigen Reset der
- * gesamten Jahresansicht-Konfiguration, nicht nur der Kachel-Positionen —
- * setzt daher zusätzlich Käufe/Verkäufe-Filter, Transfers-Filter und die
- * gespeicherte Jahresauswahl (→ Gesamtansicht) zurück, inkl. der jeweiligen
- * localStorage-Keys (siehe YEARLY_TILES_FILTER_KEY/YEARLY_TRANSFERS_FILTER_KEY/
- * YEARLY_SELECTED_YEAR_KEY).
- */
+// "Reset layout" means a full reset of the yearly view config, not just tile positions, so it also clears the buy/sell filter, transfers filter, and selected year.
 function resetYearlyLayout() {
     localStorage.removeItem(YEARLY_LAYOUT_KEY);
     const grid = document.getElementById('yearlyGrid');
@@ -1169,7 +1099,7 @@ function resetYearlyLayout() {
 
     _yearlySelectedYear = null;
     localStorage.removeItem(YEARLY_SELECTED_YEAR_KEY);
-    yearlyLoadOverview(null); // Gesamtansicht neu laden — aktualisiert auch das Jahres-Dropdown und rendert Tiles/Transfers mit den zurückgesetzten Filtern
+    yearlyLoadOverview(null); // reload the overview, also refreshes the year dropdown and re-renders tiles/transfers with the reset filters
 }
 
 function wireYearlyDragAndDrop(grid) {
@@ -1239,21 +1169,7 @@ function _getYearlyDragAfterElement(row, x) {
     }, { offset: -Infinity, element: null }).element;
 }
 
-/** Bewegt eine Kachel eine Position weiter (Lesereihenfolge, Reihe für Reihe,
- *  links nach rechts) — für Touch/Mobile, wo natives Drag & Drop fehlt. */
-/**
- * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
- * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
- * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
- * (< YEARLY_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter →
- * wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
- * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
- * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
- * die Slot-Grenze "anstoßen" und der Pfeil täte nichts.
- * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
- * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos. Eigenständige Kopie,
- * siehe identischer Fix in depot.js' moveOverviewBlock/holdings.js' moveHoldingsBlock.)
- */
+// Moves a tile one step via arrow button: swaps within its row, or migrates across a row boundary if the neighbor row has space, otherwise swaps with its edge tile. Same fix as depot.js' moveOverviewBlock/holdings.js' moveHoldingsBlock.
 function moveYearlyBlock(id, direction) {
     const grid = document.getElementById('yearlyGrid');
     if (!grid) return;

@@ -20,6 +20,13 @@ import lombok.Data;
  * der Haltedauer. Für Coins mit Kaufdatum vor dem Stichtag gilt weiterhin
  * die bestehende 365-Tage-Regel (Bestandsschutz, analog zur Abgeltungsteuer-
  * Einführung 2009 bei Aktien). NULL = Funktion deaktiviert (Standard).
+ *
+ * mempoolHost/mempoolPort: Host/Port einer selbst gehosteten mempool-Instanz
+ * (z.B. die mempool-App im eigenen Umbrel/LAN), über die optional der
+ * aktuelle BTC-Preis abgerufen und fehlende Monats-Ultimo-Kurse in der
+ * Jahresansicht befüllt werden können — siehe MempoolPriceService. Beide
+ * NULL/leer = Funktion deaktiviert (Standard, Opt-in). Der Backend-Server
+ * (nicht der Browser) ruft diesen Host/Port auf.
  */
 @Data
 @Entity
@@ -31,4 +38,10 @@ public class AppSettings {
 
     @Column(name = "tax_holding_period_cutoff_date")
     private LocalDate taxHoldingPeriodCutoffDate;
+
+    @Column(name = "mempool_host", length = 255)
+    private String mempoolHost;
+
+    @Column(name = "mempool_port")
+    private Integer mempoolPort;
 }

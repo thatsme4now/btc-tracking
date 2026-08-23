@@ -1,9 +1,33 @@
 'use strict';
 
-// ── Bestandsansicht (yearly holdings) ─────────────────────
+// ── Holdings view ─────────────────────
+
+/**
+ * All Holdings bar-chart tooltips are pinned to the top of their tile via CSS (see
+ * .holdings-chart-block .apexcharts-tooltip in holdings.css) instead of ApexCharts' default
+ * height-of-the-bar position, and — by default — anchored to the right. That right anchor sits
+ * right on top of a bar that's already near the chart's right edge, so this hover handler flips
+ * a CSS class (holdings-tooltip-left) on the containing tile whenever the hovered bar is in the
+ * last quarter of the x-axis, switching the tooltip to top-left instead. Wired in via
+ * HOLDINGS_APEX_DEFAULTS.chart.events for every chart that doesn't define its own chart.events
+ * (which would otherwise shadow this one) — the two per-buy charts add it explicitly alongside
+ * their own click handler.
+ */
+function _holdingsTooltipEdgeFlip(event, chartContext, config) {
+    const block = chartContext && chartContext.el && chartContext.el.closest('.holdings-chart-block');
+    if (!block) return;
+    const categories = config && config.w && config.w.config && config.w.config.xaxis && config.w.config.xaxis.categories;
+    const total = categories ? categories.length : 0;
+    const idx = config ? config.dataPointIndex : null;
+    const isRightEdge = total > 0 && idx != null && idx >= Math.ceil(total * 0.75);
+    block.classList.toggle('holdings-tooltip-left', isRightEdge);
+}
 
 const HOLDINGS_APEX_DEFAULTS = {
-    chart:   { background: 'transparent', fontFamily: "'IBM Plex Mono', monospace", toolbar: { show: false } },
+    chart:   {
+        background: 'transparent', fontFamily: "'IBM Plex Mono', monospace", toolbar: { show: false },
+        events: { dataPointMouseEnter: _holdingsTooltipEdgeFlip }
+    },
     theme:   { mode: 'dark' },
     tooltip: {
         theme: 'dark',
@@ -32,17 +56,13 @@ const HOLDINGS_POS_COLOR     = '#1d9e75'; // green (matches --pos)
 const HOLDINGS_NEG_COLOR     = '#d85a30'; // red/orange (matches --neg)
 const HOLDINGS_BALANCE_COLOR = '#F7931A'; // Bitcoin orange
 
-// Eigenständige Kopie der Farbpalette für den Allocation-Donut (von der
-// Übersicht hierher verschoben) — bewusst nicht mit depot.js' CHART_COLORS
-// geteilt, siehe "eigenständige Implementierung"-Konvention weiter oben.
+// Standalone copy of the allocation donut palette, moved here from the overview page, not shared with depot.js' CHART_COLORS
 const HOLDINGS_ALLOCATION_PALETTE = [
     '#F7931A', '#1D9E75', '#378ADD', '#534AB7', '#D85A30',
     '#BA7517', '#185FA5', '#0F6E56', '#3C3489', '#993C1D'
 ];
 
-// Einundzwanzig-Modus: eigene, zyklisch wiederholte Palette (Orange/Cyan/
-// Purple aus dem Media Kit) statt der 10 diversifizierten Standardfarben —
-// siehe _holdingsAllocationPalette() für die Auswahl je nach body.mode-21.
+// 21-mode uses its own cyclic orange/cyan/purple palette instead of the 10 default colors
 const HOLDINGS_ALLOCATION_PALETTE_MODE21 = ['#F7931A', '#00B4CF', '#A915FF'];
 
 function _holdingsAllocationPalette() {
@@ -51,24 +71,11 @@ function _holdingsAllocationPalette() {
         : HOLDINGS_ALLOCATION_PALETTE;
 }
 
-// Per-buy G/V-Balken: 3 Helligkeitsstufen je nach FIFO-Realisiert-Status
-// (voll gehalten = kräftig, teilweise realisiert = mittel, komplett realisiert
-// = gedämpft), damit man den Status auch ohne Klick auf einen Balken erahnen kann.
+// Per-buy P/L bars use 3 brightness levels by FIFO status (held/partial/realized) so status is visible without clicking
 const HOLDINGS_POS_SHADES = { held: '#1d9e75', partial: '#5fbf9e', realized: '#6f8f83' };
 const HOLDINGS_NEG_SHADES = { held: '#d85a30', partial: '#e08f6c', realized: '#8f7367' };
 
-// Symmetrische Log-Skala fürs Gewinn/Verlust-je-Kauf-Chart (%): innerhalb ±100%
-// bleibt linear, darüber wird moderat gestaucht (k=100), damit ein 2500%-Kauf
-// nicht mehr alle anderen Balken winzig aussehen lässt. Nur zur Darstellung —
-// Tooltip/Achsen-Beschriftung zeigen weiterhin den echten Prozentwert.
-// EIGENSTÄNDIGE Implementierung (bewusst NICHT mit dem €-Chart geteilt, siehe
-// _holdingsSymlogAmt/_holdingsBuildYTicksAmt weiter unten) — beide Charts
-// haben unterschiedliche Skalen-Logik (fester vs. automatisch hergeleiteter
-// Schwellenwert) und sollen unabhängig voneinander bleiben. Wichtig: nur EIN
-// Parameter, da diese Funktion direkt als percents.map(_holdingsSymlog)
-// aufgerufen wird — Array.map ruft den Callback mit (value, index, array)
-// auf, ein zusätzlicher Default-Parameter würde durch den map-Index
-// überschrieben und die Transformation pro Balken verfälschen.
+// Symmetric log scale for the P/L-per-buy chart (%): linear within ±100%, compressed beyond that so a 2500% buy doesn't dwarf other bars. Display only, tooltips show the real value. Takes exactly one param since it's called as percents.map(_holdingsSymlog).
 const HOLDINGS_SYMLOG_THRESHOLD = 100;
 const HOLDINGS_SYMLOG_SCALE      = 100;
 
@@ -79,9 +86,7 @@ function _holdingsSymlog(v) {
     return sign * (HOLDINGS_SYMLOG_THRESHOLD + HOLDINGS_SYMLOG_SCALE * Math.log(av / HOLDINGS_SYMLOG_THRESHOLD));
 }
 
-/** Feste, "runde" Achsen-Marken: Basis-Set ±100/±50/0, plus so viele der
- *  logarithmischen Zwischenschritte (250/500/1000/2500/...) wie nötig, um den
- *  größten vorkommenden Wert noch abzudecken. */
+// Fixed "round" axis ticks: base set ±100/±50/0 plus enough log steps to cover the max value
 function _holdingsBuildYTicks(maxAbsPercent) {
     const ticks = [-100, -50, 0, 50, 100];
     if (maxAbsPercent > HOLDINGS_SYMLOG_THRESHOLD) {
@@ -94,18 +99,9 @@ function _holdingsBuildYTicks(maxAbsPercent) {
     return ticks;
 }
 
-// ── €-Chart: eigene, unabhängige Symlog-Implementierung ──────────────────
-// Anders als beim %-Chart gibt es hier keinen natürlichen Schwellenwert (kein
-// Äquivalent zu "100% = Verdopplung"), daher wird er aus den Daten hergeleitet
-// (_holdingsAmtThreshold). Bewusst als eigene Funktionen (nicht mit dem
-// %-Chart generalisiert), damit beide Charts unabhängig bleiben und sich
-// nicht gegenseitig über geteilten Code beeinflussen können.
+// ── €-chart: separate symlog implementation since there's no natural threshold like "100% = doubling"; threshold is derived from the data instead ──
 
-/** Automatischer Schwellenwert für den €-Chart: linearer Bereich deckt grob
- *  den kleineren Teil (~1/8) der Gesamtspanne ab, gerundet auf eine "runde"
- *  1/2/5-Stufe, damit die Achsen-Marken lesbar bleiben (z.B. 500 statt
- *  486,32). Passt sich damit automatisch an Portfoliogröße und
- *  Anzeigewährung an. */
+// Auto threshold for the €-chart: linear range covers ~1/8 of the total span, rounded to a nice 1/2/5 step
 function _holdingsAmtThreshold(maxAbs) {
     if (!(maxAbs > 0)) return 100;
     const raw  = maxAbs / 8;
@@ -123,9 +119,7 @@ function _holdingsSymlogAmt(v, threshold) {
     return sign * (threshold + threshold * Math.log(av / threshold));
 }
 
-/** Achsen-Marken für den €-Chart: Basis-Set ±threshold/±threshold/2/0, plus
- *  so viele der logarithmischen Zwischenschritte (2.5x/5x/10x/25x/... des
- *  Schwellenwerts) wie nötig, um den größten vorkommenden Wert noch abzudecken. */
+// Axis ticks for the €-chart: base set ±threshold/±threshold/2/0 plus enough log steps to cover the max value
 function _holdingsBuildYTicksAmt(maxAbs, threshold) {
     const ticks = [-threshold, -threshold / 2, 0, threshold / 2, threshold];
     if (maxAbs > threshold) {
@@ -148,10 +142,11 @@ function esc(str) {
         .replace(/>/g, '&gt;');
 }
 
-let _holdingsBuysChart          = null;
-let _holdingsRealizedPnlChart   = null;
-let _holdingsUnrealizedPnlChart = null;
-let _holdingsBalanceChart       = null;
+let _holdingsBuysChart           = null;
+let _holdingsRealizedPnlChart    = null;
+let _holdingsUnrealizedPnlChart  = null;
+let _holdingsBalanceChart        = null;
+let _holdingsBuysByExchangeChart = null;
 
 async function initHoldings() {
     const loadingEl = document.getElementById('holdingsLoading');
@@ -173,6 +168,7 @@ async function initHoldings() {
 
         contentEl.classList.remove('d-none');
         renderBuysChart(data, currency);
+        renderBuysByExchangeChart(data, currency);
         renderRealizedPnlChart(data, currency);
         renderUnrealizedPnlChart(data, currency);
         renderBalanceChart(data);
@@ -180,6 +176,12 @@ async function initHoldings() {
         initHoldingsBuyPercent(currency);
         loadHoldingsMetrics(currency);
         loadHoldingsAllocation(currency);
+        _holdingsInitMempoolClock();
+
+        // Apply any user-hidden tiles only now, AFTER every chart above has rendered at least once
+        // into a visible, correctly sized container — hiding is a pure CSS toggle from here on, so
+        // ApexCharts never has to mount into a 0-width display:none element.
+        applyHoldingsHiddenTiles();
 
     } catch (err) {
         loadingEl.classList.add('d-none');
@@ -189,12 +191,7 @@ async function initHoldings() {
     }
 }
 
-// ── Kennzahlen (von der Übersicht hierher verschoben) ──────────────────────
-// Eigener Fetch statt Thymeleaf-Modellattribute, da diese Seite ihre Inhalte
-// generell per JS lädt (siehe initHoldings) — der Endpoint liefert dieselbe
-// geteilte Berechnung, die zuvor die Übersicht inline berechnet hat (siehe
-// HoldingsYearlyService.computePortfolioMetrics, Grund: Drift-Vermeidung
-// zwischen beiden Seiten).
+// ── Metrics, moved here from the overview page: own fetch since this page loads via JS, using the same shared HoldingsYearlyService.computePortfolioMetrics calculation to avoid drift between pages ──
 async function loadHoldingsMetrics(currency) {
     try {
         const res = await fetch(`/api/btc-tracking/metrics?currency=${encodeURIComponent(currency)}`);
@@ -232,12 +229,7 @@ function renderHoldingsMetrics(m, currency) {
     perfEl.classList.toggle('text-neg', perf < 0);
 }
 
-// ── Allocation-Donut (von der Übersicht hierher verschoben) ───────────────
-// Eigenständige Kopie von initDonut() (depot.js), siehe "eigenständige
-// Implementierung"-Konvention — Datenquelle hier ist ein Fetch von
-// /api/btc-tracking/positions statt Thymeleaf-Modellattribute, da Positionen
-// auf dieser Seite (anders als auf der Übersicht) nie serverseitig gerendert
-// werden.
+// ── Allocation donut, moved here from the overview page: fetches /api/btc-tracking/positions instead of using Thymeleaf model attributes since positions aren't server-rendered here ──
 let holdingsDonutInstance = null;
 
 async function loadHoldingsAllocation(currency) {
@@ -252,11 +244,7 @@ async function loadHoldingsAllocation(currency) {
 }
 
 function initHoldingsDonut(positions, currency) {
-    // Nur Positionen mit tatsächlichem Bestand in der Legende/im Donut zeigen —
-    // Positionen mit quantityInSats <= 0 (z.B. komplett verkauft/abgezogen)
-    // würden sonst als 0-Segment in der Legende auftauchen, ohne sichtbaren
-    // Anteil im Ring. Gleicher Filter-Gedanke wie beim "Leere ausblenden"-
-    // Toggle der Positionsliste (siehe depot.js togglePosEmptyFilter).
+    // only show positions with actual holdings; zero-quantity positions would otherwise show as an empty legend segment
     const activePositions = (positions || []).filter(p => Number(p.quantityInSats) > 0);
     const labels = activePositions.map(p => p.label);
     const values = activePositions.map(p => Number(p.totalValue));
@@ -310,17 +298,11 @@ function initHoldingsDonut(positions, currency) {
     holdingsDonutInstance = new ApexCharts(document.getElementById('holdingsDonutChart'), options);
     holdingsDonutInstance.render();
 
-    // Gleicher Fix wie in depot.js' initDonut(): erzwingt eine korrekte
-    // Breiten-Neuberechnung, falls initHoldingsLayout() (DOMContentLoaded)
-    // die Grid-Spalten bereits vor diesem async-Callback final gesetzt hat.
+    // same fix as depot.js' initDonut(): forces a width recalculation
     window.dispatchEvent(new Event('resize'));
 }
 
-// Hook, den tx-form.js (saveOrAddTx) nach erfolgreichem Speichern eines Kaufs/
-// Verkaufs aus der Detail-Karte (Kachel B) aufruft. Lädt die komplette
-// Bestandsansicht neu, da eine geänderte Transaktion mehrere Charts gleichzeitig
-// betreffen kann (Käufe/Verkäufe pro Jahr, G/V, Bestand, und den neuen
-// Gewinn/Verlust-je-Kauf-Chart selbst).
+// Hook called by tx-form.js after saving a buy/sell from the detail card; reloads the whole holdings view since one change can affect multiple charts.
 function onTxSaved() {
     initHoldings();
 }
@@ -334,9 +316,7 @@ function fmtBtc(val) {
     return Number(val).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 8 }) + ' BTC';
 }
 
-/** Kompakte Variante von fmt() für Achsen-Beschriftungen (0 statt 2 Nachkommastellen) —
- *  die Tick-Werte sind bereits "runde" Zahlen (siehe _holdingsAmtThreshold/_holdingsBuildYTicksAmt),
- *  Nachkommastellen wären dort nur Rauschen und machen die Labels unnötig lang. */
+// Compact variant of fmt() for axis labels (0 decimals instead of 2), since tick values are already "round" numbers
 function _holdingsFmtCompact(val, currency) {
     if (typeof CURRENCY !== 'undefined') {
         const cur = CURRENCY.get(currency);
@@ -385,9 +365,7 @@ function renderBuysChart(data, currency) {
         yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => _holdingsFmtCompact(v, currency) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
-            // intersect:false → Tooltip reagiert auf die ganze Spaltenbreite (auch
-            // oberhalb/unterhalb kleiner Balken), shared:true behält die kombinierte
-            // Anzeige aller Exchange/Wallet-Anteile + Verkäufe für dieses Jahr bei.
+            // intersect:false makes the tooltip react across the full column width; shared:true keeps all series for the year together
             shared: true,
             intersect: false,
             y: { formatter: (v) => fmt(v, currency) }
@@ -398,8 +376,77 @@ function renderBuysChart(data, currency) {
     _holdingsBuysChart.render();
 }
 
-/** Realisierter G/V pro Jahr — eigene Kachel (früher Teil des kombinierten
- *  Realisiert+Unrealisiert-Charts, auf Wunsch in 2 separate Kacheln aufgeteilt). */
+/**
+ * All-time total buy cost per exchange/wallet, as a donut — same visual style as the Allocation
+ * donut (initHoldingsDonut), but sourced from the yearly buysByExchange figures already fetched
+ * for renderBuysChart above (summed across every year, no separate request). Unlike Allocation,
+ * this intentionally includes every exchange that ever had a BUY, even one since fully sold —
+ * it's about historical buying activity, not current holdings.
+ */
+function renderBuysByExchangeChart(data, currency) {
+    const totals = {};
+    (data || []).forEach(d => {
+        Object.entries(d.buysByExchange || {}).forEach(([label, amount]) => {
+            totals[label] = (totals[label] || 0) + Number(amount || 0);
+        });
+    });
+    const labels = Object.keys(totals).sort();
+    const values = labels.map(l => totals[l]);
+
+    if (_holdingsBuysByExchangeChart) { _holdingsBuysByExchangeChart.destroy(); _holdingsBuysByExchangeChart = null; }
+    if (!labels.length) return;
+
+    const options = {
+        ...HOLDINGS_APEX_DEFAULTS,
+        series: values,
+        labels: labels,
+        chart: {
+            ...HOLDINGS_APEX_DEFAULTS.chart,
+            type:   'donut',
+            height: window.innerHeight / 3
+        },
+        colors: labels.map((_, i) => HOLDINGS_BUY_PALETTE[i % HOLDINGS_BUY_PALETTE.length]),
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '80%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show:      true,
+                            label:     t('chart.total'),
+                            color:     '#6b6f7a',
+                            fontSize:  '30px',
+                            formatter: (w) => {
+                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                return CURRENCY.format(total, currency);
+                            }
+                        },
+                        value: {
+                            color:     '#ddd9d0',
+                            fontSize:  '30px',
+                            formatter: (val) => CURRENCY.format(Number(val), currency)
+                        }
+                    }
+                }
+            }
+        },
+        legend: {
+            ...HOLDINGS_APEX_DEFAULTS.legend,
+            position: 'bottom'
+        },
+        dataLabels: { enabled: false },
+        stroke:     { width: 0 }
+    };
+
+    _holdingsBuysByExchangeChart = new ApexCharts(document.getElementById('holdingsBuysByExchangeChart'), options);
+    _holdingsBuysByExchangeChart.render();
+
+    // same fix as initHoldingsDonut(): forces a width recalculation
+    window.dispatchEvent(new Event('resize'));
+}
+
+// Realized P/L per year, its own tile (previously part of a combined realized+unrealized chart)
 function renderRealizedPnlChart(data, currency) {
     const years    = data.map(d => d.year);
     const realized = data.map(d => Number(d.realizedPnl || 0));
@@ -428,9 +475,7 @@ function renderRealizedPnlChart(data, currency) {
     _holdingsRealizedPnlChart.render();
 }
 
-/** Unrealisierter G/V pro Jahr — eigene Kachel. Ist null für vergangene Jahre
- *  ohne hinterlegten 31.12.-Referenzkurs (siehe Referenzkurs-Tabelle) —
- *  ApexCharts lässt dort einfach eine Lücke. */
+// Unrealized P/L per year, null for past years without a Dec-31 reference price (ApexCharts just leaves a gap)
 function renderUnrealizedPnlChart(data, currency) {
     const years      = data.map(d => d.year);
     const unrealized = data.map(d => (d.unrealizedPnl === null || d.unrealizedPnl === undefined) ? null : Number(d.unrealizedPnl));
@@ -488,20 +533,55 @@ function renderBalanceChart(data) {
     _holdingsBalanceChart.render();
 }
 
-// ── Gewinn/Verlust je Kauf (Row 2, feste Reihe) ────────────
-// Ein Balken pro BUY-Transaktion (chronologisch), Prozentwert exakt wie die
-// bestehende G/V-Spalte in der Haupttabelle (depot.js renderTxTable). Zusätzlich
-// eine rein visuelle FIFO-Realisiert-Markierung PORTFOLIO-WEIT (positionsübergreifend):
-// jeder SELL verbraucht schlicht die ältesten noch offenen BUY-Mengen im gesamten
-// Portfolio, unabhängig von Position/Exchange/Wallet — Transfers/Deposits/Withdraws
-// ändern an den G/V-Zahlen nichts und werden hier ignoriert.
+// ── Profit/loss per buy (fixed row 2): one bar per BUY transaction (or, with the granularity
+// toggle, one bar per calendar month/year of BUYs), same % as the main table's P/L column, plus
+// a portfolio-wide FIFO realized marker (oldest BUY consumed first, transfers ignored) ──
 let _holdingsBuyPercentChart = null;
 let _holdingsBuyAbsChart     = null;
-let _holdingsBuyTxList       = [];   // alle BUY-Transaktionen, chronologisch
+let _holdingsBuyTxList       = [];   // all BUY transactions, chronological
 let _holdingsBuyMeta         = new Map(); // id (string) -> { originalQty, remainingQty, state, sells: [{tx, qty}] }
-let _holdingsSelectedBuyId   = null;
-let _holdingsSelectedIndex   = null; // Index in _holdingsBuyTxList, für ←/→-Navigation und Balken-Highlight
+let _holdingsSelectedBuyId   = null; // selected single-buy id, 'single' granularity only
+let _holdingsSelectedPeriodKey = null; // selected period key ('YYYY' or 'YYYY-MM'), 'month'/'year' granularity only
+let _holdingsDrilldownBuyId  = null; // set when a buy is opened from within a period's buy list
+let _holdingsSelectedIndex   = null; // index into the currently rendered bars, for arrow-key nav and bar highlight
+let _holdingsCurrentBars     = [];   // the bars currently rendered by both charts (see _holdingsBuildBars)
 let _holdingsCurrentPrice    = 0;
+
+const HOLDINGS_BUY_GRANULARITY_KEY = 'holdings-buy-granularity';
+let _holdingsBuyGranularity = _loadHoldingsBuyGranularity();
+
+function _loadHoldingsBuyGranularity() {
+    try {
+        const saved = localStorage.getItem(HOLDINGS_BUY_GRANULARITY_KEY);
+        if (saved === 'single' || saved === 'month' || saved === 'year') return saved;
+    } catch (e) { /* localStorage unavailable, fall through to default */ }
+    return 'single';
+}
+
+function _saveHoldingsBuyGranularity(g) {
+    try { localStorage.setItem(HOLDINGS_BUY_GRANULARITY_KEY, g); } catch (e) { /* ignore */ }
+}
+
+function _updateHoldingsGranularityButtons() {
+    document.querySelectorAll('.holdings-buy-granularity-btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.granularity === _holdingsBuyGranularity);
+    });
+}
+
+/** Switches both P/L-per-buy charts between Einzel-Kauf/Pro Monat/Pro Jahr, persists the choice, and re-renders. */
+function setHoldingsBuyGranularity(granularity) {
+    if (granularity === _holdingsBuyGranularity) return;
+    _holdingsBuyGranularity   = granularity;
+    _saveHoldingsBuyGranularity(granularity);
+    _holdingsSelectedBuyId    = null;
+    _holdingsSelectedPeriodKey = null;
+    _holdingsDrilldownBuyId   = null;
+    _updateHoldingsGranularityButtons();
+
+    const currency = (typeof CURRENCY !== 'undefined') ? CURRENCY.current() : 'EUR';
+    _refreshHoldingsBuyCharts(currency);
+    renderHoldingsDetail(currency);
+}
 
 async function initHoldingsBuyPercent(currency) {
     try {
@@ -516,32 +596,39 @@ async function initHoldingsBuyPercent(currency) {
             .filter(tx => tx.type === 'BUY')
             .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-        // Bereits gewählten Kauf (falls noch vorhanden) beibehalten, sonst Platzhalter.
-        // _holdingsSelectedIndex VOR renderBuyPercentChart() aktualisieren, damit das
-        // Highlight nach dem (asynchronen) Chart-Render den richtigen Balken trifft.
-        const stillExistsIndex = _holdingsSelectedBuyId
-            ? _holdingsBuyTxList.findIndex(tx => String(tx.id) === _holdingsSelectedBuyId)
-            : -1;
-        _holdingsSelectedIndex = stillExistsIndex >= 0 ? stillExistsIndex : null;
-        if (_holdingsSelectedIndex === null) _holdingsSelectedBuyId = null;
+        // keep the current selection if it still exists after reload (single-buy id in 'single'
+        // mode, period keys are date-derived so they persist by construction; only the drilldown
+        // buy needs re-validating in 'month'/'year' mode)
+        if (_holdingsBuyGranularity === 'single') {
+            if (_holdingsSelectedBuyId && !_holdingsBuyTxList.some(tx => String(tx.id) === _holdingsSelectedBuyId)) {
+                _holdingsSelectedBuyId = null;
+            }
+        } else if (_holdingsDrilldownBuyId && !_holdingsBuyTxList.some(tx => String(tx.id) === _holdingsDrilldownBuyId)) {
+            _holdingsDrilldownBuyId = null;
+        }
 
-        renderBuyPercentChart(_holdingsBuyTxList, _holdingsCurrentPrice, currency);
-        renderBuyAbsChart(_holdingsBuyTxList, _holdingsCurrentPrice, currency);
-        renderHoldingsBuyDetail(_holdingsSelectedBuyId, currency);
+        _updateHoldingsGranularityButtons();
+        _refreshHoldingsBuyCharts(currency);
+        renderHoldingsDetail(currency);
     } catch (err) {
         console.error('Buy-percent load failed', err);
     }
 }
 
-/**
- * FIFO portfolio-weit über ALLE Positionen hinweg (nur BUY/SELL werden
- * betrachtet, ältester Kauf zuerst verbraucht — unabhängig davon, auf welcher
- * Position/Exchange/Wallet Kauf und Verkauf jeweils stattfanden). Nur SELL
- * zählt als "realisiert" — TRANSFER_IN/TRANSFER_OUT/WITHDRAW/etc. verschieben
- * BTC nur zwischen Positionen, verkaufen es nicht, und bleiben hier
- * unberücksichtigt. Rein visuelle Hilfsberechnung, ändert nichts an den
- * bestehenden (weighted-average) G/V-Zahlen an anderer Stelle.
- */
+/** Rebuilds the bars for the active granularity and (re-)renders both charts + the selection highlight. */
+function _refreshHoldingsBuyCharts(currency) {
+    const bars = _holdingsBuildBars(_holdingsBuyGranularity);
+    _holdingsCurrentBars = bars;
+
+    renderBuyPercentChart(bars, currency);
+    renderBuyAbsChart(bars, currency);
+
+    const selectedKey = _holdingsBuyGranularity === 'single' ? _holdingsSelectedBuyId : _holdingsSelectedPeriodKey;
+    const idx = selectedKey ? bars.findIndex(b => b.key === selectedKey) : -1;
+    _holdingsSelectedIndex = idx >= 0 ? idx : null;
+}
+
+// Portfolio-wide FIFO across all positions (only BUY/SELL count, transfers ignored, oldest buy consumed first). Visual helper only, doesn't affect the existing weighted-average P/L numbers elsewhere.
 function _computeBuyFifoStates(allTx) {
     const meta = new Map();
 
@@ -549,7 +636,7 @@ function _computeBuyFifoStates(allTx) {
         .filter(tx => tx.type === 'BUY' || tx.type === 'SELL')
         .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-    const queue = []; // { tx, remaining } — eine einzige globale Queue
+    const queue = []; // { tx, remaining }, a single global queue
 
     list.forEach(tx => {
         if (tx.type === 'BUY') {
@@ -580,9 +667,7 @@ function _computeBuyFifoStates(allTx) {
     return meta;
 }
 
-/** Identische Formel wie die G/V-Spalte in der Haupttabelle (depot.js renderTxTable).
- *  Wird NUR noch für rein gehaltene Käufe (state 'held', keine Sells) direkt
- *  verwendet — siehe _holdingsBuyPercentEffective. */
+// Same formula as the P/L column in the main table; used directly only for fully-held buys, see _holdingsBuyPercentEffective
 function _holdingsBuyPercent(tx, currentPrice) {
     let earning, paid;
     if (tx.currency !== CURRENCY.current()) {
@@ -596,25 +681,14 @@ function _holdingsBuyPercent(tx, currentPrice) {
     return { percentage, earningAbs: earning };
 }
 
-/** Gesamt-Kostenbasis eines Kaufs in der aktuell gewählten Anzeigewährung
- *  (identischer Umrechnungs-Ausschnitt wie in _holdingsBuyPercent). */
+// Total cost basis of a buy in the current display currency (same conversion as _holdingsBuyPercent)
 function _holdingsBuyPaid(tx) {
     return (tx.currency !== CURRENCY.current())
         ? (tx.quantityFiat + tx.fees) * tx.exchangeRate
         : (tx.quantityFiat + tx.fees);
 }
 
-/**
- * Für teilweise oder komplett realisierte Käufe (FIFO-Status 'partial'/
- * 'realized'): der bereits verkaufte Anteil fließt mit dem TATSÄCHLICHEN
- * Verkaufserlös der jeweils konsumierenden SELL-Transaktion(en) ein
- * (Verkaufspreis × verkaufte Menge, abzüglich anteiliger Verkaufsgebühren,
- * währungskonvertiert über den Wechselkurs der jeweiligen SELL-Transaktion),
- * NICHT mit dem aktuellen BTC-Kurs — der ist für damals bereits realisierte
- * Gewinne/Verluste irrelevant. Ein bei 'partial' noch offener Rest wird
- * weiterhin zum aktuellen Kurs bewertet. Wird derselbe Kauf von mehreren
- * SELLs teilweise konsumiert, werden deren Erlöse anteilig aufsummiert.
- */
+// For partial/realized buys: the sold portion uses the actual proceeds of the consuming SELL transaction(s), not the current price; any remaining held portion still uses the current price.
 function _holdingsBuyPercentRealized(tx, meta, currentPrice) {
     const paid = _holdingsBuyPaid(tx);
     const displayCurrency = (typeof CURRENCY !== 'undefined') ? CURRENCY.current() : 'EUR';
@@ -623,9 +697,7 @@ function _holdingsBuyPercentRealized(tx, meta, currentPrice) {
     (meta.sells || []).forEach(entry => {
         const sellTx  = entry.tx;
         const sellQty = Number(sellTx.quantity) || 0;
-        // Gebühren der SELL-Transaktion gelten für deren GESAMTE verkaufte Menge —
-        // hier nur der auf diesen Kauf entfallende Anteil, sonst würden Gebühren
-        // mehrfach gezählt, falls ein SELL mehrere Käufe gleichzeitig konsumiert.
+        // the sell's fees apply to its whole quantity; take only the share attributable to this buy
         const feeShare = sellQty > 0 ? (Number(sellTx.fees) || 0) * (entry.qty / sellQty) : 0;
         let entryProceeds = entry.qty * (Number(sellTx.pricePerBtc) || 0) - feeShare;
         if (sellTx.currency && sellTx.currency !== displayCurrency) {
@@ -634,7 +706,7 @@ function _holdingsBuyPercentRealized(tx, meta, currentPrice) {
         proceeds += entryProceeds;
     });
 
-    // Noch gehaltener Rest (nur bei 'partial' > 0) weiterhin zum aktuellen Kurs.
+    // remaining held portion (only for 'partial') still valued at the current price
     proceeds += (meta.remainingQty || 0) * currentPrice;
 
     const earning = proceeds - paid;
@@ -642,9 +714,7 @@ function _holdingsBuyPercentRealized(tx, meta, currentPrice) {
     return { percentage, earningAbs: earning };
 }
 
-/** Wählt je nach FIFO-Status die passende Berechnung: reine Käufe (held) über
- *  die bestehende, aktuelle-Kurs-basierte Formel; teilweise/komplett
- *  realisierte Käufe über den tatsächlichen Verkaufserlös (s.o.). */
+// Picks the right calculation by FIFO status: held buys use the current-price formula, partial/realized use actual sell proceeds
 function _holdingsBuyPercentEffective(tx, currentPrice) {
     const meta = _holdingsBuyMeta.get(String(tx.id));
     if (!meta || !meta.sells || meta.sells.length === 0) {
@@ -653,16 +723,118 @@ function _holdingsBuyPercentEffective(tx, currentPrice) {
     return _holdingsBuyPercentRealized(tx, meta, currentPrice);
 }
 
-function renderBuyPercentChart(buys, currentPrice, currency) {
+// ── Granularity aggregation: turns the chronological BUY list into the "bars" that both
+// P/L-per-buy charts render, normalizing 'single' (one bar per BUY) and 'month'/'year' (one bar
+// per calendar period) into the same shape: { key, label, tooltipX, percentage, earningAbs, state, buys }.
+// Aggregation stays FIFO-faithful: each underlying buy is valued exactly as in 'single' mode
+// (held -> current price, sold -> actual sell proceeds) and only the resulting amounts are summed,
+// so a period's numbers are the sum of what its individual bars would show. ──
+
+function _holdingsPeriodKey(tx, granularity) {
+    const d = tx.date ? String(tx.date) : '';
+    return granularity === 'year' ? d.substring(0, 4) : d.substring(0, 7);
+}
+
+/** Groups buys into calendar periods, chronological (YYYY / YYYY-MM sort lexicographically = chronologically). Periods with no buys are omitted (no zero-filled gaps). */
+function _computeBuyPeriods(buys, granularity) {
+    const map = new Map();
+    buys.forEach(tx => {
+        const key = _holdingsPeriodKey(tx, granularity);
+        if (!key) return;
+        if (!map.has(key)) map.set(key, { key, buys: [] });
+        map.get(key).buys.push(tx);
+    });
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/** Sums each buy's already FIFO-correct paid/earning across a period, and derives the period's
+ *  held/partial/realized status from the aggregate remaining-vs-original quantity (same three-way
+ *  rule as a single buy, applied to the period's totals). */
+function _holdingsPeriodAggregate(periodBuys, currentPrice) {
+    let paid = 0, earning = 0, originalQty = 0, remainingQty = 0;
+    periodBuys.forEach(tx => {
+        paid    += _holdingsBuyPaid(tx);
+        earning += _holdingsBuyPercentEffective(tx, currentPrice).earningAbs;
+        const meta = _holdingsBuyMeta.get(String(tx.id));
+        if (meta) {
+            originalQty  += meta.originalQty;
+            remainingQty += meta.remainingQty;
+        }
+    });
+    const percentage = paid ? (100 / paid * (paid + earning)) - 100 : 0;
+    let state = 'held';
+    if (remainingQty <= 1e-9) state = 'realized';
+    else if (remainingQty < originalQty - 1e-9) state = 'partial';
+    return { percentage, earningAbs: earning, paid, originalQty, remainingQty, state };
+}
+
+/** Builds the normalized bars for the active granularity, used by both P/L-per-buy charts and the detail tile. */
+function _holdingsBuildBars(granularity) {
+    if (granularity === 'single') {
+        return _holdingsBuyTxList.map(tx => {
+            const { percentage, earningAbs } = _holdingsBuyPercentEffective(tx, _holdingsCurrentPrice);
+            const meta = _holdingsBuyMeta.get(String(tx.id));
+            return {
+                key: String(tx.id),
+                label: tx.date ? String(tx.date).substring(0, 4) : '',
+                tooltipX: _holdingsTxTooltipX(tx),
+                percentage, earningAbs,
+                state: meta ? meta.state : 'held',
+                buys: [tx]
+            };
+        });
+    }
+
+    const periods = _computeBuyPeriods(_holdingsBuyTxList, granularity);
+    return periods.map(period => {
+        const agg = _holdingsPeriodAggregate(period.buys, _holdingsCurrentPrice);
+        const countLabel = (typeof t === 'function')
+            ? t('holdings.buyDetail.periodCount', { COUNT: period.buys.length })
+            : `${period.buys.length} Käufe`;
+        return {
+            key: period.key,
+            label: period.key,
+            tooltipX: `${period.key} · ${countLabel}`,
+            percentage: agg.percentage,
+            earningAbs: agg.earningAbs,
+            state: agg.state,
+            buys: period.buys
+        };
+    });
+}
+
+// X-axis categories: 'single' keeps the sparse per-year label (only the first bar of each year, to
+// avoid overlap with potentially many bars); 'month'/'year' label every bar since there are few.
+function _holdingsBarCategories(bars, granularity) {
+    if (granularity !== 'single') return bars.map(b => b.label);
+    return bars.map((bar, i) => {
+        const year = bar.label;
+        const prevYear = i > 0 ? bars[i - 1].label : null;
+        return (i === 0 || year !== prevYear) ? year : '';
+    });
+}
+
+// Bar color by sign + FIFO status, shared by both P/L-per-buy charts
+function _holdingsColorForBar(bars, values, dataPointIndex) {
+    const bar = bars[dataPointIndex];
+    if (!bar) return HOLDINGS_POS_COLOR;
+    const state = bar.state || 'held';
+    const value = values[dataPointIndex];
+    return (value >= 0 ? HOLDINGS_POS_SHADES : HOLDINGS_NEG_SHADES)[state] || (value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR);
+}
+
+function _holdingsBarTooltipX(bars, opts) {
+    const bar = bars[opts.dataPointIndex];
+    return bar ? bar.tooltipX : '';
+}
+
+function renderBuyPercentChart(bars, currency) {
     if (_holdingsBuyPercentChart) { _holdingsBuyPercentChart.destroy(); _holdingsBuyPercentChart = null; }
 
-    const percents    = buys.map(tx => _holdingsBuyPercentEffective(tx, currentPrice).percentage);
+    const percents     = bars.map(b => b.percentage);
     const transformed  = percents.map(_holdingsSymlog);
     const seriesName   = (typeof t === 'function') ? t('holdings.chart.buyPercent') : 'Gewinn/Verlust je Kauf (Prozent)';
-
-    // Jahreszahl nur am jeweils ersten Kauf eines Jahres, sonst leer — grobe
-    // Zeitachse ohne dass sich hunderte Labels überlagern.
-    const categories = _holdingsYearCategories(buys);
+    const categories   = _holdingsBarCategories(bars, _holdingsBuyGranularity);
 
     const maxAbsPercent = Math.max(HOLDINGS_SYMLOG_THRESHOLD, ...percents.map(v => Math.abs(v)));
     const yTicks = _holdingsBuildYTicks(maxAbsPercent);
@@ -692,23 +864,17 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
             type: 'bar',
             height: 360,
             events: {
+                dataPointMouseEnter: _holdingsTooltipEdgeFlip,
                 click: (event, chartContext, config) => {
                     if (config.dataPointIndex == null || config.dataPointIndex < 0) return;
-                    const tx = buys[config.dataPointIndex];
-                    if (tx) selectHoldingsBuy(tx.id);
+                    const bar = bars[config.dataPointIndex];
+                    if (bar) selectHoldingsBar(bar, config.dataPointIndex);
                 }
             }
         },
-        colors: [({ dataPointIndex }) => _holdingsColorForIndex(buys, percents, dataPointIndex)],
+        colors: [({ dataPointIndex }) => _holdingsColorForBar(bars, percents, dataPointIndex)],
         plotOptions: { bar: { columnWidth: '70%' } },
-        // yaxis.labels sind hier ausgeblendet (die Prozent-Beschriftung kommt
-        // stattdessen von den y-Annotations links außen, siehe yAnnotations).
-        // Ohne eigene y-Achsen-Labels reserviert ApexCharts KEINEN Platz links
-        // vom Plot-Bereich — die Annotation-Texte (bis zu "-2500%") ragen dann
-        // über den linken SVG-Rand hinaus und werden dort abgeschnitten (z.B.
-        // "-100%" → sichtbar nur "00%", "250%" → sichtbar nur "50%", was wie
-        // ein falscher Skalen-Wert aussieht, aber nur ein Clipping-Bug ist).
-        // padding.left schafft den fehlenden Rand.
+        // yaxis.labels hidden since percent labels come from y-annotations instead; padding.left reserves the space ApexCharts otherwise wouldn't, avoiding clipped annotation text.
         grid: { ...HOLDINGS_APEX_DEFAULTS.grid, yaxis: { lines: { show: false } }, padding: { left: 46 } },
         annotations: { yaxis: yAnnotations },
         xaxis: {
@@ -720,12 +886,10 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
         yaxis: { labels: { show: false } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
-            // shared:false + intersect:false → Tooltip reagiert auf die ganze Spalten-
-            // Breite (oberhalb/unterhalb des Balkens), nicht nur exakt auf die (bei
-            // kleinen Werten manchmal winzige) sichtbare Balkenfläche.
+            // shared:false + intersect:false makes the tooltip react across the full column width, not just the (sometimes tiny) visible bar
             shared: false,
             intersect: false,
-            x: { formatter: (_, opts) => _holdingsTxTooltipX(buys, opts) },
+            x: { formatter: (_, opts) => _holdingsBarTooltipX(bars, opts) },
             y: { formatter: (_, opts) => Number(percents[opts.dataPointIndex]).toFixed(2) + '%' }
         }
     };
@@ -734,26 +898,16 @@ function renderBuyPercentChart(buys, currentPrice, currency) {
     _holdingsBuyPercentChart.render().then(() => _holdingsHighlightBar(_holdingsSelectedIndex));
 }
 
-/**
- * Zweite Grafik (eigene feste Reihe): identische Balken/FIFO/Farb-Regeln und
- * X-Achse wie renderBuyPercentChart, aber der ABSOLUTE Gewinn/Verlust je Kauf
- * in der aktuell gewählten Währung. Ebenfalls symlog-skaliert wie der %-Chart —
- * anders als bei Prozent gibt es hier aber keinen natürlichen Schwellenwert
- * (kein Äquivalent zu "100% = Verdopplung"), daher wird er automatisch aus den
- * Daten hergeleitet (_holdingsAmtThreshold) und passt sich so an Portfoliogröße
- * und Anzeigewährung an. Teilt sich über die gemeinsame Auswahl
- * (_holdingsSelectedIndex/selectHoldingsBuy) dieselbe Detail-Kachel wie der
- * %-Chart, um sie nicht zu duplizieren.
- */
-function renderBuyAbsChart(buys, currentPrice, currency) {
+// Second chart: same bars/FIFO/color rules and x-axis as renderBuyPercentChart, but the absolute P/L amount instead of percent. Shares the same detail tile via _holdingsSelectedIndex/selectHoldingsBar.
+function renderBuyAbsChart(bars, currency) {
     if (_holdingsBuyAbsChart) { _holdingsBuyAbsChart.destroy(); _holdingsBuyAbsChart = null; }
 
-    const amounts     = buys.map(tx => _holdingsBuyPercentEffective(tx, currentPrice).earningAbs);
+    const amounts      = bars.map(b => b.earningAbs);
     const maxAbsAmount = Math.max(0, ...amounts.map(v => Math.abs(v)));
     const threshold    = _holdingsAmtThreshold(maxAbsAmount);
     const transformed  = amounts.map(v => _holdingsSymlogAmt(v, threshold));
     const seriesName   = (typeof t === 'function') ? t('holdings.chart.buyAbs') : 'Gewinn/Verlust je Kauf (Betrag)';
-    const categories   = _holdingsYearCategories(buys);
+    const categories   = _holdingsBarCategories(bars, _holdingsBuyGranularity);
 
     const yTicks = _holdingsBuildYTicksAmt(Math.max(maxAbsAmount, threshold), threshold);
     const yAnnotations = yTicks.map(tv => ({
@@ -782,14 +936,15 @@ function renderBuyAbsChart(buys, currentPrice, currency) {
             type: 'bar',
             height: 300,
             events: {
+                dataPointMouseEnter: _holdingsTooltipEdgeFlip,
                 click: (event, chartContext, config) => {
                     if (config.dataPointIndex == null || config.dataPointIndex < 0) return;
-                    const tx = buys[config.dataPointIndex];
-                    if (tx) selectHoldingsBuy(tx.id);
+                    const bar = bars[config.dataPointIndex];
+                    if (bar) selectHoldingsBar(bar, config.dataPointIndex);
                 }
             }
         },
-        colors: [({ dataPointIndex }) => _holdingsColorForIndex(buys, amounts, dataPointIndex)],
+        colors: [({ dataPointIndex }) => _holdingsColorForBar(bars, amounts, dataPointIndex)],
         plotOptions: { bar: { columnWidth: '70%' } },
         grid: { ...HOLDINGS_APEX_DEFAULTS.grid, yaxis: { lines: { show: false } }, padding: { left: 64 } },
         annotations: { yaxis: yAnnotations },
@@ -804,7 +959,7 @@ function renderBuyAbsChart(buys, currentPrice, currency) {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
             shared: false,
             intersect: false,
-            x: { formatter: (_, opts) => _holdingsTxTooltipX(buys, opts) },
+            x: { formatter: (_, opts) => _holdingsBarTooltipX(bars, opts) },
             y: { formatter: (_, opts) => fmt(amounts[opts.dataPointIndex], currency) }
         }
     };
@@ -813,42 +968,14 @@ function renderBuyAbsChart(buys, currentPrice, currency) {
     _holdingsBuyAbsChart.render().then(() => _holdingsHighlightBar(_holdingsSelectedIndex));
 }
 
-/** Jahreszahl nur am jeweils ersten Kauf eines Jahres, sonst leer — von beiden
- *  Gewinn/Verlust-je-Kauf-Charts (%, Betrag) gemeinsam genutzt. */
-function _holdingsYearCategories(buys) {
-    return buys.map((tx, i) => {
-        const year = tx.date ? String(tx.date).substring(0, 4) : '';
-        const prevYear = i > 0 && buys[i - 1].date ? String(buys[i - 1].date).substring(0, 4) : null;
-        return (i === 0 || year !== prevYear) ? year : '';
-    });
-}
-
-/** Balkenfarbe nach Vorzeichen + FIFO-Status — von beiden Gewinn/Verlust-je-Kauf-
- *  Charts gemeinsam genutzt, jeweils mit ihrem eigenen Werte-Array (Prozent bzw.
- *  absoluter Betrag) zur Vorzeichen-/Zustands-Bestimmung. */
-function _holdingsColorForIndex(buys, values, dataPointIndex) {
-    const tx = buys[dataPointIndex];
-    if (!tx) return HOLDINGS_POS_COLOR;
-    const meta  = _holdingsBuyMeta.get(String(tx.id));
-    const state = meta ? meta.state : 'held';
-    const value = values[dataPointIndex];
-    return (value >= 0 ? HOLDINGS_POS_SHADES : HOLDINGS_NEG_SHADES)[state] || (value >= 0 ? HOLDINGS_POS_COLOR : HOLDINGS_NEG_COLOR);
-}
-
-/** Tooltip-X-Formatter (Datum + Position) — von beiden Charts gemeinsam genutzt. */
-function _holdingsTxTooltipX(buys, opts) {
-    const tx = buys[opts.dataPointIndex];
+// Tooltip X formatter for a single BUY (date + position), used when building 'single'-granularity bars
+function _holdingsTxTooltipX(tx) {
     if (!tx) return '';
     const date = tx.date ? String(tx.date).substring(0, 10) : '';
     return `${date} — ${tx.positionLabel || ''}`;
 }
 
-/** Hebt genau den Balken mit dem übergebenen Datenindex optisch hervor (Border),
- *  in BEIDEN Gewinn/Verlust-je-Kauf-Charts gleichzeitig (synchronisierte Auswahl,
- *  siehe selectHoldingsBuy) — ohne die Charts neu zu rendern (direkte SVG-
- *  Klassenmanipulation, da ApexCharts-Annotationen auf einer Kategorie-Achse mit
- *  mehrheitlich leeren (doppelten) Labels keine eindeutige Balken-Zuordnung mehr
- *  erlauben). */
+// Highlights the bar at the given index in both P/L-per-buy charts via direct SVG class manipulation, without re-rendering
 const HOLDINGS_BUY_CHART_IDS = ['holdingsBuyPercentChart', 'holdingsBuyAbsChart'];
 
 function _holdingsHighlightBar(index) {
@@ -861,23 +988,31 @@ function _holdingsHighlightBar(index) {
     });
 }
 
-function selectHoldingsBuy(id) {
-    _holdingsSelectedBuyId = String(id);
-    _holdingsSelectedIndex = _holdingsBuyTxList.findIndex(tx => String(tx.id) === _holdingsSelectedBuyId);
-    if (_holdingsSelectedIndex === -1) _holdingsSelectedIndex = null;
+// Selects a bar (a single buy in 'single' mode, a period in 'month'/'year' mode) and shows its detail.
+// Picking a new bar always drops any open period-drilldown, so the detail tile follows the click.
+function selectHoldingsBar(bar, index) {
+    _holdingsDrilldownBuyId = null;
+    if (_holdingsBuyGranularity === 'single') {
+        _holdingsSelectedBuyId = bar.key;
+    } else {
+        _holdingsSelectedPeriodKey = bar.key;
+    }
+    _holdingsSelectedIndex = index != null ? index : _holdingsCurrentBars.indexOf(bar);
     _holdingsHighlightBar(_holdingsSelectedIndex);
-    const currency = (typeof CURRENCY !== 'undefined') ? CURRENCY.current() : 'EUR';
-    renderHoldingsBuyDetail(_holdingsSelectedBuyId, currency);
+    renderHoldingsDetail();
 }
 
-/** ←/→ blättert zum vorherigen/nächsten Kauf (chronologische Reihenfolge wie im
- *  Chart), solange eine Auswahl aktiv ist, kein Eingabefeld fokussiert ist und
- *  kein Modal-Dialog offen ist (sonst Kollision mit flatpickr-Pfeiltasten-Nav.
- *  im Bearbeiten-Dialog). Kein Wrap-Around an den Rändern der Liste.
- */
+// Backward-compatible single-buy selector, still used to re-select a buy id directly (arrow-key nav in 'single' mode).
+function selectHoldingsBuy(id) {
+    const index = _holdingsCurrentBars.findIndex(b => b.key === String(id));
+    if (index === -1) return;
+    selectHoldingsBar(_holdingsCurrentBars[index], index);
+}
+
+// Arrow keys step to the previous/next bar while a selection is active, no input is focused, and no modal is open (avoids colliding with flatpickr's arrow-key nav)
 function _holdingsHandleArrowKey(e) {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    if (_holdingsSelectedBuyId == null) return;
+    if (_holdingsSelectedIndex == null) return;
 
     const active = document.activeElement;
     const tag = active ? active.tagName : '';
@@ -886,14 +1021,11 @@ function _holdingsHandleArrowKey(e) {
     const modal = document.getElementById('txModal');
     if (modal && modal.classList.contains('show')) return;
 
-    const currentIndex = _holdingsBuyTxList.findIndex(tx => String(tx.id) === _holdingsSelectedBuyId);
-    if (currentIndex === -1) return;
-
-    const newIndex = currentIndex + (e.key === 'ArrowRight' ? 1 : -1);
-    if (newIndex < 0 || newIndex >= _holdingsBuyTxList.length) return;
+    const newIndex = _holdingsSelectedIndex + (e.key === 'ArrowRight' ? 1 : -1);
+    if (newIndex < 0 || newIndex >= _holdingsCurrentBars.length) return;
 
     e.preventDefault();
-    selectHoldingsBuy(_holdingsBuyTxList[newIndex].id);
+    selectHoldingsBar(_holdingsCurrentBars[newIndex], newIndex);
 }
 
 document.addEventListener('keydown', _holdingsHandleArrowKey);
@@ -916,12 +1048,38 @@ function _holdingsFieldRow(label, value, title) {
     </div>`;
 }
 
-function renderHoldingsBuyDetail(buyId, currency) {
-    const emptyEl   = document.getElementById('holdingsBuyDetailEmpty');
-    const contentEl = document.getElementById('holdingsBuyDetailContent');
-    const cardEl    = document.getElementById('holdingsBuyDetailCard');
-    const sellsWrap = document.getElementById('holdingsBuyDetailSellsWrap');
-    const sellsEl   = document.getElementById('holdingsBuyDetailSells');
+// Dispatches to the right detail renderer for the current granularity/selection/drilldown state.
+// Called after every selection change, granularity switch, and data reload.
+function renderHoldingsDetail(currency) {
+    currency = currency || ((typeof CURRENCY !== 'undefined') ? CURRENCY.current() : 'EUR');
+    if (_holdingsBuyGranularity === 'single') {
+        renderHoldingsBuyDetail(_holdingsSelectedBuyId, currency, false);
+    } else if (_holdingsDrilldownBuyId) {
+        renderHoldingsBuyDetail(_holdingsDrilldownBuyId, currency, true);
+    } else {
+        renderHoldingsPeriodDetail(_holdingsSelectedPeriodKey, currency);
+    }
+}
+
+/** Opens a single buy's full detail card from within a period's buy list, with a link back to that list. */
+function drilldownHoldingsBuy(id) {
+    _holdingsDrilldownBuyId = String(id);
+    renderHoldingsDetail();
+}
+
+/** Leaves the single-buy drilldown and returns to the period's buy list. */
+function holdingsBackToPeriodList() {
+    _holdingsDrilldownBuyId = null;
+    renderHoldingsDetail();
+}
+
+function renderHoldingsBuyDetail(buyId, currency, showBackLink) {
+    const emptyEl    = document.getElementById('holdingsBuyDetailEmpty');
+    const contentEl  = document.getElementById('holdingsBuyDetailContent');
+    const cardEl     = document.getElementById('holdingsBuyDetailCard');
+    const sellsWrap  = document.getElementById('holdingsBuyDetailSellsWrap');
+    const sellsEl    = document.getElementById('holdingsBuyDetailSells');
+    const periodWrap = document.getElementById('holdingsBuyDetailPeriodWrap');
     if (!emptyEl || !contentEl || !cardEl) return;
 
     const tx = buyId ? _holdingsBuyTxList.find(item => String(item.id) === String(buyId)) : null;
@@ -933,9 +1091,15 @@ function renderHoldingsBuyDetail(buyId, currency) {
     }
     emptyEl.classList.add('d-none');
     contentEl.classList.remove('d-none');
+    if (periodWrap) periodWrap.classList.add('d-none');
 
     const meta = _holdingsBuyMeta.get(String(tx.id)) || { state: 'held', sells: [] };
-    cardEl.innerHTML = _renderHoldingsBuyCard(tx, meta, currency);
+    const backLink = showBackLink
+        ? `<button type="button" class="btn btn-xs depot-btn-outline mb-2" onclick="holdingsBackToPeriodList()">
+               <i class="bi bi-arrow-left me-1"></i>${esc((typeof t === 'function') ? t('holdings.buyDetail.backToPeriod') : 'Zurück zur Periode')}
+           </button>`
+        : '';
+    cardEl.innerHTML = backLink + _renderHoldingsBuyCard(tx, meta, currency);
 
     if (meta.sells && meta.sells.length) {
         sellsWrap.classList.remove('d-none');
@@ -944,6 +1108,88 @@ function renderHoldingsBuyDetail(buyId, currency) {
         sellsWrap.classList.add('d-none');
         if (sellsEl) sellsEl.innerHTML = '';
     }
+}
+
+/** Period ('month'/'year' granularity) detail: an aggregate summary card plus a clickable list of the period's individual buys. */
+function renderHoldingsPeriodDetail(periodKey, currency) {
+    const emptyEl    = document.getElementById('holdingsBuyDetailEmpty');
+    const contentEl  = document.getElementById('holdingsBuyDetailContent');
+    const cardEl     = document.getElementById('holdingsBuyDetailCard');
+    const sellsWrap  = document.getElementById('holdingsBuyDetailSellsWrap');
+    const sellsEl    = document.getElementById('holdingsBuyDetailSells');
+    const periodWrap = document.getElementById('holdingsBuyDetailPeriodWrap');
+    const periodEl   = document.getElementById('holdingsBuyDetailPeriodList');
+    if (!emptyEl || !contentEl || !cardEl || !periodWrap || !periodEl) return;
+
+    const bar = periodKey ? _holdingsCurrentBars.find(b => b.key === periodKey) : null;
+
+    if (!bar) {
+        emptyEl.classList.remove('d-none');
+        contentEl.classList.add('d-none');
+        return;
+    }
+    emptyEl.classList.add('d-none');
+    contentEl.classList.remove('d-none');
+    if (sellsWrap) { sellsWrap.classList.add('d-none'); if (sellsEl) sellsEl.innerHTML = ''; }
+
+    cardEl.innerHTML = _renderHoldingsPeriodSummaryCard(bar, currency);
+    periodWrap.classList.remove('d-none');
+    periodEl.innerHTML = bar.buys.map(tx => _renderHoldingsPeriodBuyRow(tx, currency)).join('');
+}
+
+function _renderHoldingsPeriodSummaryCard(bar, currency) {
+    const posNeg = bar.percentage >= 0 ? 'text-pos' : 'text-neg';
+    const stateInfo = HOLDINGS_STATE_BADGE[bar.state];
+    const stateBadge = stateInfo
+        ? `<span class="flow-tx-card-badge state-${bar.state}">${esc((typeof t === 'function') ? t(stateInfo.key) : stateInfo.fallback)}</span>`
+        : '';
+    const countBadge = `<span class="flow-tx-card-badge type-buy">${esc((typeof t === 'function') ? t('holdings.buyDetail.periodCount', { COUNT: bar.buys.length }) : `${bar.buys.length} Käufe`)}</span>`;
+
+    const totalQty = bar.buys.reduce((s, tx) => s + (Number(tx.quantity) || 0), 0);
+    const paid     = bar.buys.reduce((s, tx) => s + _holdingsBuyPaid(tx), 0);
+    const avgPrice = totalQty > 0 ? paid / totalQty : 0;
+
+    const qtyLine      = _holdingsFieldRow((typeof t === 'function') ? t('table.col.btc') : 'BTC', _holdingsFmt8(totalQty));
+    const avgPriceLine = _holdingsFieldRow((typeof t === 'function') ? t('holdings.buyDetail.avgPrice') : 'Ø Preis/BTC', _holdingsFormatFiat(avgPrice, currency));
+    const paidLine     = _holdingsFieldRow((typeof t === 'function') ? t('table.col.total') : 'Gesamt', _holdingsFormatFiat(paid, currency));
+    const gvPercentLine = _holdingsFieldRow(
+        (typeof t === 'function') ? t('holdings.buyDetail.gvPercent') : 'G/V %',
+        `<span class="${posNeg}">${bar.percentage >= 0 ? '+' : ''}${bar.percentage.toFixed(2)}%</span>`
+    );
+    const gvAbsLine = _holdingsFieldRow(
+        (typeof t === 'function') ? t('holdings.buyDetail.gvAbs') : 'G/V',
+        `<span class="${posNeg}">${bar.earningAbs >= 0 ? '+' : ''}${fmt(bar.earningAbs, currency)}</span>`
+    );
+
+    return `<div class="flow-tx-card">
+        <div class="flow-tx-card-head">
+            <span>${esc(bar.label)}</span>
+            <span class="flow-tx-card-actions">${countBadge}${stateBadge}</span>
+        </div>
+        ${qtyLine}${avgPriceLine}${paidLine}
+        ${gvPercentLine}${gvAbsLine}
+    </div>`;
+}
+
+/** A single clickable row within a period's buy list — drills into that buy's full detail card. */
+function _renderHoldingsPeriodBuyRow(tx, currency) {
+    const meta = _holdingsBuyMeta.get(String(tx.id)) || { state: 'held' };
+    const { percentage } = _holdingsBuyPercentEffective(tx, _holdingsCurrentPrice);
+    const posNeg = percentage >= 0 ? 'text-pos' : 'text-neg';
+    const date = tx.date ? String(tx.date).substring(0, 10) : '–';
+    const stateInfo = HOLDINGS_STATE_BADGE[meta.state];
+    const stateBadge = stateInfo
+        ? `<span class="flow-tx-card-badge state-${meta.state}">${esc((typeof t === 'function') ? t(stateInfo.key) : stateInfo.fallback)}</span>`
+        : '';
+
+    return `<div class="flow-tx-card holdings-period-buy-row" onclick="drilldownHoldingsBuy('${esc(String(tx.id))}')">
+        <div class="flow-tx-card-head">
+            <span>${esc(date)} · ${esc(tx.positionLabel || '–')}</span>
+            <span class="flow-tx-card-actions">${stateBadge}</span>
+        </div>
+        ${_holdingsFieldRow((typeof t === 'function') ? t('table.col.btc') : 'BTC', _holdingsFmt8(tx.quantity))}
+        ${_holdingsFieldRow((typeof t === 'function') ? t('holdings.buyDetail.gvPercent') : 'G/V %', `<span class="${posNeg}">${percentage >= 0 ? '+' : ''}${percentage.toFixed(2)}%</span>`)}
+    </div>`;
 }
 
 const HOLDINGS_STATE_BADGE = {
@@ -996,6 +1242,10 @@ function _renderHoldingsBuyCard(tx, meta, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_holdingsFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -1031,6 +1281,10 @@ function _renderHoldingsSellCard(entry, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_holdingsFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -1054,6 +1308,11 @@ function showToast(msg, type) {
 async function loadRefPrices(currency) {
     const body = document.getElementById('holdingsRefPricesBody');
     if (!body) return;
+
+    const fillBtn = document.getElementById('holdingsRefPricesFillBtn');
+    if (fillBtn && typeof _mempoolConfigReady !== 'undefined') {
+        _mempoolConfigReady.then(() => fillBtn.classList.toggle('d-none', !_mempoolConfigured));
+    }
 
     try {
         const res = await fetch(`/api/btc-tracking/historical-prices?currency=${encodeURIComponent(currency)}`);
@@ -1121,6 +1380,62 @@ async function saveRefPrice(year, currency, input) {
     }
 }
 
+// Bulk-fills missing (empty) year-end (31.12.) reference prices for every
+// year shown in the table, from the mempool instance configured in
+// Settings → Mempool-Integration (EUR+USD together, one historical-price
+// call per currency on the backend). Never touches years that already have
+// a value (seeded or manual) — mirrors yearlyFillMissingFromMempool in
+// yearly.js, but for the historical_price table (one button for the whole
+// table, not per-year, since this table has no per-year collapsible block).
+async function holdingsFillMissingFromMempool(btn) {
+    if (btn) btn.disabled = true;
+    try {
+        const res = await fetch('/api/btc-tracking/historical-prices/fill-missing', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+        const msg = (typeof t === 'function')
+            ? t('holdings.refPrices.fillMissingResult', { FILLED: data.filled, NOTFOUND: data.notFound })
+            : `${data.filled} Jahr(e) befüllt, ${data.notFound} ohne Daten`;
+        showToast('✓ ' + msg, 'success');
+
+        // Reload everything — newly filled prices also affect the unrealized G/V chart.
+        initHoldings();
+    } catch (err) {
+        showToast('✗ ' + err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+// ── Mempool tile: embedded "clock" (next-block) visualization, 1-slot, only shown when mempool is
+// configured (same _mempoolConfigReady gating as the ref-price fill button above). ──
+
+function _holdingsInitMempoolClock() {
+    const block = document.getElementById('holdings-block-mempoolclock');
+    const frame = document.getElementById('holdingsMempoolClockFrame');
+    if (!block || !frame || typeof _mempoolConfigReady === 'undefined') return;
+
+    _mempoolConfigReady.then(() => {
+        const url = (typeof buildMempoolClockUrl === 'function') ? buildMempoolClockUrl() : null;
+        block.classList.toggle('d-none', !url);
+        block.dataset.mempoolReady = url ? '1' : '';
+        if (url && frame.src !== url) frame.src = url;
+        // block visibility just changed — recompute its row (collapse it away if mempool isn't
+        // configured, or reveal it if it was collapsed during the initial synchronous layout pass)
+        const grid = document.getElementById('holdingsGrid');
+        if (grid && typeof updateHoldingsRowCols === 'function') updateHoldingsRowCols(grid);
+        // the manage-tiles modal's mempool-clock checkbox is only enabled once we know for sure
+        _renderHoldingsManageTilesList();
+    });
+}
+
+function openHoldingsMempoolClock() {
+    const url = (typeof buildMempoolRootUrl === 'function') ? buildMempoolRootUrl() : null;
+    if (!url) return; // button only shown once configured, but defensive nonetheless
+    window.open(url, '_blank', 'noopener');
+}
+
 // ── Draggable grid layout (desktop) ───────────────────────
 // Same interaction convention as depot.js's dashboard section reordering:
 // draggable is only enabled while the handle is held down (dragend clears
@@ -1129,25 +1444,112 @@ async function saveRefPrice(year, currency, input) {
 // where native drag-and-drop isn't available and the grid collapses to a
 // single column via CSS anyway.
 
-const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v5';
+const HOLDINGS_LAYOUT_KEY = 'holdings-layout-v7'; // v7: added holdings-block-buysbyexchange
 const HOLDINGS_MAX_COLS   = 3;
-// 7 Reihen. Reihe 1: Kennzahlen (volle Breite, von der Übersicht hierher
-// verschoben). Reihe 2: Bestand/G-V pro Jahr. Reihe 3: die beiden Gewinn/
-// Verlust-je-Kauf-Charts zusammen mit Kauf-Details (letztere ist "capped"
-// auf 1 Slot, siehe updateHoldingsRowCols). Reihe 4: Käufe & Verkäufe (füllt
-// den verbleibenden freien Slot) neben Referenzkurse und Allocation-Donut
-// (beide "capped", ebenfalls von der Übersicht hierher verschoben).
+// 7 rows: metrics (full width), balance/P-L per year, the 2 P/L-per-buy charts + buy detail (capped to 1 slot), buys & sells + reference prices + allocation donut (capped), the mempool clock tile (capped), buys-by-exchange donut (full width, own row).
 const HOLDINGS_DEFAULT_LAYOUT = [
     ['holdings-block-metrics'],
     ['holdings-block-balance', 'holdings-block-unrealized-pnl', 'holdings-block-realized-pnl'],
     ['holdings-block-buyabs', 'holdings-block-buypercent', 'holdings-block-buydetail'],
     ['holdings-block-buys', 'holdings-block-refprices', 'holdings-block-allocation'],
-    [],
-    [],
+    ['holdings-block-mempoolclock'],
+    ['holdings-block-buysbyexchange'],
     []
 ];
 
 let _holdingsDragEl = null;
+
+// ── Tile visibility (remove/re-add via the X button on a tile or the "Kacheln verwalten" modal) ──
+// Deliberately tracked in its OWN localStorage key, independent of HOLDINGS_LAYOUT_KEY: the layout
+// key's loader (_loadHoldingsLayout below) requires an exact id-set match against the full default
+// tile list, so a layout missing hidden tiles would fail that check and silently revert. Keeping
+// hidden-state separate means the row/position layout never needs to know about it — a hidden tile
+// simply stays in its row/position, only its CSS visibility (.holdings-user-hidden) changes.
+const HOLDINGS_HIDDEN_KEY = 'holdings-hidden-tiles-v1';
+
+// id + i18n key for every tile, in the order shown in the "Kacheln verwalten" modal. mempoolGated
+// tiles additionally require mempool to be configured (see _holdingsInitMempoolClock) before their
+// checkbox can be used.
+const HOLDINGS_TILE_META = [
+    { id: 'holdings-block-metrics',        i18n: 'metrics.title' },
+    { id: 'holdings-block-balance',        i18n: 'holdings.chart.balance' },
+    { id: 'holdings-block-unrealized-pnl', i18n: 'holdings.chart.unrealizedPnl' },
+    { id: 'holdings-block-realized-pnl',   i18n: 'holdings.chart.realizedPnl' },
+    { id: 'holdings-block-buyabs',         i18n: 'holdings.chart.buyAbs' },
+    { id: 'holdings-block-buypercent',     i18n: 'holdings.chart.buyPercent' },
+    { id: 'holdings-block-buydetail',      i18n: 'holdings.buyDetail.title' },
+    { id: 'holdings-block-buys',           i18n: 'holdings.chart.buysAndSells' },
+    { id: 'holdings-block-refprices',      i18n: 'holdings.refPrices.title' },
+    { id: 'holdings-block-allocation',     i18n: 'chart.allocation' },
+    { id: 'holdings-block-mempoolclock',   i18n: 'holdings.mempoolClock.title', mempoolGated: true },
+    { id: 'holdings-block-buysbyexchange', i18n: 'holdings.chart.buysByExchange' }
+];
+
+function _loadHoldingsHiddenIds() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(HOLDINGS_HIDDEN_KEY));
+        if (Array.isArray(saved)) return saved.filter(id => typeof id === 'string');
+    } catch (e) { /* ignore malformed storage */ }
+    return [];
+}
+
+function _saveHoldingsHiddenIds(ids) {
+    localStorage.setItem(HOLDINGS_HIDDEN_KEY, JSON.stringify(ids));
+}
+
+/** Applies the persisted hidden-tile set to the DOM. Called once after the initial chart render in
+ *  initHoldings() — see the comment there for why this must run after rendering, not before. */
+function applyHoldingsHiddenTiles() {
+    const hidden = _loadHoldingsHiddenIds();
+    HOLDINGS_DEFAULT_LAYOUT.flat().forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle('holdings-user-hidden', hidden.includes(id));
+    });
+    const grid = document.getElementById('holdingsGrid');
+    if (grid) updateHoldingsRowCols(grid);
+    _renderHoldingsManageTilesList();
+}
+
+/** Hides or re-shows a single tile — used by both the modal checkboxes and each tile's own X button. */
+function holdingsSetTileHidden(id, hide) {
+    const hidden = _loadHoldingsHiddenIds();
+    const idx = hidden.indexOf(id);
+    if (hide && idx === -1) hidden.push(id);
+    if (!hide && idx !== -1) hidden.splice(idx, 1);
+    _saveHoldingsHiddenIds(hidden);
+
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('holdings-user-hidden', hide);
+    const grid = document.getElementById('holdingsGrid');
+    if (grid) updateHoldingsRowCols(grid);
+    _renderHoldingsManageTilesList();
+}
+
+/** X button on a tile — shorthand for hiding it. */
+function holdingsRemoveTile(id) {
+    holdingsSetTileHidden(id, true);
+}
+
+function _renderHoldingsManageTilesList() {
+    const list = document.getElementById('holdingsManageTilesList');
+    if (!list) return;
+    const hidden = _loadHoldingsHiddenIds();
+
+    list.innerHTML = HOLDINGS_TILE_META.map(tile => {
+        const el             = document.getElementById(tile.id);
+        const mempoolBlocked = !!tile.mempoolGated && (!el || el.dataset.mempoolReady !== '1');
+        const checked        = !hidden.includes(tile.id) ? ' checked' : '';
+        const disabled        = mempoolBlocked ? ' disabled' : '';
+        return `
+            <label class="holdings-manage-tile-row${mempoolBlocked ? ' disabled' : ''}">
+                <input type="checkbox"${checked}${disabled} onchange="holdingsSetTileHidden('${tile.id}', !this.checked)"/>
+                <span data-i18n="${esc(tile.i18n)}"></span>
+                ${mempoolBlocked ? '<span class="holdings-manage-tile-hint" data-i18n="holdings.layout.manage.mempoolHint"></span>' : ''}
+            </label>`;
+    }).join('');
+
+    if (typeof I18N !== 'undefined') I18N.applyI18n();
+}
 
 function initHoldingsLayout() {
     const grid = document.getElementById('holdingsGrid');
@@ -1156,11 +1558,14 @@ function initHoldingsLayout() {
     applyHoldingsLayout(grid, _loadHoldingsLayout());
     wireHoldingsDragAndDrop(grid);
     updateHoldingsRowCols(grid);
+    _renderHoldingsManageTilesList();
 
     const hint = document.getElementById('holdingsLayoutHint');
     if (hint) hint.classList.remove('d-none');
     const resetBtn = document.getElementById('holdingsResetLayoutBtn');
     if (resetBtn) resetBtn.classList.remove('d-none');
+    const manageBtn = document.getElementById('holdingsManageTilesBtn');
+    if (manageBtn) manageBtn.classList.remove('d-none');
 }
 
 function _loadHoldingsLayout() {
@@ -1197,30 +1602,28 @@ function applyHoldingsLayout(grid, layout) {
 
 function updateHoldingsRowCols(grid) {
     grid.querySelectorAll('.holdings-grid-row').forEach(row => {
-        const blocks = Array.from(row.querySelectorAll('.holdings-draggable'));
-        const count  = blocks.length;
-        // Steht eine "max. 1 Slot"-Kachel (Kauf-Details, Referenzkurse) in dieser
-        // Reihe, MUSS die Reihe immer echte 3 gleich breite Spalten haben, damit
-        // diese Kachel sauber genau 1 von 3 Spalten ausfüllt — statt (bei
-        // dynamischem --cols) eine viel zu große Zelle nur teilweise zu füllen.
-        // Andere Kacheln bleiben dynamisch (1/2/3 Spalten je nach Anzahl) und
-        // dürfen allein eine Reihe komplett ausfüllen.
-        const cappedBlocks = blocks.filter(b => b.classList.contains('holdings-block-capped'));
+        const blocks        = Array.from(row.querySelectorAll('.holdings-draggable'));
+        // blocks hidden via d-none (e.g. the mempool tile when mempool isn't configured) or via
+        // holdings-user-hidden (removed by the user through the X button / "Kacheln verwalten"
+        // modal) take no visual space and must not reserve a column or keep the row "occupied" —
+        // otherwise a row whose only tile(s) are currently unavailable leaves a blank gap instead
+        // of collapsing away.
+        const visibleBlocks = blocks.filter(b => !b.classList.contains('d-none') && !b.classList.contains('holdings-user-hidden'));
+        const count  = visibleBlocks.length;
+        // if a "max 1 slot" tile (buy detail, reference prices) is in this row, force 3 equal columns so it fills exactly 1 of 3, instead of a too-large dynamic cell
+        const cappedBlocks = visibleBlocks.filter(b => b.classList.contains('holdings-block-capped'));
         const hasCapped    = cappedBlocks.length > 0;
 
         if (hasCapped) {
             row.style.setProperty('--cols', HOLDINGS_MAX_COLS);
-            const freeBlocks = blocks.filter(b => !b.classList.contains('holdings-block-capped'));
+            const freeBlocks = visibleBlocks.filter(b => !b.classList.contains('holdings-block-capped'));
             cappedBlocks.forEach(b => b.style.setProperty('--span', 1));
 
-            // Die restlichen (nicht-gecappten) Blöcke teilen sich die übrigen
-            // Spalten gleichmäßig auf — z.B. 1 gecappte + 1 freie Kachel in
-            // einer 3er-Reihe → die freie Kachel bekommt --span:2, statt (ohne
-            // explizites Spanning) selbst nur 1 Spalte einzunehmen.
+            // remaining non-capped blocks split the leftover columns evenly
             const remaining = Math.max(HOLDINGS_MAX_COLS - cappedBlocks.length, 0);
             if (freeBlocks.length > 0) {
                 const base = Math.floor(remaining / freeBlocks.length);
-                let extra  = remaining - base * freeBlocks.length; // Rest den ersten Blöcken zuteilen
+                let extra  = remaining - base * freeBlocks.length; // give the remainder to the first blocks
                 freeBlocks.forEach(b => {
                     const span = Math.max(base + (extra > 0 ? 1 : 0), 1);
                     if (extra > 0) extra--;
@@ -1229,18 +1632,28 @@ function updateHoldingsRowCols(grid) {
             }
         } else {
             row.style.setProperty('--cols', Math.max(count, 1));
-            blocks.forEach(b => b.style.setProperty('--span', 1));
+            visibleBlocks.forEach(b => b.style.setProperty('--span', 1));
         }
-        row.classList.toggle('empty', count === 0);
+        // no tile assigned to this row at all -> show the "Leer" drag-and-drop placeholder;
+        // tile(s) assigned but all currently hidden (config-gated, not user layout) -> collapse the
+        // row entirely instead, so no blank gap remains and no drop target is falsely implied.
+        row.classList.toggle('empty', blocks.length === 0);
+        row.classList.toggle('d-none', blocks.length > 0 && count === 0);
     });
 }
 
 function resetHoldingsLayout() {
     localStorage.removeItem(HOLDINGS_LAYOUT_KEY);
+    localStorage.removeItem(HOLDINGS_HIDDEN_KEY);
     const grid = document.getElementById('holdingsGrid');
     if (!grid) return;
     applyHoldingsLayout(grid, HOLDINGS_DEFAULT_LAYOUT);
+    HOLDINGS_DEFAULT_LAYOUT.flat().forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('holdings-user-hidden');
+    });
     updateHoldingsRowCols(grid);
+    _renderHoldingsManageTilesList();
 }
 
 function wireHoldingsDragAndDrop(grid) {
@@ -1270,10 +1683,24 @@ function wireHoldingsDragAndDrop(grid) {
             if (!_holdingsDragEl) return;
             e.preventDefault();
 
-            const countExcludingDragged = row.querySelectorAll('.holdings-draggable').length
-                - (row.contains(_holdingsDragEl) ? 1 : 0);
+            const countExcludingDragged = row.querySelectorAll('.holdings-draggable:not(.holdings-user-hidden)').length
+                - (row.contains(_holdingsDragEl) && !_holdingsDragEl.classList.contains('holdings-user-hidden') ? 1 : 0);
             if (countExcludingDragged >= HOLDINGS_MAX_COLS) {
-                e.dataTransfer.dropEffect = 'none';
+                // Row is already full (and doesn't contain the dragged tile itself) — swap the
+                // dragged tile with whichever tile in the row is closest to the cursor instead of
+                // blocking the drop. Same "swap with a tile instead of rejecting" idea as
+                // moveHoldingsBlock's edge-swap fallback below, just cursor-aware here since drag
+                // has a pointer position to work with. Live during the drag, same as the normal
+                // reorder-within-a-row case just below.
+                const target = _getHoldingsClosestElement(row, e.clientX);
+                if (!target || target === _holdingsDragEl) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+                e.dataTransfer.dropEffect = 'move';
+                row.classList.add('drag-over');
+                _holdingsSwapTiles(_holdingsDragEl, target);
+                updateHoldingsRowCols(grid);
                 return;
             }
             e.dataTransfer.dropEffect = 'move';
@@ -1300,7 +1727,7 @@ function wireHoldingsDragAndDrop(grid) {
 }
 
 function _getHoldingsDragAfterElement(row, x) {
-    const els = [...row.querySelectorAll('.holdings-draggable:not(.dragging)')];
+    const els = [...row.querySelectorAll('.holdings-draggable:not(.dragging):not(.holdings-user-hidden)')];
     return els.reduce((closest, child) => {
         const box    = child.getBoundingClientRect();
         const offset = x - box.left - box.width / 2;
@@ -1309,20 +1736,33 @@ function _getHoldingsDragAfterElement(row, x) {
     }, { offset: -Infinity, element: null }).element;
 }
 
+/** Whichever tile in the row has its horizontal center closest to x — used for the full-row swap
+ *  above, where (unlike the insert-position logic in _getHoldingsDragAfterElement) we need one
+ *  specific tile to trade places with, not a gap to insert into. */
+function _getHoldingsClosestElement(row, x) {
+    const els = [...row.querySelectorAll('.holdings-draggable:not(.dragging):not(.holdings-user-hidden)')];
+    let closest = null, closestDist = Infinity;
+    els.forEach(el => {
+        const box    = el.getBoundingClientRect();
+        const center = box.left + box.width / 2;
+        const dist   = Math.abs(x - center);
+        if (dist < closestDist) { closestDist = dist; closest = el; }
+    });
+    return closest;
+}
+
+/** Swaps two tiles' positions in the DOM, across rows or within one — used when a is the dragged
+ *  tile and b is the tile it's being dropped onto in an already-full row. */
+function _holdingsSwapTiles(a, b) {
+    const aNextSibling = a.nextSibling;
+    const aParent      = a.parentNode;
+    const bParent      = b.parentNode;
+    bParent.replaceChild(a, b);
+    aParent.insertBefore(b, aNextSibling);
+}
+
 /** Moves a block one step earlier/later in reading order (row by row, left to right). */
-/**
- * Bewegt eine Kachel einen Schritt per Pfeil-Button. Innerhalb der eigenen Row
- * wird einfach mit dem Nachbarn getauscht. An der Row-Grenze WANDERT die Kachel
- * in die Nachbar-Row (Ziel wächst, Quelle schrumpft), sofern dort noch Platz ist
- * (< HOLDINGS_MAX_COLS) — direkt an der überschrittenen Grenze eingefügt (runter
- * → wird erste Kachel der nächsten Row, hoch → wird letzte Kachel der vorherigen
- * Row). Ist die Nachbar-Row bereits voll, wird stattdessen mit deren Rand-Kachel
- * getauscht (Row-Größen bleiben dann unverändert) — sonst würde die Kachel gegen
- * die 3-Slot-Grenze "anstoßen" und der Pfeil täte nichts.
- * (Vorher: rein Flat-Index-basierter Tausch — hatte keinen Swap-Partner für leere
- * oder nicht volle Nachbar-Rows, Pfeil war dann wirkungslos. Eigenständige Kopie,
- * siehe identischer Fix in depot.js' moveOverviewBlock/yearly.js' moveYearlyBlock.)
- */
+// Moves a tile one step via arrow button: swaps within its row, or migrates across a row boundary if the neighbor row has space, otherwise swaps with its edge tile. Same fix as depot.js' moveOverviewBlock/yearly.js' moveYearlyBlock.
 function moveHoldingsBlock(id, direction) {
     const grid = document.getElementById('holdingsGrid');
     if (!grid) return;
@@ -1346,7 +1786,14 @@ function moveHoldingsBlock(id, direction) {
         const targetRowIdx = rowIdx + direction;
         if (targetRowIdx < 0 || targetRowIdx >= layout.length) return;
 
-        if (layout[targetRowIdx].length < HOLDINGS_MAX_COLS) {
+        // Row "fullness" only counts currently visible tiles — a hidden (user-removed) tile takes
+        // no visual column, so it must not block a move into a row that still looks like it has room.
+        const visibleCountInTargetRow = layout[targetRowIdx].filter(blockId => {
+            const el = document.getElementById(blockId);
+            return el && !el.classList.contains('holdings-user-hidden');
+        }).length;
+
+        if (visibleCountInTargetRow < HOLDINGS_MAX_COLS) {
             layout[rowIdx].splice(posInRow, 1);
             if (direction > 0) layout[targetRowIdx].unshift(id);
             else layout[targetRowIdx].push(id);

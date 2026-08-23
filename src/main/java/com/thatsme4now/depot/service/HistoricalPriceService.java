@@ -2,9 +2,15 @@ package com.thatsme4now.depot.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +35,15 @@ public class HistoricalPriceService {
 
     private static final String TICKER = "BTC";
 
+    /** Nearest mempool data point must be within this many days of 31.12., else the year is left unfilled — same tolerance as MonthlyPriceService. */
+    private static final long TOLERANCE_DAYS = 2;
+    /** Currencies filled by {@link #fillMissingFromMempool()} — same pair as the monthly fill. */
+    private static final List<String> FILL_CURRENCIES = List.of("EUR", "USD");
+    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
+
     private final HistoricalPriceRepository historicalPriceRepo;
     private final TransactionRepository     transactionRepo;
+    private final MempoolPriceService       mempoolPriceService;
 
     /** One row per past year (earliest transaction year .. last fully elapsed year), price null if not set yet. */
     public List<HistoricalPriceDTO> getYearly(String currency) {
@@ -54,6 +67,7 @@ public class HistoricalPriceService {
         return result;
     }
 
+    /** Creates or updates the year-end reference price for one year/currency. */
     @Transactional
     public HistoricalPriceDTO upsert(Integer year, String currency, BigDecimal price) {
         if (year == null) throw new IllegalArgumentException("Year required");
@@ -79,5 +93,75 @@ public class HistoricalPriceService {
         dto.setCurrency(cur);
         dto.setPrice(hp.getPrice());
         return dto;
+    }
+
+    /**
+     * Fills gaps in the year-end (31.12., 23:59:59 Europe/Berlin) reference
+     * price for EUR and USD, across every year shown by {@link #getYearly},
+     * from the mempool instance configured in AppSettings — one
+     * historical-price call per currency (full series), then the nearest
+     * data point within {@link #TOLERANCE_DAYS} of each missing year's
+     * 31.12. is picked. Existing rows (seeded or manual) are never touched.
+     * The current (still-running) year is skipped — it always uses the live
+     * price, same as {@link #getYearly} already excludes it.
+     *
+     * Throws MempoolPriceService.MempoolException (propagated) if mempool
+     * isn't configured/reachable — the whole action fails with one clear
+     * message rather than silently fetching only some currencies.
+     */
+    @Transactional
+    public Map<String, Object> fillMissingFromMempool() {
+        int currentYear = LocalDate.now().getYear();
+        int firstYear = transactionRepo.findFirstByOrderByDateAsc()
+                .map(tx -> tx.getDate().getYear())
+                .orElse(currentYear);
+
+        int filled = 0, alreadyPresent = 0, notFound = 0;
+
+        for (String cur : FILL_CURRENCIES) {
+            List<MempoolPriceService.PricePoint> series = mempoolPriceService.fetchHistoricalSeries(cur);
+
+            for (int year = firstYear; year < currentYear; year++) {
+                if (historicalPriceRepo.existsByTickerAndYearAndCurrency(TICKER, year, cur)) {
+                    alreadyPresent++;
+                    continue;
+                }
+
+                Instant yearEnd = LocalDate.of(year, Month.DECEMBER, 31).atTime(23, 59, 59).atZone(ZONE).toInstant();
+                MempoolPriceService.PricePoint nearest = findNearest(series, yearEnd);
+                if (nearest == null || Duration.between(nearest.time(), yearEnd).abs().toDays() > TOLERANCE_DAYS) {
+                    notFound++;
+                    continue;
+                }
+
+                HistoricalPrice hp = new HistoricalPrice();
+                hp.setTicker(TICKER);
+                hp.setYear(year);
+                hp.setCurrency(cur);
+                hp.setPrice(nearest.price().setScale(2, RoundingMode.HALF_UP));
+                historicalPriceRepo.save(hp);
+                filled++;
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("filled", filled);
+        result.put("alreadyPresent", alreadyPresent);
+        result.put("notFound", notFound);
+        result.put("currencies", FILL_CURRENCIES);
+        return result;
+    }
+
+    private MempoolPriceService.PricePoint findNearest(List<MempoolPriceService.PricePoint> series, Instant target) {
+        MempoolPriceService.PricePoint best = null;
+        long bestDiffSeconds = Long.MAX_VALUE;
+        for (MempoolPriceService.PricePoint p : series) {
+            long diff = Math.abs(Duration.between(p.time(), target).getSeconds());
+            if (diff < bestDiffSeconds) {
+                bestDiffSeconds = diff;
+                best = p;
+            }
+        }
+        return best;
     }
 }

@@ -42,6 +42,10 @@ public class MonthlyOverviewService {
     private final MonthlyPriceRepository  monthlyPriceRepo;
     private final DepotService            depotService;
 
+    /**
+     * Builds the monthly BTC balance / market value series for a given year,
+     * or across the full history if {@code year} is null.
+     */
     public YearlyOverviewDTO getOverview(Integer year, String currency) {
         String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
 
@@ -110,6 +114,7 @@ public class MonthlyOverviewService {
         return result;
     }
 
+    /** Looks up the stored month-end reference price, or null if not set. */
     private BigDecimal monthEndPrice(YearMonth ym, String currency) {
         return monthlyPriceRepo.findByTickerAndYearAndMonthAndCurrency(TICKER, ym.getYear(), ym.getMonthValue(), currency)
                 .map(mp -> mp.getPrice())

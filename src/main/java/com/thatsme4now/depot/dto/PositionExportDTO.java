@@ -8,4 +8,5 @@ public class PositionExportDTO {
     private Long id;
     private String label;
     private PositionType type;
+    private String description;
 }

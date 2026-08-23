@@ -90,6 +90,14 @@ public class ImportStagingRow {
     @Column(name = "transaction_id", length = 100)
     private String transactionId;
 
+    /** Real on-chain BTC TXID (optional CSV mapping), separate from transactionId
+     *  (import dedup key) — see Transaction#blockchainTxId for the full rationale.
+     *  For "Selbst" (self-transfer) rows, both paired legs get the same, unsuffixed
+     *  value (see ImportWizardService#buildSelfRows) since it's one physical
+     *  on-chain transaction. */
+    @Column(name = "blockchain_tx_id", length = 64)
+    private String blockchainTxId;
+
     @Column(name = "transfer_id", length = 36)
     private String transferId;
 

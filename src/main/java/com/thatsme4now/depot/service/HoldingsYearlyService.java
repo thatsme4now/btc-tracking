@@ -50,6 +50,7 @@ public class HoldingsYearlyService {
     private final HistoricalPriceRepository   historicalPriceRepo;
     private final DepotService                depotService;
 
+    /** Computes the yearly buys/sells/realized-unrealized breakdown for the "holdings" chart. */
     public List<YearlyHoldingsDTO> getYearlyHoldings(String currency) {
         String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
 
@@ -108,14 +109,11 @@ public class HoldingsYearlyService {
                         dto.setTotalSells(dto.getTotalSells().add(proceeds));
                         dto.setRealizedPnl(dto.getRealizedPnl().add(gain));
 
-                        // runningQty NICHT auf 0 klammern (Fund: BTC-Bestand-Chart wich von
-                        // der Hauptseiten-Metrik ab) — die Hauptseite (DepotService.toDTO)
-                        // summiert die Menge simpel & ungeklammert über alle Transaktionen.
-                        // Würde runningQty hier bei einem chronologischen Zwischen-Rutscher
-                        // unter 0 (z.B. weil ein TRANSFER_OUT/SELL vor dem zugehörigen
-                        // TRANSFER_IN datiert ist) auf 0 geklammert, würde dieser fehlende
-                        // Teil NIE nachgeholt und der Endstand wäre dauerhaft höher als der
-                        // echte, einfache Gesamtbestand — genau die gemeldete Abweichung.
+                        // Do NOT clamp runningQty to 0 here — the main page (DepotService.toDTO)
+                        // sums quantity simply and unclamped across all transactions. Clamping
+                        // on a transient dip below 0 (e.g. a TRANSFER_OUT/SELL dated before its
+                        // matching TRANSFER_IN) would permanently lose that quantity and make
+                        // the final balance diverge from the true unclamped total.
                         runningQty  = runningQty.subtract(tx.getQuantity());
                         runningCost = runningCost.subtract(costOfSold);
                         if (runningCost.compareTo(BigDecimal.ZERO) < 0) runningCost = BigDecimal.ZERO;
@@ -163,14 +161,12 @@ public class HoldingsYearlyService {
     }
 
     /**
-     * Portfolio-weite Kennzahlen (Kennzahlen-Kachel) — einmal berechnet, genutzt sowohl
-     * von der Übersicht (bisher inline in DepotViewController.overview()) als auch von der
-     * Bestandsansicht (per REST, siehe GET /api/btc-tracking/metrics), damit die Werte nicht
-     * an zwei Stellen unabhängig berechnet werden (Drift-Risiko). Lebt hier statt in
-     * DepotService, da DepotService bereits von hier aus referenziert wird (depotService-Feld
-     * oben) — eine umgekehrte Abhängigkeit würde einen zirkulären Bean-Verweis erzeugen.
-     * Realized/Unrealized/GainLoss/Performance nutzen bewusst dieselbe portfolio-weite
-     * Berechnung wie getYearlyHoldings() (siehe Kommentar dort), nicht die Summe pro Position.
+     * Portfolio-wide metrics tile — computed once and shared by both the overview page
+     * and the holdings page (GET /api/btc-tracking/metrics) so the numbers aren't derived
+     * independently in two places. Lives here rather than in DepotService because DepotService
+     * is referenced from here already; the reverse dependency would create a circular bean
+     * reference. Realized/unrealized/gainLoss/performance deliberately reuse the same
+     * portfolio-wide calculation as {@link #getYearlyHoldings}, not a per-position sum.
      */
     public PortfolioMetricsDTO computePortfolioMetrics(String currency) {
         String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
@@ -227,6 +223,7 @@ public class HoldingsYearlyService {
         return dto;
     }
 
+    /** Looks up the stored 31.12. reference price for the given year, or null if not set. */
     private BigDecimal historicalYearEndPrice(int year, String currency) {
         return historicalPriceRepo.findByTickerAndYearAndCurrency(TICKER, year, currency)
                 .map(hp -> hp.getPrice())
@@ -244,8 +241,8 @@ public class HoldingsYearlyService {
      * if the transaction's own currency already matches, pricePerBtc is used directly
      * (it is stored in the transaction's own currency); otherwise the transaction's
      * manually-set exchangeRate (to the currency active when it was entered) is applied.
-     * Kaufgebühren zählen mit zur Kostenbasis (Fund 4) — konsistent zur G/V-Spalte der
-     * Haupttabelle und zum "Gewinn/Verlust je Kauf"-Chart.
+     * Buy fees count toward the cost basis, consistent with the main table's gain/loss
+     * column and the "gain/loss per buy" chart.
      */
     private BigDecimal fiatValue(Transaction tx, String displayCurrency) {
         if (tx.getPricePerBtc() == null) return null;

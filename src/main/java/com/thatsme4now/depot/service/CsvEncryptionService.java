@@ -119,6 +119,7 @@ public class CsvEncryptionService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    /** Derives a 256-bit AES key from the password and salt via PBKDF2WithHmacSHA256. */
     private SecretKey deriveKey(char[] password, byte[] salt)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
         var spec = new PBEKeySpec(password, salt, PBKDF2_IT, KEY_LEN);
@@ -128,6 +129,7 @@ public class CsvEncryptionService {
         return new SecretKeySpec(keyBytes, "AES");
     }
 
+    /** Builds an AES/GCM/NoPadding cipher for encryption or decryption. */
     private Cipher buildCipher(int mode, SecretKey key, byte[] iv)
             throws NoSuchAlgorithmException, NoSuchPaddingException,
                    InvalidKeyException, InvalidAlgorithmParameterException {
@@ -136,6 +138,7 @@ public class CsvEncryptionService {
         return cipher;
     }
 
+    /** Generates cryptographically secure random bytes (used for salt/IV). */
     private byte[] randomBytes(int len) {
         byte[] b = new byte[len];
         new SecureRandom().nextBytes(b);
@@ -144,6 +147,7 @@ public class CsvEncryptionService {
 
     // ── Exception ─────────────────────────────────────────────────────────────
 
+    /** Thrown on encryption/decryption failure: wrong password, corrupted or unsupported file. */
     public static class EncryptionException extends RuntimeException {
         public EncryptionException(String msg) { super(msg); }
         public EncryptionException(String msg, Throwable cause) { super(msg, cause); }

@@ -5,7 +5,7 @@ plugins {
 }
 
 group   = 'com.thatsme4now'
-version = '1.4.1'
+version = '1.5.0'
 
 java {
     toolchain {
@@ -45,7 +45,19 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     // Test
+    // Spring Boot 3.2.5 manages JUnit Jupiter 5.10.x (platform 1.10.x) by
+    // default. Newer Eclipse JUnit5 test runners expect junit-platform-engine
+    // >= 1.11 (e.g. org.junit.platform.engine.OutputDirectoryCreator), so pin
+    // a newer JUnit BOM directly to avoid a NoClassDefFoundError when running
+    // tests from Eclipse. testRuntimeOnly on junit-platform-launcher is added
+    // explicitly since Eclipse's runner needs it present on the classpath.
+    testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 

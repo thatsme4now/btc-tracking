@@ -1,4 +1,4 @@
-/* ── Local Fonts ────────────────────────────────────────── */
+/* ── Local fonts ── */
 @font-face {
     font-family: 'IBM Plex Mono';
     font-style:  normal;
@@ -64,7 +64,7 @@
     src: url('/vendor/fonts/Inconsolata-Medium.woff2') format('woff2');
 }
 
-/* ── Base ────────────────────────────────────────────────── */
+/* ── Base ── */
 :root {
     --bg:               #0d0f12;
     --bg-card:          #13161b;
@@ -94,7 +94,7 @@
     min-height:  100vh;
 }
 
-/* ── Light Mode ──────────────────────────────────────────── */
+/* ── Light mode ── */
 body.light {
     --bg:               #f4f5f7;
     --bg-card:          #ffffff;
@@ -113,12 +113,7 @@ body.light {
 
 }
 
-/* ── Einundzwanzig-Modus ───────────────────────────────────
-   Look & Feel angelehnt an einundzwanzig.space (Media Kit): dunkler
-   Hintergrund + Bitcoin-Orange als Primärakzent, Cyan/Purple als
-   Sekundärakzente, Inconsolata als Schrift. Wird von toggleMode21()
-   (theme.js) per body-Klasse gesetzt/entfernt; --font/--bg etc. bleiben
-   danach normal über Theme-/Font-Buttons änderbar (kein Lock). */
+/* ── 21-mode: set/removed via toggleMode21() (theme.js) ── */
 body.mode-21 {
     --bg:               #151515;
     --bg-card:          #1c1c1c;
@@ -149,7 +144,7 @@ body.mode-21 .depot-navbar {
     box-shadow: 0 1px 12px rgba(247,147,26,0.12);
 }
 
-/* ── 21-Modus Toggle-Icon (aktiv-Zustand) ────────────────── */
+/* ── 21-mode toggle icon (active state) ── */
 #btnMode21.mode21-active {
     border-color: var(--accent);
     color:        var(--accent);
@@ -158,8 +153,7 @@ body.mode-21 .depot-navbar {
 #btnMode21.mode21-active:hover {
     background: rgba(247,147,26,0.18);
 }
-/* Theme-Toggle im 21-Modus fix auf Dark — Klick/Hover gesperrt, siehe
-   toggleTheme() early-return in theme.js für die JS-seitige Absicherung. */
+/* Theme toggle locked to dark in 21-mode, see theme.js toggleTheme(). */
 body.mode-21 #btnTheme {
     opacity:       .35;
     pointer-events: none;
@@ -172,18 +166,24 @@ body.mode-21 #btnTheme {
     letter-spacing: .02em;
 }
 
-/* ── 21-Modus Marquee-Ticker ────────────────────────────────
-   Nur sichtbar wenn body.mode-21 aktiv ist; auf Tablet/Handy analog zu
-   .navbar-actions-desktop ausgeblendet (siehe @media unten). */
+/* ── 21-mode marquee ticker (hidden on tablet/phone, see @media below) ── */
 .mode21-ticker {
     display:  none;
     flex:     1 1 auto;
+    min-width: 0; /* let the item shrink instead of forcing a wrap */
     overflow: hidden;
     margin:   0 1rem;
     -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
             mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
 }
 body.mode-21 .mode21-ticker { display: block; }
+/* Override Bootstrap's inherited flex-wrap:wrap (mobile @media below restores it). */
+.depot-navbar .container-fluid:nth-of-type(2) {
+    flex-wrap: nowrap;
+}
+.navbar-actions-desktop {
+    flex-shrink: 0;
+}
 .mode21-ticker-track {
     display:        inline-flex;
     white-space:    nowrap;
@@ -204,7 +204,7 @@ body.mode-21 .mode21-ticker { display: block; }
     to   { transform: translateX(-50%); }
 }
 
-/* ── Navbar ──────────────────────────────────────────────── */
+/* ── Navbar ── */
 .depot-navbar {
     background:    var(--bg-card);
     border-bottom: 1px solid var(--border);
@@ -219,9 +219,7 @@ body.mode-21 .mode21-ticker { display: block; }
     text-decoration: none;
 }
 
-/* Versionsnummer + aktuelle Ansicht hinter dem Apptitel — bewusst ohne die
-   breite letter-spacing/Großschreibung des Titels, damit der Unterschied
-   zwischen fixem Markennamen und variablem Zusatz klar erkennbar bleibt. */
+/* Version/page suffix after the title, deliberately without the title's letter-spacing. */
 .depot-brand-suffix {
     font-size:       .72rem;
     font-weight:     400;
@@ -231,7 +229,7 @@ body.mode-21 .mode21-ticker { display: block; }
     margin-left:     .4rem;
 }
 
-/* ── BTC live price badge ─────────────────────────────────── */
+/* ── BTC live price badge ── */
 .btc-price-badge {
     font-size:      0.72rem;
     letter-spacing: 0.08em;
@@ -241,7 +239,7 @@ body.mode-21 .mode21-ticker { display: block; }
     padding:        0.3rem 0.75rem;
 }
 
-/* ── Buttons ─────────────────────────────────────────────── */
+/* ── Buttons ── */
 .depot-btn-primary {
     background:     transparent;
     border:         1px solid var(--accent);
@@ -286,7 +284,7 @@ body.mode-21 .mode21-ticker { display: block; }
 }
 .depot-btn-icon:hover { border-color: var(--text-muted); color: var(--text); }
 
-/* ── Cards ───────────────────────────────────────────────── */
+/* ── Cards ── */
 .depot-card {
     background:    var(--bg-card);
     border:        1px solid var(--border);
@@ -324,11 +322,11 @@ body.mode-21 .mode21-ticker { display: block; }
     color:     var(--accent);
 }
 
-/* ── Colors ──────────────────────────────────────────────── */
+/* ── Colors ── */
 .text-pos { color: var(--pos) !important; }
 .text-neg { color: var(--neg) !important; }
 
-/* ── Table ───────────────────────────────────────────────── */
+/* ── Table ── */
 .depot-table { font-size: 0.8rem; color: var(--text); }
 
 .depot-table thead th {
@@ -362,20 +360,13 @@ body.mode-21 .mode21-ticker { display: block; }
 .depot-actions { opacity: 0; transition: opacity 0.15s; }
 .depot-row:hover .depot-actions { opacity: 1; }
 
-/* Datums-Spalte (txTable): fixes Format "YYYY-MM-DD HH:MM:SS" braucht keine
-   variable Breite — width allein reicht im automatischen Tabellen-Layout
-   nicht, der Browser verteilt sonst überschüssigen Platz trotzdem hierhin
-   (siehe .depot-actions-cell-Historie oben), daher zusätzlich max-width. */
+/* Fixed-width date column; max-width needed since table layout is auto. */
 .tx-date-col {
     width:     9.5rem;
     max-width: 9.5rem;
 }
 
-/* Fester Platzhalter für das Kommentar-Info-Icon: reserviert die Breite
-   auch wenn kein Kommentar vorhanden ist, damit die danach folgenden
-   Aktions-Buttons in JEDER Zeile an derselben Position beginnen — sonst
-   rutschen sie in kommentarlosen Zeilen nach links und die Spalte wirkt
-   uneinheitlich breit. */
+/* Reserves space for the comment icon so action buttons stay aligned across rows. */
 .depot-actions-icon {
     display:         inline-flex;
     align-items:     center;
@@ -384,7 +375,7 @@ body.mode-21 .mode21-ticker { display: block; }
     flex:            0 0 auto;
 }
 
-/* ── Form ────────────────────────────────────────────────── */
+/* ── Form ── */
 .depot-label {
     display:        block;
     font-size:      0.7rem;
@@ -416,7 +407,7 @@ body.mode-21 .mode21-ticker { display: block; }
     outline:      none;
 }
 
-/* ── Toast ───────────────────────────────────────────────── */
+/* ── Toast ── */
 .depot-toast {
     position:      fixed;
     top:           1rem;
@@ -435,10 +426,7 @@ body.mode-21 .mode21-ticker { display: block; }
 .depot-toast.error   { border-left: 3px solid var(--neg); }
 .depot-toast.warning { border-left: 3px solid var(--accent); }
 
-/* ── Transaction row change pulse (Edit/Duplicate) ────────── */
-/* box-shadow (nicht background) genutzt, damit die Animation auch über den
-   !important-Hintergründen von .warning/.warning-duplicate/.solo-transfer
-   sichtbar ist, ohne diese farblich zu überschreiben. */
+/* ── Transaction row change pulse (Edit/Duplicate) — box-shadow so it shows over !important row backgrounds ── */
 @keyframes txRowPulse {
     0%   { box-shadow: inset 0 0 0 9999px rgba(29, 158, 117, 0); }
     15%  { box-shadow: inset 0 0 0 9999px rgba(29, 158, 117, .35); }
@@ -448,7 +436,7 @@ tr.tx-row-pulse > td {
     animation: txRowPulse 1.4s ease-out;
 }
 
-/* ── Button spinner ──────────────────────────────────────── */
+/* ── Button spinner ── */
 @keyframes spin { to { transform: rotate(360deg); } }
 .depot-spinner {
     display:       inline-block;
@@ -462,7 +450,7 @@ tr.tx-row-pulse > td {
     vertical-align: middle;
 }
 
-/* ── DataTables overrides ────────────────────────────────── */
+/* ── DataTables overrides ── */
 table.dataTable,
 table.dataTable td,
 table.dataTable th {
@@ -529,17 +517,13 @@ table.dataTable tbody tr.warning:hover td           { background-color: var(--wa
 table.dataTable tbody tr.warning-duplicate:hover td { background-color: var(--warn-duplicate) !important; }
 table.dataTable tbody tr.solo-transfer:hover td { background-color: var(--solo-transfer) !important; }
 
-/* Import-Assistent: Staging-Zeile mit Fehler (ungültiges Datum, unbekannte
-   Währung, o.ä.) — eigene Markierung analog warning/warning-duplicate oben,
-   nutzt bewusst --neg (Fehler != Duplikat/FX-Warnung). */
+/* Import wizard: staging row with an error (invalid date, unknown currency, etc). */
 .depot-row.error-row td                      { background: rgba(216, 90, 48, .12); }
 .depot-row.error-row:hover td                { background: rgba(216, 90, 48, .2) !important; }
 table.dataTable tbody tr.error-row           { background-color: rgba(216, 90, 48, .12) !important; }
 table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 48, .2) !important; }
 
-/* Import-Assistent Step 1: Wallet/Börse-Zuordnung fehlt (weder map_exchange
-   noch die feste Position gesetzt) — gleiches Muster wie .error-row, damit
-   sofort auffällt wo etwas fehlt, statt erst beim "Weiter"-Klick per Toast. */
+/* Import wizard step 1: missing wallet/exchange mapping. */
 .mapping-row-warning td {
     background:   rgba(216, 90, 48, .12) !important;
     border-left:  3px solid var(--neg);
@@ -547,10 +531,7 @@ table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 4
 
 .depot-badge { font-size: .85rem; margin-right: .15rem; }
 
-/* Import-Assistent Step 2 (Review): Staging-Liste bekommt einen eigenen
-   Scroll-Container (siehe max-height:60vh am .table-responsive in
-   import-review.html), damit lange Importe nicht die ganze Seite
-   auseinanderziehen. Der Tabellenkopf bleibt beim Scrollen sichtbar. */
+/* Import wizard step 2: sticky header for the scrollable staging list. */
 #stagingTable thead th {
     position: sticky;
     top:      0;
@@ -558,10 +539,7 @@ table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 4
     background-color: var(--bg-card);
 }
 
-/* Generischer Alle/X-Filter als Pill-Button-Gruppe — radio-artig sich
-   gegenseitig ausschließend, gleiches Muster wie der Alle/Paare/Solo-Filter
-   der Yearly-Transfers-Kachel (siehe yearly.css). Genutzt u.a. von der
-   Staging-Toolbar (Review, Step 2) und dem Positionen-Leer-Filter. */
+/* Generic All/X pill-button filter group (radio-style, mutually exclusive). */
 .pill-filter {
     display: flex;
     gap: .25rem;
@@ -592,7 +570,7 @@ table.dataTable tbody tr.error-row:hover td  { background-color: rgba(216, 90, 4
 #stagingTableScroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 #stagingTableScroll::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* Import-Assistent: einfache 3-Step-Anzeige oben auf den 3 Wizard-Seiten */
+/* Import wizard: 3-step indicator shown on the wizard pages */
 .import-wizard-steps {
     display: flex;
     align-items: center;
@@ -632,25 +610,14 @@ table.dataTable thead th.dt-orderable-desc {
     cursor: pointer;
 }
 
-/* Hinweis: Die vendored DataTables-Version ist 2.x — diese verwendet andere
-   Klassennamen als das früher übliche DataTables 1.x (dataTables_wrapper/
-   dataTables_filter/dataTables_length/…). Reale Struktur (siehe DOM):
-   .dt-container > .dt-layout-row > .dt-layout-cell > .dt-search / .dt-length,
-   Paginierung über .dt-paging .dt-paging-button. Alle Selektoren unten sind
-   entsprechend auf die DT2-Klassen angepasst. */
+/* DataTables 2.x class names (dt-container/dt-search/dt-length/dt-paging), not the 1.x ones. */
 .dt-container {
     color: var(--text-muted) !important;
     font-family: var(--font) !important;
     font-size: 0.72rem !important;
 }
 
-/* #posTable_wrapper/#txTable_wrapper (= dieselben Elemente wie .dt-container,
-   DataTables vergibt beides auf denselben Knoten) sind selbst schon eigene
-   Scroll-Container (max-height + overflow-y:auto, siehe weiter unten) — das
-   eigentliche "Scrollen innerhalb der Tabelle", von dem die Suche bisher
-   verschwand. top:0 reicht daher aus, die Navbar spielt hier keine Rolle,
-   da nicht die Seite, sondern diese Box selbst scrollt. Die Spaltenüberschriften
-   (thead) bleiben bewusst NICHT sticky — kleinerer, risikoärmerer Eingriff. */
+/* Sticky within #posTable_wrapper/#txTable_wrapper's own scroll container (thead stays non-sticky). */
 .dt-container .dt-length,
 .dt-container .dt-search {
     position:  sticky;
@@ -710,19 +677,7 @@ table.dataTable thead th.dt-orderable-desc {
     cursor: not-allowed !important;
 }
 
-/* Positions-/Transaktionstabelle: natives DataTables-Suchfeld bleibt trotz
-   sticky-Regel oben im internen Scroll-Container (#posTable_wrapper/
-   #txTable_wrapper) hängen und verschwindet beim Scrollen. Workaround: natives
-   Feld IMMER ausblenden, stattdessen ein eigenes Suchfeld oben in der
-   jeweiligen Toolbar (immer sichtbar, da außerhalb des scrollenden Wrappers)
-   — siehe onTxVisibleSearchInput()/onPosVisibleSearchInput() in depot.js.
-   Früher war das nur ein Desktop-Workaround (am Tablet/Phone blieb das native
-   Feld sichtbar) — das ging aber davon aus, dass die Tabelle am Tablet/Phone
-   sichtbar bleibt. Tatsächlich wird dort per JS auf die Kartenansicht
-   umgeschaltet (#txTableWrap/#posTableWrap bekommen d-none), wodurch das
-   native Suchfeld (das INNERHALB dieses Wrappers liegt) mitverschwindet —
-   Ergebnis: keine Suche mehr verfügbar. Daher jetzt einheitlich auf allen
-   Breakpoints: natives Feld aus, eigenes Feld an. */
+/* Hide native DataTables search everywhere; own toolbar search field replaces it, see depot.js onTxVisibleSearchInput(). */
 #txTable_wrapper .dt-search,
 #posTable_wrapper .dt-search {
     display: none;
@@ -731,7 +686,7 @@ table.dataTable thead th.dt-orderable-desc {
 .tx-search-wrap,
 .pos-search-wrap {
     position:    relative;
-    margin-left: auto; /* an den rechten Rand der Toolbar-Zeile schieben */
+    margin-left: auto;
 }
 .tx-search-wrap input,
 .pos-search-wrap input { font-size: .74rem; padding-right: 1.9rem; min-width: 160px; }
@@ -761,7 +716,7 @@ table.dataTable thead th.dt-orderable-desc {
 	color: #926412bf !important;
 }
 
-/* ── Density System ──────────────────────────────────────── */
+/* ── Density system ── */
 :root {
     --density-font:    0.85rem;
     --density-metric:  1.4rem;
@@ -789,7 +744,7 @@ body.density-spacious {
     --density-btn:     0.88rem;
 }
 
-/* Wire variables into existing classes */
+/* Wire density variables into existing classes */
 .depot-body               { font-size: var(--density-font); }
 .depot-card               { padding: var(--density-pad); }
 .depot-table              { font-size: var(--density-font); }
@@ -803,14 +758,7 @@ body.density-spacious {
 .btc-price-badge          { font-size: var(--density-btn); }
 .dt-container             { font-size: var(--density-btn) !important; }
 
-/* ── Hauptseite: Draggable Grid ─────────────────────────────
-   Eigenständige, unabhängige Implementierung — analog zu yearly.css/
-   holdings.css (gleiches Grundmuster: --cols/--span-CSS-Variablen,
-   die per JS pro Reihe gesetzt werden), aber eigener Namensraum und
-   eigene Regeln: 4 Reihen, max. 2 Slots pro Reihe (siehe depot.js
-   updateOverviewRowCols/OVERVIEW_MAX_COLS). Ersetzt das frühere
-   einfache Auf/Ab-Sortieren einer flachen Liste (.sortable-section/
-   .drag-handle/.sortable-mobile-controls). */
+/* ── Main page: draggable grid (--cols/--span set per row via depot.js) ── */
 .overview-layout-hint {
     font-size: .68rem;
     color: var(--text-muted);
@@ -885,23 +833,18 @@ body.density-spacious {
 .overview-block-move-btn:hover,
 .overview-block-collapse-btn:hover { color: var(--accent); border-color: var(--accent); }
 
-/* Zuklapp-Button: nur auf Tablet/Phone relevant (siehe #75), auf Desktop
-   versteckt — Kollabieren ist rein für kleine Bildschirme gedacht. */
+/* Collapse button is mobile/tablet-only. */
 .overview-block-collapse-btn { display: none; }
 
 @media (max-width: 991px) {
     .overview-grid-row,
     .overview-grid-row.empty { grid-template-columns: 1fr !important; }
 
-    /* Leere Reihe (aktuell Reihe 3, für künftige Kacheln reserviert) bringt
-       auf Tablet/Phone keinen Mehrwert und nimmt nur Platz weg — ausblenden. */
-    .overview-grid-row.empty { display: none; }
+    .overview-grid-row.empty { display: none; } /* reserved row, hide on tablet/phone */
 
     .overview-block-collapse-btn { display: flex; }
 
-    /* Kollabierter Zustand: Kachel-Inhalt ausblenden, nur Header sichtbar.
-       Bewusst scoped auf ≤991px — selbst falls die Klasse gespeichert bleibt,
-       bleibt der Inhalt auf Desktop immer sichtbar (Feature ist mobile-only). */
+    /* Collapsed state hides card body; scoped to ≤991px, always visible on desktop. */
     #overview-block-wallets.collapsed #walletsCardBody,
     #transactionsPanel.collapsed #txCardBody { display: none; }
 }
@@ -910,19 +853,12 @@ body.density-spacious {
     .overview-draggable .overview-drag-handle { display: none; }
 }
 
-/* ── "Alle Transaktionen": Kartenansicht ─────────────────────
-   Eigenständige, unabhängige Implementierung (eigener Namensraum, siehe
-   depot.js renderOverviewTxCards) — Optik angelehnt an .flow-tx-card
-   (flow.css), aber bewusst nicht geteilt. Aktiv, sobald die Kachel sich
-   eine Row mit einer anderen teilt oder der Viewport mobil ist (siehe
-   depot.js _overviewApplyTxViewMode). */
+/* ── "All transactions" card view, active on mobile or shared rows, see depot.js renderOverviewTxCards ── */
 .overview-tx-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: .6rem;
     padding: .75rem 1rem 1rem;
-    /* Scroll-Limit analog #txTable_wrapper (max-height:55vh) — Karten brauchen
-       pro Eintrag mehr vertikalen Platz, daher etwas großzügiger bemessen. */
     max-height: 70vh;
     overflow-y: auto;
     overflow-x: hidden;
@@ -951,10 +887,7 @@ body.density-spacious {
     cursor: pointer;
     transition: border-color .15s, background .15s;
 }
-/* Nur bei echten Zeigegeräten (Maus) — auf Touch-Geräten bleibt :hover nach
-   dem Antippen oft "hängen" (bekannter Mobile-Effekt), wodurch angetippte,
-   nicht ausgewählte Karten denselben Akzentton wie .selected zeigten und
-   beide Zustände visuell kaum unterscheidbar waren. */
+/* Pointer devices only — :hover sticks after tap on touch and looks like .selected. */
 @media (hover: hover) {
     .overview-tx-card:hover { border-color: var(--accent); border-left-color: var(--accent); }
 }
@@ -985,11 +918,7 @@ body.density-spacious {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-/* Checkbox rein funktional (Fernbedienung auf die versteckte Tabellen-
-   Checkbox, siehe _overviewOnTxCardCheckChange in depot.js) — visuell
-   ausgeblendet, da die ganze Karte bereits per Tap wählbar ist
-   (_overviewToggleTxCard) und der Auswahl-Status über Rahmen/Hintergrund
-   der Karte (.overview-tx-card.selected) angezeigt wird. */
+/* Hidden functional checkbox; card itself is tappable, see depot.js _overviewToggleTxCard. */
 .tx-card-check { display: none; }
 
 .overview-tx-card-actions {
@@ -1033,13 +962,9 @@ body.density-spacious {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-width: 0; /* erlaubt dem Flex-Item, unter seine Inhaltsbreite zu schrumpfen —
-                     sonst weitet ein langer Wert (z.B. Kommentar) den ganzen Kachel-
-                     Container unnötig auf, statt abgeschnitten zu werden. */
+    min-width: 0; /* let long values (e.g. a comment) truncate instead of widening the card */
 }
-/* Kommentar-Feld: linksbündig statt rechtsbündig wie die übrigen Werte (siehe
-   renderOverviewTxCards()/_overviewTxFieldRow in depot.js) — Text soll direkt
-   neben dem Label beginnen, nicht am rechten Rand. */
+/* Comment field is left-aligned unlike the other values, see depot.js _overviewTxFieldRow. */
 .overview-tx-field-value.align-left {
     text-align: left;
     margin-right: auto;
@@ -1056,14 +981,7 @@ body.density-spacious {
     .overview-tx-cards { grid-template-columns: 1fr; }
 }
 
-/* ── "Wallets & Börsen": Kartenansicht ───────────────────────
-   Eigenständige, unabhängige Implementierung (eigener Namensraum), aktiv nur
-   wenn die Kachel exakt 1 von 3 Slots einer vollen Row bekommt oder der
-   Viewport mobil ist (siehe depot.js _overviewApplyPosViewMode). Feld-/Kopf-
-   Optik wird bewusst mit .overview-tx-card-head/.overview-tx-field geteilt
-   (beide Kartenlisten leben auf derselben Seite/Feature), nur der Karten-
-   Rahmen selbst (.overview-pos-card) ist eigenständig — Positionen haben
-   keine Warnung/Duplikat/Solo/Import-Marker wie Transaktionen. */
+/* ── "Wallets & exchanges" card view, active on mobile or shared rows, see depot.js _overviewApplyPosViewMode ── */
 .overview-pos-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1099,7 +1017,7 @@ body.density-spacious {
     .overview-pos-cards { grid-template-columns: 1fr; }
 }
 
-/* ── Responsive Transaktionstabelle ──────────────────────── */
+/* ── Responsive transaction table ── */
 @media (max-width: 1100px) and (min-width: 769px) {
     #txTable th:nth-child(8), #txTable td:nth-child(8) { display: none; }
 }
@@ -1108,7 +1026,7 @@ body.density-spacious {
     #txTable th:nth-child(7), #txTable td:nth-child(7) { display: none; }
 }
 
-/* ── Flatpickr Theme Override ────────────────────────────── */
+/* ── Flatpickr theme override ── */
 .flatpickr-calendar {
     background:    var(--bg-card) !important;
     border:        1px solid var(--border) !important;
@@ -1151,7 +1069,7 @@ body.density-spacious {
 .flatpickr-weekday { color: var(--text-muted) !important; }
 .flatpickr-day.flatpickr-disabled { color: var(--text-muted) !important; opacity: .4; }
 
-/* altInput soll wie depot-input aussehen */
+/* altInput styled like depot-input */
 .flatpickr-input.form-control[readonly] {
     background: #1a1d23 !important;
     cursor:     pointer;
@@ -1160,7 +1078,7 @@ body.light .flatpickr-input.form-control[readonly] {
     background: #f4f5f7 !important;
 }
 
-/* Verhindert horizontalen Scroll im Container */
+/* Prevents horizontal scroll in the container */
 #transactionsPanel .table-responsive {
     overflow-x: hidden;
 }
@@ -1231,14 +1149,9 @@ input#dt-search-1 {
 	float: left;
 	margin-left: 10px;
 }
- 
- 
- 
- /* ═══════════════════════════════════════════════════════
-   RESPONSIVE: TABLET (≤768px) / HANDY (≤412px)
-   ═══════════════════════════════════════════════════════ */
+/* ═══ Responsive: tablet (≤768px) / phone (≤412px) ═══ */
 
-/* ── Navbar ────────────────────────────────────────────── */
+/* ── Navbar ── */
 @media (max-width: 768px) {
     .depot-navbar {
         position: sticky;
@@ -1263,7 +1176,7 @@ input#dt-search-1 {
 }
 .depot-offcanvas .offcanvas-body .btn { justify-content: flex-start; }
 
-/* ── Metric Cards ──────────────────────────────────────── */
+/* ── Metric cards ── */
 @media (max-width: 768px) {
     .metrics-row > [class*="col-"] { flex: 0 0 33.3333%; max-width: 33.3333%; }
     .depot-card-metric { padding: .9rem 1rem; }
@@ -1272,9 +1185,8 @@ input#dt-search-1 {
     .metrics-row > [class*="col-"] { flex: 0 0 100%; max-width: 100%; }
 }
 
-/* ── Tabellen → Card-Layout ────────────────────────────── */
-/* alte Spalten-Hide-Regeln nur noch oberhalb 768px aktiv */
-/* ── Außen-Padding reduzieren (Container + Card) ─────────── */
+/* ── Tables → card layout (old column-hide rules only active above 768px) ── */
+/* ── Reduce outer padding (container + card) ── */
 @media (max-width: 768px) {
     main.container-fluid { padding-left: .5rem; padding-right: .5rem; }
     .depot-card { padding: .85rem .9rem; }
@@ -1284,7 +1196,7 @@ input#dt-search-1 {
     .depot-card { padding: .65rem .7rem; }
 }
 
-/* ── Tabellen → kompaktes Card-Layout ─────────────────────── */
+/* ── Tables → compact card layout ── */
 @media (max-width: 768px) {
     #posTable, #txTable { border: none; }
     #posTable thead, #txTable thead { display: none; }
@@ -1300,7 +1212,7 @@ input#dt-search-1 {
         padding: 0 .75rem;
     }
 
-    /* Label + Wert auf EINER Zeile, Label fix breit links, Wert rechtsbündig */
+    /* Label + value on one line, label fixed-width left, value right-aligned */
     #posTable tbody td, #txTable tbody td {
         display: flex;
         align-items: center;
@@ -1323,7 +1235,7 @@ input#dt-search-1 {
         min-width: 70px;
     }
 
-    /* Wert füllt Rest der Zeile, rechtsbündig, ggf. gekürzt statt umgebrochen */
+    /* Value fills the rest of the line, right-aligned, truncated not wrapped */
     #posTable tbody td[data-cell-label] > *:not(:first-child),
     #posTable tbody td[data-cell-label],
     #txTable tbody td[data-cell-label] {
@@ -1348,17 +1260,14 @@ input#dt-search-1 {
 	    margin-right: auto;
 	}
 
-    /* Checkbox-Zeile: kein Label, linksbündig, kompakt */
+    /* Checkbox row: no label, left-aligned, compact */
     #txTable tbody td:first-child {
         justify-content: flex-start;
         min-height: 2.1rem;
     }
     #txTable tbody td:first-child::before { content: none; }
 
-    /* Actions-Zeile: immer sichtbar, zentriert, wenig Padding. Die Buttons
-       stecken in einem verschachtelten .depot-actions-Span (siehe
-       .depot-actions-cell oben) — auf Touch-Geräten gibt es kein Hover,
-       daher hier zusätzlich explizit sichtbar erzwingen. */
+    /* Actions cell: force-visible since touch devices have no hover */
     #posTable tbody td.depot-actions-cell,
     #txTable tbody td.depot-actions-cell {
         justify-content: center;
@@ -1381,12 +1290,7 @@ input#dt-search-1 {
     #txTable tbody td[data-cell-label]::before { min-width: 60px; font-size: .58rem; }
 }
 
-/* ── Bulk Toolbar ──────────────────────────────────────── */
-/* Sichtbarkeit von .bulk-actions-inline vs. .bulk-actions-dropdown wird per
-   JS über die Klasse d-none umgeschaltet (siehe depot.js
-   _overviewApplyTxViewMode) — abhängig davon, ob die Transaktions-Kachel
-   gerade die Tabellen- oder die Kartenansicht zeigt, nicht mehr per reiner
-   Viewport-Breite. */
+/* ── Bulk toolbar (inline vs dropdown toggled via depot.js _overviewApplyTxViewMode) ── */
 .bulk-actions-dropdown {
     display: flex;
     align-items: center;
@@ -1418,7 +1322,7 @@ input#dt-search-1 {
 }
 .depot-dropdown-menu .dropdown-divider { border-color: var(--border); }
 
-/* ── Modals: fullscreen auf Handy ──────────────────────── */
+/* ── Modals: fullscreen on phone ── */
 @media (max-width: 412px) {
     .modal-dialog { margin: .5rem; max-width: calc(100% - 1rem); }
 
@@ -1433,8 +1337,7 @@ input#dt-search-1 {
         display: flex;
     }
 
-    /* ms-auto/ms-2 sollen auf PHONE nicht mehr nach rechts drücken,
-       sondern wie eigene Reihen zentriert werden */
+    /* ms-auto/ms-2 shouldn't push right on phone; center as own rows instead */
     .depot-navbar .navbar-hamburger-btn,
     .depot-navbar .ms-2 {
         margin-left: 0 !important;
@@ -1442,11 +1345,7 @@ input#dt-search-1 {
 }  
 
 @media (max-width: 768px) {
-    /* Status-Farben auf Card-Ebene (tr) statt pro Zelle */
-/*     #posTable tbody tr.selected, */
-/*     #txTable tbody tr.selected { */
-/*         background: var(--accent-dim) !important; */
-/*     } */
+    /* Status colors applied at row (tr) level instead of per cell */
     #posTable tbody tr.last-import,
     #txTable tbody tr.last-import {
         background: var(--last-import) !important;
@@ -1469,16 +1368,14 @@ input#dt-search-1 {
         background: var(--accent-dim) !important;
     }
 
-    /* td-Hintergründe neutralisieren – Farbe kommt nur noch von der Card (tr) */
+    /* Neutralize td backgrounds; color comes from the row (tr) only */
     #posTable tbody td, #txTable tbody td {
         background: transparent !important;
     }
 
-    /* Sticky-Hover auf Touch komplett deaktivieren */
+    /* Disable sticky hover on touch entirely */
     #posTable tbody tr:hover td,
     #txTable tbody tr:hover td,
-/*     #posTable tbody tr.selected:hover td, */
-/*     #txTable tbody tr.selected:hover td, */
     #posTable tbody tr.warning:hover td,
     #txTable tbody tr.warning:hover td,
     #posTable tbody tr.warning-duplicate:hover td,
@@ -1491,4 +1388,167 @@ input#dt-search-1 {
     #txTable tbody tr.selected:hover td {
         background: transparent !important;
     }
+}
+
+/* ── Position address list (edit dialog) ─────────────────── */
+.position-address-row {
+    padding:       0.5rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    background:    var(--bg-card);
+}
+
+.position-address-lastfetch {
+    margin-top: 0.35rem;
+    font-size:  0.72rem;
+    color:      var(--text-muted);
+}
+
+/* ── Address balance / import modal ──────────────────────── */
+.address-balance-block {
+    padding:       0.75rem;
+    margin-bottom: 0.9rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.address-balance-block-header {
+    display:     flex;
+    align-items: center;
+    gap:         0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.address-balance-block-addr {
+    font-family: monospace;
+    font-size:   0.82rem;
+    word-break:  break-all;
+    flex:        1;
+}
+
+.address-balance-block-label {
+    font-size: 0.75rem;
+    color:     var(--text-muted);
+}
+
+.address-balance-loading,
+.address-balance-error {
+    font-size: 0.85rem;
+    padding:   0.4rem 0;
+}
+
+.address-balance-error { color: var(--neg); }
+
+.address-balance-changed {
+    padding:       0.4rem 0.6rem;
+    margin-bottom: 0.6rem;
+    border-radius: var(--radius);
+    background:    var(--accent-dim);
+    color:         var(--accent);
+    font-size:     0.82rem;
+}
+
+.address-balance-figures {
+    display:       flex;
+    gap:           1.2rem;
+    margin-bottom: 0.6rem;
+    font-size:     0.85rem;
+}
+
+.address-balance-unconfirmed { color: var(--text-muted); }
+
+.address-balance-tracked {
+    color:     var(--text-muted);
+    font-size: 0.72rem;
+}
+
+.address-balance-tx-table { font-size: 0.8rem; }
+
+.address-balance-txid {
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.address-balance-summary-row {
+    display:       flex;
+    gap:           1.5rem;
+    padding:       0.5rem 0.75rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    font-size:     0.85rem;
+}
+
+.address-balance-summary-diff {
+    border-color: var(--neg);
+    color:        var(--neg);
+}
+
+.address-balance-partial-hint {
+    margin-top: 0.4rem;
+    font-size:  0.78rem;
+    color:      var(--text-muted);
+}
+
+.address-balance-lastfetch {
+    margin-bottom: 0.5rem;
+    font-size:     0.75rem;
+    color:         var(--text-muted);
+}
+
+.address-balance-never-fetched {
+    padding:   0.6rem 0;
+    font-size: 0.85rem;
+    color:     var(--text-muted);
+}
+
+.address-balance-candidates {
+    padding:       0.4rem 0.5rem;
+    border:        1px solid var(--accent);
+    border-radius: var(--radius);
+    background:    var(--accent-dim);
+}
+
+.address-balance-candidates-hint {
+    margin-bottom: 0.3rem;
+    font-size:     0.72rem;
+    color:         var(--accent);
+}
+
+.address-balance-candidate-row {
+    display:       flex;
+    align-items:   center;
+    justify-content: space-between;
+    gap:           0.5rem;
+    padding:       0.2rem 0;
+    font-size:     0.78rem;
+}
+
+.address-balance-import-anyway {
+    display:       flex;
+    align-items:   center;
+    gap:           0.4rem;
+    margin-top:    0.4rem;
+    padding-top:   0.3rem;
+    border-top:    1px solid var(--border);
+    font-size:     0.72rem;
+    color:         var(--text-muted);
+    cursor:        pointer;
+}
+
+/* ── Position table "On-Chain" column ────────────────────── */
+.onchain-balance-btn {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           0.3rem;
+    font-family:   inherit;
+}
+
+.onchain-balance-diff {
+    border-color: var(--neg) !important;
+    color:        var(--neg) !important;
+}
+
+.onchain-balance-partial-icon {
+    font-size: 0.7rem;
+    color:     var(--warn);
 } 

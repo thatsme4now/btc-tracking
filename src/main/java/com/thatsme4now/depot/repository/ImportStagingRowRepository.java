@@ -15,6 +15,9 @@ public interface ImportStagingRowRepository extends JpaRepository<ImportStagingR
 
     List<ImportStagingRow> findAllByOrderByRowIndexAsc();
 
+    /** Finds the other leg(s) of a self-transfer pair, for blockchainTxId sync during review edits. */
+    List<ImportStagingRow> findByTransferId(String transferId);
+
     long countByDateParsedAndTypeAndQuantity(LocalDateTime dateParsed, TransactionType type, BigDecimal quantity);
 
     /** Wie {@link #countByDateParsedAndTypeAndQuantity}, aber ohne die Zeile

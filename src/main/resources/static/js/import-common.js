@@ -1,9 +1,5 @@
 'use strict';
-// Gemeinsame Helfer für die 3 Import-Assistent-Seiten (import-mapping.js,
-// import-review.js, import-status.js). Bewusst eigenständig statt depot.js/
-// tx-form.js mitzuladen — diese enthalten überwiegende Logik, die auf
-// Übersicht-spezifische DOM-Elemente (#overviewGrid, #txTable, ...) angewiesen
-// ist, die auf den Import-Seiten nicht existieren.
+// Shared helpers for the 3 import wizard pages; kept standalone since depot.js/tx-form.js depend on overview-only DOM elements.
 
 function esc(str) {
     if (str == null) return '';
@@ -27,7 +23,7 @@ function formatEur(val) {
     return CURRENCY.format(val);
 }
 
-/** fetch()-Wrapper: wirft bei !ok, parst sonst JSON (oder null bei leerem Body). */
+// fetch() wrapper: throws on !ok, otherwise parses JSON (or null for an empty body)
 function fetchJSON(url, options) {
     return fetch(url, options).then(async r => {
         const text = await r.text();
@@ -56,7 +52,7 @@ function errorReasonText(reason) {
     return reason.split(',').map(r => t(ERROR_REASON_KEYS[r.trim()] || r)).join(', ');
 }
 
-/** Bricht den laufenden Import ab (leert die Staging-Tabelle) und kehrt zur Übersicht zurück. */
+// Cancels the running import (clears the staging table) and returns to the overview
 function cancelImportWizard() {
     fetchJSON('/api/btc-tracking/import/cancel', { method: 'POST' })
         .catch(() => {})
