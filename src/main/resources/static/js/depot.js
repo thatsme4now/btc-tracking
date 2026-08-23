@@ -324,6 +324,7 @@ I18N.ready.then(() => {
 	    _overviewApplyTxViewMode();
 	    _overviewApplyPosViewMode();
 	    _overviewApplyHistoryViewMode();
+	    _applyTxPillFilters();
 	});
 	// sorting for exchange/wallet table
 	if ($.fn.DataTable.isDataTable('#posTable')) {
@@ -394,6 +395,67 @@ function togglePosEmptyFilter(mode) {
     _posEmptyFilterActive = mode === 'withHoldings';
     localStorage.setItem(POS_EMPTY_FILTER_KEY, _posEmptyFilterActive ? '1' : '0');
     _applyPosEmptyFilter();
+}
+
+// ── Transactions: pill filters (multi-select, OR-combined; "Alle" is exclusive) ──
+// Each mode maps to a fact already available on the rendered <tr> (class or data attribute), see
+// _buildTxRowHtml(). No mode active = "Alle" = no filtering.
+const TX_FILTER_KEY = 'tx-pill-filters-v1';
+const TX_FILTER_MODES = ['comment', 'txid', 'duplicate', 'currency', 'solo'];
+let _txActiveFilters = new Set(_loadTxFilters());
+
+function _loadTxFilters() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(TX_FILTER_KEY) || '[]');
+        return Array.isArray(saved) ? saved.filter(m => TX_FILTER_MODES.includes(m)) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function _saveTxFilters() {
+    localStorage.setItem(TX_FILTER_KEY, JSON.stringify([..._txActiveFilters]));
+}
+
+function _txRowMatchesFilter(row, mode) {
+    switch (mode) {
+        case 'comment':   return row.dataset.hasComment === '1';
+        case 'txid':      return !!(row.dataset.blockchainTxId || '').trim();
+        case 'duplicate': return row.classList.contains('warning-duplicate');
+        case 'currency':  return row.classList.contains('warning');
+        case 'solo':      return row.classList.contains('solo-transfer');
+        default:          return true;
+    }
+}
+
+$.fn.dataTable.ext.search.push(function (settings, searchData, dataIndex, rowData, counter) {
+    if (settings.nTable.id !== 'txTable' || _txActiveFilters.size === 0) return true;
+    const row = settings.aoData[dataIndex].nTr;
+    if (!row) return true;
+    return [..._txActiveFilters].some(mode => _txRowMatchesFilter(row, mode));
+});
+
+function _applyTxPillFilters() {
+    document.querySelectorAll('#txFilterGroup .pill-filter-btn').forEach(btn => {
+        const mode = btn.dataset.mode;
+        btn.classList.toggle('is-active', mode === 'all' ? _txActiveFilters.size === 0 : _txActiveFilters.has(mode));
+    });
+
+    if ($.fn.DataTable.isDataTable('#txTable')) {
+        $('#txTable').DataTable().draw();
+    }
+}
+
+function toggleTxPillFilter(mode) {
+    if (mode === 'all') {
+        _txActiveFilters.clear();
+    } else if (_txActiveFilters.has(mode)) {
+        _txActiveFilters.delete(mode);
+    } else {
+        _txActiveFilters.add(mode);
+    }
+    _saveTxFilters();
+    _applyTxPillFilters();
 }
 
 function filterExchangeTransaction(exchange) {
@@ -480,7 +542,8 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
     } else {
         earning="–";
     }
-    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+    const hasComment = !!(tx.comment && tx.comment.trim());
+    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" data-blockchain-tx-id="${esc(tx.blockchainTxId || '')}" data-has-comment="${hasComment ? '1' : ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 	    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 	               style="accent-color:var(--accent)"/>
@@ -494,6 +557,9 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
 	                <i class="bi bi-copy"></i>
 	            </button>
+	            ${tx.blockchainTxId ? `<button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
+	                <i class="bi bi-box-arrow-up-right"></i>
+	            </button>` : ''}
 	            <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
 	                <i class="bi bi-trash"></i>
 	            </button>
@@ -809,6 +875,10 @@ function _buildTxCardHtml(tx, row) {
                         onclick="openAddTx(${txJson})">
                     <i class="bi bi-copy"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.jump'))}"
+                        onclick="jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
                 <button type="button" class="btn btn-xs depot-btn-icon text-neg" title="Delete"
                         onclick="deleteTx(${tx.id})">
                     <i class="bi bi-trash"></i>
@@ -1485,36 +1555,58 @@ function confirmDbImport() {
 // ── Position Modal ────────────────────────────────────────
 let _positionModal = null;
 
+/** In-memory state of the address list currently shown in positionModal.
+ *  Each entry: { id (null for new rows), address, label }. Kept separate from the DOM so that
+ *  a keystroke in one row only updates this array (see _positionAddressFieldChanged) instead of
+ *  re-rendering the whole list and stealing input focus. */
+let _positionAddresses = [];
+
 async function openPositionModal(id) {
-    document.getElementById('positionId').value    = id || '';
-    document.getElementById('positionLabel').value = '';
-    document.getElementById('positionType').value  = 'EXCHANGE';
+    document.getElementById('positionId').value          = id || '';
+    document.getElementById('positionLabel').value        = '';
+    document.getElementById('positionType').value          = 'EXCHANGE';
+    document.getElementById('positionDescription').value   = '';
+    _positionAddresses = [];
+    document.getElementById('positionFetchAllBtn').classList.add('d-none');
 
     const titleEl = document.getElementById('positionModalTitle');
     if (id) {
         titleEl.setAttribute('data-i18n', 'form.position.titleEdit');
         titleEl.textContent = t('form.position.titleEdit');
         const data = await fetch('/api/btc-tracking/positions/' + id).then(r => r.json());
-        document.getElementById('positionLabel').value = data.label || '';
-        document.getElementById('positionType').value  = data.type  || 'EXCHANGE';
+        document.getElementById('positionLabel').value       = data.label || '';
+        document.getElementById('positionType').value        = data.type  || 'EXCHANGE';
+        document.getElementById('positionDescription').value = data.description || '';
+        _positionAddresses = (data.addresses || []).map(a => ({
+            id: a.id, address: a.address, label: a.label || '',
+            lastFetchBalanceSats: a.lastFetchBalanceSats, lastFetchAt: a.lastFetchAt
+        }));
+        document.getElementById('positionFetchAllBtn').classList.toggle('d-none', _positionAddresses.length === 0);
     } else {
         titleEl.setAttribute('data-i18n', 'form.position.titleNew');
         titleEl.textContent = t('form.position.titleNew');
     }
+
+    _renderPositionAddressList();
 
     if (!_positionModal) _positionModal = new bootstrap.Modal(document.getElementById('positionModal'));
     _positionModal.show();
 }
 
 function savePosition() {
-    const id    = document.getElementById('positionId').value;
-    const label = document.getElementById('positionLabel').value.trim();
-    const type  = document.getElementById('positionType').value;
+    const id          = document.getElementById('positionId').value;
+    const label       = document.getElementById('positionLabel').value.trim();
+    const type        = document.getElementById('positionType').value;
+    const description = document.getElementById('positionDescription').value.trim();
 
     if (!label) {
         showToast('✗ ' + t('toast.error') + ': Label required', 'error');
         return;
     }
+
+    const addresses = _positionAddresses
+        .map(a => ({ id: a.id || null, address: (a.address || '').trim(), label: (a.label || '').trim() || null }))
+        .filter(a => a.address);
 
     const url    = id ? '/api/btc-tracking/positions/' + id : '/api/btc-tracking/positions';
     const method = id ? 'PUT' : 'POST';
@@ -1522,7 +1614,7 @@ function savePosition() {
     fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ label, type })
+        body:    JSON.stringify({ label, type, description, addresses })
     })
     .then(r => r.json())
     .then(data => {
@@ -1531,6 +1623,329 @@ function savePosition() {
         _positionsCache = null;
         showToast('✓ ' + t(id ? 'toast.txUpdated' : 'toast.txAdded'), 'success');
         setTimeout(() => window.location.reload(), 800);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+// ── Position addresses (edit dialog) ────────────────────────
+function _renderPositionAddressList() {
+    const container = document.getElementById('positionAddressList');
+    if (!_positionAddresses.length) {
+        container.innerHTML = `<div class="text-muted small" data-i18n="form.position.addresses.empty">No addresses yet.</div>`;
+        return;
+    }
+    container.innerHTML = _positionAddresses.map((a, i) => _positionAddressRowHtml(a, i)).join('');
+}
+
+function _positionAddressRowHtml(addr, i) {
+    const lastFetch = addr.lastFetchBalanceSats != null
+        ? `<div class="position-address-lastfetch">${t('form.position.addresses.lastFetch')}: ${satsToBtcStr(addr.lastFetchBalanceSats)} BTC (${_fmtEpochDate(null, addr.lastFetchAt)})</div>`
+        : '';
+    return `<div class="position-address-row mb-2" data-index="${i}">
+        <div class="d-flex gap-2 align-items-start">
+            <input type="text" class="form-control depot-input" style="flex:2"
+                   data-i18n-placeholder="form.position.addresses.addressPlaceholder"
+                   placeholder="bc1q…" value="${esc(addr.address || '')}"
+                   oninput="_positionAddressFieldChanged(${i}, 'address', this.value)"/>
+            <input type="text" class="form-control depot-input" style="flex:1"
+                   data-i18n-placeholder="form.position.addresses.labelPlaceholder"
+                   placeholder="${esc(t('form.position.addresses.labelPlaceholder'))}"
+                   maxlength="100" value="${esc(addr.label || '')}"
+                   oninput="_positionAddressFieldChanged(${i}, 'label', this.value)"/>
+            ${addr.id ? `<button type="button" class="btn btn-xs depot-btn-outline" title="${esc(t('form.position.addresses.viewBalance'))}"
+                    onclick="openAddressBalance(${addr.id}, this.closest('.position-address-row').querySelector('input').value, ${JSON.stringify(addr.label || '').replace(/"/g,'&quot;')})">
+                <i class="bi bi-graph-up"></i>
+            </button>` : ''}
+            <button type="button" class="btn btn-xs depot-btn-outline" title="${esc(t('form.position.addresses.jump'))}"
+                    onclick="jumpToMempoolAddress(this.closest('.position-address-row').querySelector('input').value)">
+                <i class="bi bi-box-arrow-up-right"></i>
+            </button>
+            <button type="button" class="btn btn-xs depot-btn-outline" title="${esc(t('form.position.addresses.remove'))}"
+                    onclick="removePositionAddressRow(${i})">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+        ${lastFetch}
+    </div>`;
+}
+
+function addPositionAddressRow() {
+    _positionAddresses.push({ id: null, address: '', label: '' });
+    _renderPositionAddressList();
+}
+
+function removePositionAddressRow(i) {
+    _positionAddresses.splice(i, 1);
+    _renderPositionAddressList();
+}
+
+/** State-only update (no re-render) so typing in a row doesn't steal input focus. */
+function _positionAddressFieldChanged(i, field, value) {
+    if (!_positionAddresses[i]) return;
+    _positionAddresses[i][field] = value;
+}
+
+/** Formats either a raw epoch-seconds number or an ISO datetime string (backend LocalDateTime) as "YYYY-MM-DD HH:MM" (UTC). */
+function _fmtEpochDate(epochSeconds, isoString) {
+    let d;
+    if (epochSeconds != null) d = new Date(epochSeconds * 1000);
+    else if (isoString) d = new Date(isoString);
+    else return '–';
+    if (isNaN(d.getTime())) return '–';
+    return d.toISOString().substring(0, 16).replace('T', ' ');
+}
+
+function satsToBtcStr(sats) {
+    if (sats == null) return '0';
+    return fmt8(sats / 1e8);
+}
+
+// ── Address balance / import modal ──────────────────────────
+let _addressBalanceModal = null;
+let _addressBalancePositionId = null;
+// 'single' (opened via one address's "Bestand anzeigen") or 'bundled' (opened via "Adressübersicht") —
+// only controls which button ("Abrufen" vs "Alle neu abrufen") is visible; both modes share every
+// rendering function below, and any individual address block can always be refreshed on its own.
+let _addressBalanceMode = 'single';
+
+function jumpToMempoolAddress(address) {
+    if (!address) return;
+    const url = (typeof buildMempoolAddressUrl === 'function') ? buildMempoolAddressUrl(address) : null;
+    if (!url) {
+        showToast('✗ ' + t('modal.field.blockchainTxId.notConfigured'), 'error');
+        return;
+    }
+    window.open(url, '_blank', 'noopener');
+}
+
+// ── Single address ───────────────────────────────────────────
+function openAddressBalance(addressId, address, label) {
+    _addressBalancePositionId = Number(document.getElementById('positionId').value);
+    _addressBalanceMode = 'single';
+    document.getElementById('addressBalanceModalTitle').textContent = label ? (address + ' — ' + label) : address;
+    document.getElementById('addressBalanceSummary').classList.add('d-none');
+    document.getElementById('addressBalanceRefetchAllBtn').classList.add('d-none');
+    document.getElementById('addressBalanceBody').innerHTML = _addressBalanceBlockHtml(addressId, address, label, null);
+
+    if (!_addressBalanceModal) _addressBalanceModal = new bootstrap.Modal(document.getElementById('addressBalanceModal'));
+    _addressBalanceModal.show();
+
+    _loadSingleAddressBlock(addressId, false); // cached read first, no mempool call — see the /grill-me decision to show the last known state immediately
+}
+
+/** "Abrufen" button inside an address block — a fresh live mempool call. */
+function fetchAddressBalance(addressId) {
+    _loadSingleAddressBlock(addressId, true);
+}
+
+function _loadSingleAddressBlock(addressId, live) {
+    const resultEl = document.getElementById('addrBalanceResult-' + addressId);
+    if (resultEl) resultEl.innerHTML = `<div class="address-balance-loading">${t('form.position.addresses.loading')}</div>`;
+    const url = '/api/btc-tracking/positions/' + _addressBalancePositionId + '/addresses/' + addressId + '/mempool-balance';
+    return fetch(url, { method: live ? 'POST' : 'GET' })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok || data.error) {
+                if (resultEl) resultEl.innerHTML = `<div class="address-balance-error">✗ ${esc(data.error || t('toast.error'))}</div>`;
+                return;
+            }
+            if (resultEl) resultEl.innerHTML = _addressBalanceResultHtml(addressId, data);
+        })
+        .catch(err => { if (resultEl) resultEl.innerHTML = `<div class="address-balance-error">✗ ${esc(err.message)}</div>`; });
+}
+
+// ── Bundled (all addresses of a position at once) ───────────
+function openAddressOverview(positionId, label) {
+    _addressBalancePositionId = Number(positionId);
+    _addressBalanceMode = 'bundled';
+    document.getElementById('addressBalanceModalTitle').textContent = label || t('form.position.addresses.overview');
+    document.getElementById('addressBalanceSummary').classList.add('d-none');
+    document.getElementById('addressBalanceRefetchAllBtn').classList.remove('d-none');
+    document.getElementById('addressBalanceBody').innerHTML = `<div class="address-balance-loading">${t('form.position.addresses.loading')}</div>`;
+
+    if (!_addressBalanceModal) _addressBalanceModal = new bootstrap.Modal(document.getElementById('addressBalanceModal'));
+    _addressBalanceModal.show();
+
+    _loadBundledAddressBlocks(false); // cached read first, no mempool call
+}
+
+/** "Alle neu abrufen" button in the modal footer — a fresh live mempool call for every address. */
+function refetchAllAddressBalances() {
+    _loadBundledAddressBlocks(true);
+}
+
+function _loadBundledAddressBlocks(live) {
+    const bodyEl = document.getElementById('addressBalanceBody');
+    bodyEl.innerHTML = `<div class="address-balance-loading">${t('form.position.addresses.loading')}</div>`;
+
+    fetch('/api/btc-tracking/positions/' + _addressBalancePositionId + '/mempool-balance-all', { method: live ? 'POST' : 'GET' })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok || data.error) {
+                bodyEl.innerHTML = `<div class="address-balance-error">✗ ${esc(data.error || t('toast.error'))}</div>`;
+                return;
+            }
+            const summaryEl = document.getElementById('addressBalanceSummary');
+            const trackedBtc = satsToBtcStr(data.trackedQuantitySats);
+            const onchainBtc = satsToBtcStr(data.totalConfirmedBalanceSats);
+            const differs = data.trackedQuantitySats !== data.totalConfirmedBalanceSats;
+            const partialHint = data.partial ? `<div class="address-balance-partial-hint">⚠ ${t('form.position.addresses.partialHint')}</div>` : '';
+            summaryEl.classList.remove('d-none');
+            summaryEl.innerHTML = `
+                <div class="address-balance-summary-row${differs ? ' address-balance-summary-diff' : ''}">
+                    <span>${t('form.position.addresses.onchainTotal')}: <strong>${onchainBtc} BTC</strong></span>
+                    <span>${t('form.position.addresses.trackedTotal')}: <strong>${trackedBtc} BTC</strong></span>
+                </div>
+                ${partialHint}
+                ${data.errors && data.errors.length ? `<div class="address-balance-error">${data.errors.map(esc).join('<br>')}</div>` : ''}
+            `;
+            bodyEl.innerHTML = (data.addresses || [])
+                .map(r => _addressBalanceBlockHtml(r.addressId, r.address || '', r.label || '', r))
+                .join('');
+        })
+        .catch(err => { bodyEl.innerHTML = `<div class="address-balance-error">✗ ${esc(err.message)}</div>`; });
+}
+
+// ── Shared rendering (single + bundled) ─────────────────────
+function _addressBalanceBlockHtml(addressId, address, label, resultData) {
+    return `<div class="address-balance-block" data-address-id="${addressId}">
+        <div class="address-balance-block-header">
+            <span class="address-balance-block-addr">${esc(address)}</span>
+            ${label ? `<span class="address-balance-block-label">${esc(label)}</span>` : ''}
+            <button type="button" class="btn btn-xs depot-btn-outline" onclick="fetchAddressBalance(${addressId})">
+                <i class="bi bi-arrow-clockwise me-1"></i><span data-i18n="form.position.addresses.fetch">Fetch</span>
+            </button>
+        </div>
+        <div class="address-balance-block-result" id="addrBalanceResult-${addressId}">
+            ${resultData ? _addressBalanceResultHtml(addressId, resultData) : ''}
+        </div>
+    </div>`;
+}
+
+function _addressBalanceResultHtml(addressId, data) {
+    if (!data.fetched) {
+        return `<div class="address-balance-never-fetched">
+            <i class="bi bi-info-circle me-1"></i><span data-i18n="form.position.addresses.neverFetched">Never fetched yet — click "Fetch" for the current on-chain state.</span>
+        </div>`;
+    }
+
+    const confirmedBtc = satsToBtcStr(data.confirmedBalanceSats);
+    const lastFetchLine = `<div class="address-balance-lastfetch">${t('form.position.addresses.lastFetch')}: ${_fmtEpochDate(null, data.lastFetchAt)}</div>`;
+    const changedBanner = data.changed
+        ? `<div class="address-balance-changed">⚠ ${t('form.position.addresses.changed', { PREV: satsToBtcStr(data.previousBalanceSats) })}</div>`
+        : '';
+    const unconfirmedLine = data.unconfirmedDeltaSats
+        ? `<div class="address-balance-unconfirmed">${t('form.position.addresses.unconfirmed')}: ${data.unconfirmedDeltaSats > 0 ? '+' : ''}${satsToBtcStr(data.unconfirmedDeltaSats)} BTC</div>`
+        : '';
+    const txRows = (data.txs || []).map(tx => {
+        const candidates = tx.matchCandidates || [];
+        const importable = tx.confirmed && !tx.alreadyTracked;
+        const dir = tx.netSats >= 0 ? t('form.position.addresses.received') : t('form.position.addresses.sent');
+        const dateStr = tx.confirmed ? _fmtEpochDate(tx.blockTime, null) : t('form.position.addresses.unconfirmedLabel');
+        const trackedNote = tx.alreadyTracked ? ` <span class="address-balance-tracked">(${t('form.position.addresses.alreadyTracked')})</span>` : '';
+
+        let actionCell = '';
+        if (tx.alreadyTracked) {
+            actionCell = '';
+        } else if (candidates.length > 0) {
+            actionCell = `<div class="address-balance-candidates">
+                <div class="address-balance-candidates-hint">${t('form.position.addresses.matchFound')}</div>
+                ${candidates.map(c => `
+                    <div class="address-balance-candidate-row">
+                        <span>${_fmtEpochDate(null, c.date)} · ${fmt8(c.quantity)} BTC${c.comment ? ' · ' + esc(c.comment) : ''}</span>
+                        <button type="button" class="btn btn-xs depot-btn-outline" onclick="linkAddressTx(${addressId}, ${JSON.stringify(tx.txid).replace(/"/g,'&quot;')}, ${c.id})"
+                                title="${esc(t('form.position.addresses.link.hint'))}">
+                            <i class="bi bi-link-45deg me-1"></i><span data-i18n="form.position.addresses.link">Link</span>
+                        </button>
+                    </div>
+                `).join('')}
+                <label class="address-balance-import-anyway">
+                    <input type="checkbox" class="address-import-check" data-txid="${esc(tx.txid)}"/>
+                    <span data-i18n="form.position.addresses.importAnyway">Import as new anyway</span>
+                </label>
+            </div>`;
+        } else if (importable) {
+            actionCell = `<input type="checkbox" class="address-import-check" data-txid="${esc(tx.txid)}"/>`;
+        }
+
+        return `<tr>
+            <td>${dateStr}</td>
+            <td>${dir}</td>
+            <td class="text-end">${satsToBtcStr(Math.abs(tx.netSats))}</td>
+            <td class="address-balance-txid" title="${esc(tx.txid)}">
+                ${esc(tx.txid.substring(0, 10))}…
+                <button type="button" class="btn btn-xs depot-btn-icon" onclick="jumpToMempoolTx(${JSON.stringify(tx.txid).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>${trackedNote}
+            </td>
+            <td>${actionCell}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+        ${lastFetchLine}
+        ${changedBanner}
+        <div class="address-balance-figures">
+            <span>${t('form.position.addresses.confirmed')}: <strong>${confirmedBtc} BTC</strong></span>
+            ${unconfirmedLine}
+        </div>
+        <div class="table-responsive">
+        <table class="table depot-table address-balance-tx-table mb-2">
+            <thead><tr>
+                <th>${t('table.col.date')}</th>
+                <th>${t('form.position.addresses.direction')}</th>
+                <th class="text-end">${t('table.col.btc')}</th>
+                <th>TXID</th>
+                <th>${t('form.position.addresses.action')}</th>
+            </tr></thead>
+            <tbody>${txRows || `<tr><td colspan="5" class="text-center text-muted">${t('dt.empty')}</td></tr>`}</tbody>
+        </table>
+        </div>
+        <button type="button" class="btn btn-xs depot-btn-primary" onclick="importSelectedAddressTxs(${addressId})">
+            <i class="bi bi-download me-1"></i><span data-i18n="form.position.addresses.importSelected">Import selected</span>
+        </button>
+    `;
+}
+
+/** "Verknüpfen" on a match candidate — sets the blockchainTxId on an existing transaction instead of importing a new one. */
+function linkAddressTx(addressId, txid, existingTransactionId) {
+    fetch('/api/btc-tracking/positions/' + _addressBalancePositionId + '/addresses/' + addressId + '/mempool-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txid: txid, existingTransactionId: existingTransactionId })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok || data.error) { showToast('✗ ' + (data.error || t('toast.error')), 'error'); return; }
+        showToast('✓ ' + t('form.position.addresses.linked'), 'success');
+        _positionsCache = null;
+        // Cache-refresh only (no new mempool call) — the tx list itself didn't change, only which
+        // txs count as "already tracked" did, and that's always recomputed live regardless.
+        _loadSingleAddressBlock(addressId, false);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
+}
+
+function importSelectedAddressTxs(addressId) {
+    const block = document.querySelector('.address-balance-block[data-address-id="' + addressId + '"]');
+    if (!block) return;
+    const checked = Array.from(block.querySelectorAll('.address-import-check:checked')).map(cb => cb.dataset.txid);
+    if (!checked.length) {
+        showToast('✗ ' + t('form.position.addresses.noneSelected'), 'error');
+        return;
+    }
+    fetch('/api/btc-tracking/positions/' + _addressBalancePositionId + '/addresses/' + addressId + '/mempool-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txids: checked })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) { showToast('✗ ' + data.error, 'error'); return; }
+        showToast('✓ ' + t('form.position.addresses.imported', { COUNT: data.imported }), 'success');
+        _positionsCache = null;
+        // Cache-refresh only (no new mempool call) — same reasoning as linkAddressTx above.
+        _loadSingleAddressBlock(addressId, false);
     })
     .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
@@ -1752,13 +2167,19 @@ document.addEventListener('contextmenu', e => {
         .map(tr => tr.closest('tr').dataset.type);
     const isAllTransfer = selectedTypes.every(t => t === 'TRANSFER_IN' || t === 'TRANSFER_OUT');
     const isAllTrade    = selectedTypes.every(t => t === 'BUY' || t === 'SELL');
-	
+
+    // 'Jump to mempool' only makes sense for exactly one selected transaction that has an on-chain TXID.
+    const singleBlockchainTxId = ids.length === 1
+        ? (row.dataset.blockchainTxId || '')
+        : '';
+
 	_ctxMenu.innerHTML = `
 	        <div style="padding:.2rem .75rem .4rem;font-size:.68rem;color:var(--text-muted);letter-spacing:.08em;text-transform:uppercase">
 	            ${ids.length} selected
 	        </div>
 			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 	        ${_ctxItem('bi bi-download me-1',        t("table.action.exportSelected"),    'openExportModal(true)')}
+	        ${singleBlockchainTxId ? _ctxItem('bi-box-arrow-up-right', t('modal.field.blockchainTxId.jump'), `jumpToMempoolTx(${JSON.stringify(singleBlockchainTxId).replace(/"/g,'&quot;')})`) : ''}
 			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 	        ${isAllTransfer ? _ctxItem('bi-arrow-down-up', t('table.action.mark.solo'), 'bulkMarkSoloTransfer()') : ''}
 	        ${isAllTransfer ? _ctxItem('bi-x-circle', t('table.action.remove.transfer'), 'bulkRemoveTransfer()') : ''}

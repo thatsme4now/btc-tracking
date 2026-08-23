@@ -9,6 +9,7 @@ import lombok.Data;
 public class TransactionExportDTO {
     private Long id;
     private String transactionId;
+    private String blockchainTxId;
     private Long positionId;
     private TransactionType type;
     private LocalDateTime date;

@@ -17,6 +17,7 @@ const FIELDS = [
     { id: 'map_exchangeRate', labelKey: 'csv.import.mapping.fee.exchange.rate', required: false },
     { id: 'map_comment',      labelKey: 'modal.field.comment',                required: false },
     { id: 'map_transactionId',labelKey: 'modal.field.transaction.id',         required: false },
+    { id: 'map_blockchainTxId',labelKey: 'modal.field.blockchainTxId',        required: false },
     { id: 'map_transferId',   labelKey: 'modal.field.transfer.id',            required: false },
 ];
 
@@ -35,6 +36,9 @@ const FIELD_ALIASES = {
     map_exchangeRate: ['exchangeRate', 'exchange_rate', 'Wechselkurs'],
     map_comment:      ['Kommentar', 'kommentar', 'comment', 'Comment', 'Note'],
     map_transactionId:['transactionId', 'Transaction ID'],
+    // 'Tx Hash' matches CoinTracking exports (see DepotRestController#writeCoinTrackingCsv) so
+    // a CoinTracking-format export round-trips its on-chain TXID back in on re-import.
+    map_blockchainTxId:['blockchainTxId', 'Tx Hash', 'TxHash', 'txid', 'TxId', 'blockchain_tx_id'],
     map_transferId:   ['transferId'],
 };
 
@@ -232,6 +236,7 @@ function computeMappedRows() {
         exchangeRate: document.getElementById('map_exchangeRate')?.value,
         comment:      document.getElementById('map_comment')?.value,
         transactionId:document.getElementById('map_transactionId')?.value,
+        blockchainTxId:document.getElementById('map_blockchainTxId')?.value,
         transferId:   document.getElementById('map_transferId')?.value,
     };
 
@@ -276,6 +281,7 @@ function computeMappedRows() {
             exchangeRate: mapping.exchangeRate ? (r[mapping.exchangeRate] || '').trim() : null,
             comment:      mapping.comment      ? (r[mapping.comment]      || '').trim() : null,
             transactionId:mapping.transactionId? (r[mapping.transactionId]|| '').trim() : null,
+            blockchainTxId:mapping.blockchainTxId? (r[mapping.blockchainTxId]|| '').trim() : null,
             transferId:   mapping.transferId   ? (r[mapping.transferId]   || '').trim() : null,
         };
     }).filter(Boolean);
@@ -286,7 +292,7 @@ function renderPreviewTable(rows) {
     document.getElementById('mappingRowCount').textContent = IMPORT_ROWS.length;
 
     if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="13" class="text-center text-muted py-3" data-i18n="import.preview.empty">Keine zuordenbaren Zeilen — Zuordnung prüfen.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="14" class="text-center text-muted py-3" data-i18n="import.preview.empty">Keine zuordenbaren Zeilen — Zuordnung prüfen.</td></tr>`;
         I18N.applyI18n();
         return;
     }
@@ -305,10 +311,11 @@ function renderPreviewTable(rows) {
             <td class="text-end">${esc(r.exchangeRate)}</td>
             <td>${esc(r.comment)}</td>
             <td>${esc(r.transactionId)}</td>
+            <td>${esc(r.blockchainTxId)}</td>
             <td>${esc(r.transferId)}</td>
         </tr>`).join('') +
         (rows.length > 500
-            ? `<tr><td colspan="13" class="text-center text-muted py-2" style="font-size:.72rem">… +${rows.length - 500}</td></tr>`
+            ? `<tr><td colspan="14" class="text-center text-muted py-2" style="font-size:.72rem">… +${rows.length - 500}</td></tr>`
             : '');
 }
 

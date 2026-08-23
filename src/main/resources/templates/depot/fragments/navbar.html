@@ -37,6 +37,11 @@
                     <button class="btn btn-xs depot-btn-primary" onclick="savePriceEdit()">
                         <i class="bi bi-check-lg"></i>
                     </button>
+                    <!-- Optional: fetch from the mempool instance configured in Settings → Mempool-Integration. Hidden unless configured + currency supported (THB isn't), see openPriceEdit() in navbar.js. -->
+                    <button class="btn btn-xs depot-btn-outline d-none" id="btcPriceMempoolBtn" onclick="fetchPriceFromMempool()"
+                            data-i18n-title="navbar.price.fetchMempool" title="Preis von mempool abrufen">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </button>
                     <button class="btn btn-xs depot-btn-outline" onclick="closePriceEdit()">
                         <i class="bi bi-x-lg"></i>
                     </button>

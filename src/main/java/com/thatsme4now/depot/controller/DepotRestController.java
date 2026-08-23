@@ -23,6 +23,7 @@ import com.thatsme4now.depot.dto.TransactionDTO;
 import com.thatsme4now.depot.entity.AppSettings;
 import com.thatsme4now.depot.entity.CurrentPrice;
 import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PositionAddress;
 import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.entity.TransactionType;
@@ -34,6 +35,7 @@ import com.thatsme4now.depot.service.DepotService;
 import com.thatsme4now.depot.service.FlowService;
 import com.thatsme4now.depot.service.HistoricalPriceService;
 import com.thatsme4now.depot.service.HoldingsYearlyService;
+import com.thatsme4now.depot.service.MempoolPriceService;
 import com.thatsme4now.depot.service.MonthlyOverviewService;
 import com.thatsme4now.depot.service.MonthlyPriceService;
 
@@ -60,6 +62,11 @@ public class DepotRestController {
     private final HistoricalPriceService historicalPriceService;
     private final MonthlyPriceService monthlyPriceService;
     private final MonthlyOverviewService monthlyOverviewService;
+    private final MempoolPriceService mempoolPriceService;
+
+    // Used to convert mempool's block_time (Unix epoch, UTC) into this app's LocalDateTime "date"
+    // fields when importing on-chain transactions — same zone HistoricalPriceService/MonthlyPriceService use.
+    private static final java.time.ZoneId MEMPOOL_IMPORT_ZONE = java.time.ZoneId.of("Europe/Berlin");
 
     /** Returns the yearly holdings breakdown (per-year balance, buys/sells, P/L) for the holdings page. */
     @GetMapping("/holdings/yearly")
@@ -95,6 +102,22 @@ public class DepotRestController {
                     "price", dto.getPrice()
             ));
         } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Fills gaps in the year-end (31.12.) reference price for EUR+USD from
+     * the mempool instance configured in app_settings — see
+     * {@link HistoricalPriceService#fillMissingFromMempool()}. Existing
+     * (seeded or manual) rows are never touched. 400 if mempool isn't
+     * configured/reachable.
+     */
+    @PostMapping("/historical-prices/fill-missing")
+    public ResponseEntity<Map<String, Object>> fillMissingHistoricalPrices() {
+        try {
+            return ResponseEntity.ok(historicalPriceService.fillMissingFromMempool());
+        } catch (MempoolPriceService.MempoolException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -138,6 +161,22 @@ public class DepotRestController {
                     "price", dto.getPrice()
             ));
         } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Fills gaps in the given year's monthly (Ultimo) reference price for
+     * EUR+USD from the mempool instance configured in app_settings — see
+     * {@link MonthlyPriceService#fillMissingFromMempool(int)}. Existing
+     * (manual, seeded, or previously mempool-filled) rows are never
+     * touched. 400 if mempool isn't configured/reachable.
+     */
+    @PostMapping("/monthly-prices/fill-missing")
+    public ResponseEntity<Map<String, Object>> fillMissingMonthlyPrices(@RequestParam("year") int year) {
+        try {
+            return ResponseEntity.ok(monthlyPriceService.fillMissingFromMempool(year));
+        } catch (MempoolPriceService.MempoolException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
@@ -323,6 +362,8 @@ public class DepotRestController {
             txIn.setCurrency(tx.getCurrency());
             txIn.setTransferId(uuid);
             txIn.setComment(tx.getComment());
+            // Same physical on-chain transaction as the TRANSFER_OUT half — share the TXID immediately.
+            txIn.setBlockchainTxId(tx.getBlockchainTxId());
             Position targetPos = csvImportService.resolvePosition(req.getTransferTarget());
             txIn.setPosition(targetPos);
             depotService.saveTransaction(txIn);
@@ -342,6 +383,8 @@ public class DepotRestController {
         return depotService.getTransaction(id).map(tx -> {
             mapTransactionRequestToTransaction(req, tx);
             depotService.saveTransaction(tx);
+            // Self-transfer pair: propagate the TXID to the other leg if it's still empty there.
+            depotService.syncBlockchainTxIdToPairedTransfer(tx);
             return ResponseEntity.ok(depotService.getAllTransactions()
                 .stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow());
         }).orElse(ResponseEntity.notFound().build());
@@ -369,6 +412,10 @@ public class DepotRestController {
 		tx.setFees(req.getFees());
 		tx.setFeesCurrency(req.getFeesCurrency());
 		tx.setComment(req.getComment());
+		// Unconditional (like fees/comment above), so clearing the field in the
+		// UI and saving actually clears it — not just "set if provided".
+		String blockchainTxId = req.getBlockchainTxId() != null ? req.getBlockchainTxId().trim() : null;
+		tx.setBlockchainTxId((blockchainTxId == null || blockchainTxId.isBlank()) ? null : blockchainTxId);
 	}
     
 	/**
@@ -464,7 +511,7 @@ public class DepotRestController {
 	                           "buyQty", "buyCur",
 	                           "sellQty", "sellCur",
 	                           "fee", "feeCur", "exchangeRate", "comment",
-	                           "transactionId", "transferId")
+	                           "transactionId", "blockchainTxId", "transferId")
 	                .setDelimiter(",")
 	                .setQuote('"')
 	                .setQuoteMode(org.apache.commons.csv.QuoteMode.ALL)
@@ -518,11 +565,12 @@ public class DepotRestController {
 	            String feeCurrency  = tx.getFeesCurrency() != null ? tx.getFeesCurrency()                 : "";
 	            String exchangeRate = tx.getExchangeRate() != null ? tx.getExchangeRate().toPlainString() : "";
 	            String transactionId  = tx.getTransactionId() != null ? tx.getTransactionId()             : "";
+	            String blockchainTxId = tx.getBlockchainTxId() != null ? tx.getBlockchainTxId()           : "";
 	            String transferId     = tx.getTransferId()    != null ? tx.getTransferId()                : "";
 
 	            printer.printRecord(typ, datum, tx.getPositionLabel(),
 	                                kauf, kaufCur, verkauf, verkCur,
-	                                fee, feeCurrency, exchangeRate, tx.getComment(), transactionId, transferId);
+	                                fee, feeCurrency, exchangeRate, tx.getComment(), transactionId, blockchainTxId, transferId);
 	        }
 	    }
 	}
@@ -585,10 +633,12 @@ public class DepotRestController {
 	                : "";
 	            String fee         = tx.getFees()         != null ? tx.getFees().toPlainString() : "";
 	            String feeCurrency = tx.getFeesCurrency() != null ? tx.getFeesCurrency()          : "";
+	            // "Tx Hash" is CoinTracking's real on-chain-TXID column — maps directly to blockchainTxId.
+	            String txHash      = tx.getBlockchainTxId() != null ? tx.getBlockchainTxId()       : "";
 
 	            printer.printRecord(typ, kauf, kaufCur, verkauf, verkCur,
 	                                fee, feeCurrency, tx.getPositionLabel(),
-	                                "", tx.getComment(), datum, "", "", "", "", "");
+	                                "", tx.getComment(), datum, "", "", txHash, "", "");
 	        }
 	    }
 	}
@@ -622,6 +672,7 @@ public class DepotRestController {
         cp.setPrice(req.getPrice());
         cp.setPriceDate(req.getPriceDate() != null ? req.getPriceDate() : java.time.LocalDate.now());
         cp.setLoadedAt(java.time.LocalDateTime.now());
+        cp.setSource("MANUAL"); // explicit manual edit always resets a prior MEMPOOL-fetched value back to MANUAL
         depotService.saveCurrentPrice(cp);
         return ResponseEntity.ok(Map.of(
             "price",    cp.getPrice(),
@@ -630,61 +681,456 @@ public class DepotRestController {
         ));
     }
 
+    /**
+     * Fetches the current BTC price from the mempool instance configured in
+     * app_settings and saves it for EUR and USD (mempool returns both in one
+     * call). Returns the price for the requested display currency; 400 if
+     * mempool isn't configured/reachable, or if the requested currency isn't
+     * one mempool supports (e.g. THB).
+     */
+    @PostMapping("/current-price/mempool")
+    public ResponseEntity<Map<String, Object>> fetchCurrentPriceFromMempool(
+            @RequestParam(required = false, name = "currency") String currency) {
+        String active = currency != null ? currency.toUpperCase() : "EUR";
+        try {
+            Map<String, java.math.BigDecimal> prices = mempoolPriceService.fetchCurrentPrices();
+
+            List<String> updated = new java.util.ArrayList<>();
+            for (String cur : List.of("EUR", "USD")) {
+                java.math.BigDecimal price = prices.get(cur);
+                if (price == null) continue;
+                CurrentPrice cp = depotService.getCurrentPrice(cur).orElse(new CurrentPrice());
+                cp.setTicker("BTC");
+                cp.setCurrency(cur);
+                cp.setPrice(price);
+                cp.setPriceDate(java.time.LocalDate.now());
+                cp.setLoadedAt(java.time.LocalDateTime.now());
+                cp.setSource("MEMPOOL");
+                depotService.saveCurrentPrice(cp);
+                updated.add(cur);
+            }
+
+            java.math.BigDecimal activePrice = prices.get(active);
+            if (activePrice == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Währung " + active + " wird von mempool nicht unterstützt"));
+            }
+            return ResponseEntity.ok(Map.of(
+                    "price", activePrice,
+                    "currency", active,
+                    "updatedCurrencies", updated
+            ));
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ── App Settings ──────────────────────────────────────────────────────────
 
-    /** Returns the app settings (currently just the tax holding-period cutoff date). */
+    /** Returns the app settings (tax holding-period cutoff date, mempool host/port). */
     @GetMapping("/settings")
     public ResponseEntity<Map<String, Object>> getSettings() {
         AppSettings settings = depotService.getAppSettings();
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        body.put("mempoolHost", settings.getMempoolHost());
+        body.put("mempoolPort", settings.getMempoolPort());
         return ResponseEntity.ok(body);
     }
 
-    /** Updates the app settings. */
+    /** Updates the app settings. 400 if mempoolHost/mempoolPort are invalid (see MempoolPriceService#validateHostPort). */
     @PutMapping("/settings")
     public ResponseEntity<Map<String, Object>> updateSettings(@RequestBody AppSettingsUpdateRequest req) {
+        String mempoolHost = req.getMempoolHost() != null ? req.getMempoolHost().trim() : null;
+        if (mempoolHost != null && mempoolHost.isBlank()) mempoolHost = null;
+        try {
+            MempoolPriceService.validateHostPort(mempoolHost, req.getMempoolPort());
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+
         AppSettings settings = depotService.getAppSettings();
         settings.setTaxHoldingPeriodCutoffDate(req.getTaxHoldingPeriodCutoffDate());
+        settings.setMempoolHost(mempoolHost);
+        settings.setMempoolPort(mempoolHost != null ? req.getMempoolPort() : null);
         depotService.saveAppSettings(settings);
         Map<String, Object> body = new java.util.HashMap<>();
         body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
+        body.put("mempoolHost", settings.getMempoolHost());
+        body.put("mempoolPort", settings.getMempoolPort());
         return ResponseEntity.ok(body);
     }
 
     /** Returns a single wallet/exchange position. */
+    /** Returns a position's editable fields plus its addresses (with their last cached balance) for the edit dialog. */
     @GetMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> getPosition(@PathVariable("id") Long id) {
         return depotService.getPosition(id)
             .map(p -> ResponseEntity.ok(Map.<String, Object>of(
-                "id",    p.getId(),
-                "label", p.getLabel(),
-                "type",  p.getType().name()
+                "id",          p.getId(),
+                "label",       p.getLabel(),
+                "type",        p.getType().name(),
+                "description", p.getDescription() != null ? p.getDescription() : "",
+                "addresses",   toPositionAddressList(id)
             )))
             .orElse(ResponseEntity.notFound().build());
     }
 
-    /** Creates a new wallet/exchange position. */
+    private List<Map<String, Object>> toPositionAddressList(Long positionId) {
+        return depotService.getPositionAddresses(positionId).stream()
+                .map(a -> {
+                    Map<String, Object> m = new java.util.HashMap<>();
+                    m.put("id", a.getId());
+                    m.put("address", a.getAddress());
+                    m.put("label", a.getLabel());
+                    m.put("lastFetchBalanceSats", a.getLastFetchBalanceSats());
+                    m.put("lastFetchAt", a.getLastFetchAt());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /** Validates every address's format, throwing MempoolException on the first bad one. Both null and an empty list are fine (no addresses). */
+    private List<DepotService.AddressInput> validateAndMapAddresses(List<PositionAddressRequest> addresses) {
+        if (addresses == null) return List.of();
+        List<DepotService.AddressInput> inputs = new java.util.ArrayList<>();
+        for (PositionAddressRequest a : addresses) {
+            MempoolPriceService.validateAddress(a.getAddress());
+            inputs.add(new DepotService.AddressInput(a.getId(), a.getAddress().trim(), a.getLabel()));
+        }
+        return inputs;
+    }
+
+    /** Creates a new wallet/exchange position, with an optional description and address list. */
     @PostMapping("/positions")
     public ResponseEntity<Map<String, Object>> createPosition(@RequestBody PositionRequest req) {
+        List<DepotService.AddressInput> addressInputs;
+        try {
+            addressInputs = validateAndMapAddresses(req.getAddresses());
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
         Position p = new Position();
         p.setLabel(req.getLabel());
         p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+        p.setDescription(req.getDescription());
         depotService.save(p);
+        // a brand-new position has no existing addresses to diff against — any client-sent id is ignored (treated as new)
+        depotService.replacePositionAddresses(p, addressInputs.stream()
+                .map(a -> new DepotService.AddressInput(null, a.address(), a.label()))
+                .collect(Collectors.toList()));
         return ResponseEntity.ok(Map.of("id", p.getId(), "label", p.getLabel()));
     }
 
-    /** Updates a wallet/exchange position's label/type. */
+    /** Updates a wallet/exchange position's label/type/description and replaces its address list. */
     @PutMapping("/positions/{id}")
     public ResponseEntity<Map<String, Object>> updatePosition(
             @PathVariable("id") Long id,
             @RequestBody PositionRequest req) {
+        List<DepotService.AddressInput> addressInputs;
+        try {
+            addressInputs = validateAndMapAddresses(req.getAddresses());
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
         return depotService.getPosition(id).map(p -> {
             p.setLabel(req.getLabel());
             p.setType(com.thatsme4now.depot.entity.PositionType.valueOf(req.getType()));
+            p.setDescription(req.getDescription());
             depotService.save(p);
+            depotService.replacePositionAddresses(p, addressInputs);
             return ResponseEntity.ok(Map.<String, Object>of("id", p.getId(), "label", p.getLabel()));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Fetches a single address's on-chain balance/recent transactions from the configured mempool
+     * instance, persists the result as this address's new "last fetch" snapshot, and flags whether
+     * the confirmed balance changed since the previous fetch and which of the returned transactions
+     * are already tracked (matched by blockchain TXID, any position).
+     */
+    @PostMapping("/positions/{positionId}/addresses/{addressId}/mempool-balance")
+    public ResponseEntity<Map<String, Object>> fetchAddressBalance(
+            @PathVariable("positionId") Long positionId,
+            @PathVariable("addressId") Long addressId) {
+        PositionAddress addr = depotService.getPositionAddress(addressId).orElse(null);
+        if (addr == null || !addr.getPosition().getId().equals(positionId)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            return ResponseEntity.ok(fetchAndPersistAddressBalance(addr));
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Same as above, but for every address of a position at once — plus the position's own tracked BTC quantity for comparison. */
+    @PostMapping("/positions/{positionId}/mempool-balance-all")
+    public ResponseEntity<Map<String, Object>> fetchAllAddressBalances(@PathVariable("positionId") Long positionId) {
+        Position position = depotService.getPosition(positionId).orElse(null);
+        if (position == null) return ResponseEntity.notFound().build();
+
+        List<PositionAddress> addresses = depotService.getPositionAddresses(positionId);
+        List<Map<String, Object>> results = new java.util.ArrayList<>();
+        List<String> errors = new java.util.ArrayList<>();
+        long totalConfirmedSats = 0;
+        long totalUnconfirmedSats = 0;
+        for (PositionAddress addr : addresses) {
+            try {
+                Map<String, Object> r = fetchAndPersistAddressBalance(addr);
+                r.put("addressId", addr.getId());
+                r.put("address", addr.getAddress());
+                r.put("label", addr.getLabel());
+                results.add(r);
+                totalConfirmedSats   += (Long) r.get("confirmedBalanceSats");
+                totalUnconfirmedSats += (Long) r.get("unconfirmedDeltaSats");
+            } catch (MempoolPriceService.MempoolException e) {
+                errors.add(addr.getAddress() + ": " + e.getMessage());
+            }
+        }
+
+        BigDecimal trackedQuantity = depotService.getPositionQuantity(positionId);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("addresses", results);
+        body.put("errors", errors);
+        body.put("partial", !errors.isEmpty());
+        body.put("totalConfirmedBalanceSats", totalConfirmedSats);
+        body.put("totalUnconfirmedDeltaSats", totalUnconfirmedSats);
+        body.put("trackedQuantitySats", trackedQuantity.multiply(BigDecimal.valueOf(100_000_000L)).longValue());
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * Cached read of a single address's last-fetched balance/tx-list — no mempool call. Lets the
+     * balance dialog show the last known state immediately on open; the live "Abrufen" button
+     * still goes through the POST endpoint above. Returns {@code fetched:false} if this address
+     * has never been fetched.
+     */
+    @GetMapping("/positions/{positionId}/addresses/{addressId}/mempool-balance")
+    public ResponseEntity<Map<String, Object>> getCachedAddressBalance(
+            @PathVariable("positionId") Long positionId,
+            @PathVariable("addressId") Long addressId) {
+        PositionAddress addr = depotService.getPositionAddress(addressId).orElse(null);
+        if (addr == null || !addr.getPosition().getId().equals(positionId)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            return ResponseEntity.ok(cachedAddressBalance(addr));
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Same as above, bundled over every address of the position — reconstructed entirely from each address's own cache, no mempool call. */
+    @GetMapping("/positions/{positionId}/mempool-balance-all")
+    public ResponseEntity<Map<String, Object>> getCachedAllAddressBalances(@PathVariable("positionId") Long positionId) {
+        Position position = depotService.getPosition(positionId).orElse(null);
+        if (position == null) return ResponseEntity.notFound().build();
+
+        List<PositionAddress> addresses = depotService.getPositionAddresses(positionId);
+        List<Map<String, Object>> results = new java.util.ArrayList<>();
+        long totalConfirmedSats = 0;
+        long totalUnconfirmedSats = 0;
+        boolean partial = false;
+        for (PositionAddress addr : addresses) {
+            Map<String, Object> r = cachedAddressBalance(addr);
+            r.put("addressId", addr.getId());
+            r.put("address", addr.getAddress());
+            r.put("label", addr.getLabel());
+            results.add(r);
+            if (Boolean.TRUE.equals(r.get("fetched"))) {
+                totalConfirmedSats   += (Long) r.get("confirmedBalanceSats");
+                totalUnconfirmedSats += (Long) r.get("unconfirmedDeltaSats");
+            } else {
+                partial = true;
+            }
+        }
+
+        BigDecimal trackedQuantity = depotService.getPositionQuantity(positionId);
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("addresses", results);
+        body.put("partial", partial);
+        body.put("totalConfirmedBalanceSats", totalConfirmedSats);
+        body.put("totalUnconfirmedDeltaSats", totalUnconfirmedSats);
+        body.put("trackedQuantitySats", trackedQuantity.multiply(BigDecimal.valueOf(100_000_000L)).longValue());
+        return ResponseEntity.ok(body);
+    }
+
+    /** Live-fetches an address's balance+recent-txs from mempool, persists the result as its new cache, and annotates the tx list. */
+    private Map<String, Object> fetchAndPersistAddressBalance(PositionAddress addr) {
+        MempoolPriceService.AddressInfo info = mempoolPriceService.fetchAddressInfo(addr.getAddress());
+        List<MempoolPriceService.AddressTx> txs = mempoolPriceService.fetchAddressTxs(addr.getAddress(), 50);
+
+        Long previousBalance = addr.getLastFetchBalanceSats();
+        boolean changed = previousBalance != null && previousBalance != info.confirmedBalanceSats();
+
+        LocalDateTime now = LocalDateTime.now();
+        addr.setLastFetchJson(info.rawJson());
+        addr.setLastFetchBalanceSats(info.confirmedBalanceSats());
+        addr.setLastFetchTxsJson(mempoolPriceService.serializeAddressTxs(txs));
+        addr.setLastFetchAt(now);
+        depotService.savePositionAddress(addr);
+
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("fetched", true);
+        body.put("lastFetchAt", now);
+        body.put("confirmedBalanceSats", info.confirmedBalanceSats());
+        body.put("unconfirmedDeltaSats", info.unconfirmedDeltaSats());
+        body.put("chainTxCount", info.chainTxCount());
+        body.put("changed", changed);
+        body.put("previousBalanceSats", previousBalance);
+        body.put("txs", annotateAddressTxs(addr.getPosition().getId(), txs));
+        return body;
+    }
+
+    /** Reconstructs the same response shape as {@link #fetchAndPersistAddressBalance}, purely from the address's cache — no mempool call. */
+    private Map<String, Object> cachedAddressBalance(PositionAddress addr) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        if (addr.getLastFetchAt() == null) {
+            body.put("fetched", false);
+            body.put("lastFetchAt", null);
+            return body;
+        }
+        MempoolPriceService.AddressInfo info = mempoolPriceService.parseAddressInfo(addr.getLastFetchJson(), "cache");
+        List<MempoolPriceService.AddressTx> txs = mempoolPriceService.parseAddressTxs(addr.getLastFetchTxsJson());
+
+        body.put("fetched", true);
+        body.put("lastFetchAt", addr.getLastFetchAt());
+        body.put("confirmedBalanceSats", info.confirmedBalanceSats());
+        body.put("unconfirmedDeltaSats", info.unconfirmedDeltaSats());
+        body.put("chainTxCount", info.chainTxCount());
+        body.put("changed", false);
+        body.put("previousBalanceSats", null);
+        body.put("txs", annotateAddressTxs(addr.getPosition().getId(), txs));
+        return body;
+    }
+
+    /**
+     * Annotates each tx with "already tracked" (matched by TXID, any position) and, for a confirmed,
+     * not-yet-tracked tx, any existing same-position TRANSFER_IN/OUT candidates it could be linked to
+     * instead of imported as a new transaction (see {@link #findMatchCandidates}). Both are always
+     * recomputed fresh against the current Transaction table — cheap local DB checks, never cached —
+     * so they stay correct even when rendering a cached balance/tx-list.
+     */
+    private List<Map<String, Object>> annotateAddressTxs(Long positionId, List<MempoolPriceService.AddressTx> txs) {
+        return txs.stream().map(tx -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("txid", tx.txid());
+            m.put("confirmed", tx.confirmed());
+            m.put("blockTime", tx.blockTimeEpochSeconds());
+            m.put("netSats", tx.netSats());
+            boolean alreadyTracked = depotService.transactionExistsByBlockchainTxId(tx.txid());
+            m.put("alreadyTracked", alreadyTracked);
+            m.put("matchCandidates", (!alreadyTracked && tx.confirmed() && tx.blockTimeEpochSeconds() != null)
+                    ? findMatchCandidates(positionId, tx.netSats(), tx.blockTimeEpochSeconds())
+                    : List.of());
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    /** Existing TRANSFER_IN/OUT transactions (same position, no TXID yet) that could be this on-chain tx — see TransactionRepository#findByPositionIdAndTypeAndBlockchainTxIdIsNullAndQuantityAndDateBetween. */
+    private List<Map<String, Object>> findMatchCandidates(Long positionId, long netSats, long blockTimeEpochSeconds) {
+        TransactionType type = netSats >= 0 ? TransactionType.TRANSFER_IN : TransactionType.TRANSFER_OUT;
+        BigDecimal quantity = BigDecimal.valueOf(Math.abs(netSats)).divide(BigDecimal.valueOf(100_000_000L), 8, java.math.RoundingMode.UNNECESSARY);
+        // "Same calendar day" tolerance (Europe/Berlin): block_time is second-exact, a manually
+        // entered transaction usually isn't — see DepotRestController class-level MEMPOOL_IMPORT_ZONE.
+        java.time.LocalDate day = java.time.Instant.ofEpochSecond(blockTimeEpochSeconds).atZone(MEMPOOL_IMPORT_ZONE).toLocalDate();
+        LocalDateTime dayStart = day.atStartOfDay();
+        LocalDateTime dayEnd = day.atTime(23, 59, 59);
+        return depotService.findMatchCandidates(positionId, type, quantity, dayStart, dayEnd).stream()
+                .map(t -> {
+                    Map<String, Object> m = new java.util.HashMap<>();
+                    m.put("id", t.getId());
+                    m.put("date", t.getDate());
+                    m.put("quantity", t.getQuantity());
+                    m.put("comment", t.getComment());
+                    return m;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Links an on-chain TXID to an existing TRANSFER_IN/OUT transaction (one of the match candidates
+     * from {@link #findMatchCandidates}) instead of importing it as a new transaction — only the
+     * blockchainTxId is set, every other field of the existing transaction is left untouched.
+     */
+    @PostMapping("/positions/{positionId}/addresses/{addressId}/mempool-link")
+    public ResponseEntity<Map<String, Object>> linkAddressTransaction(
+            @PathVariable("positionId") Long positionId,
+            @PathVariable("addressId") Long addressId,
+            @RequestBody AddressLinkRequest req) {
+        PositionAddress addr = depotService.getPositionAddress(addressId).orElse(null);
+        if (addr == null || !addr.getPosition().getId().equals(positionId)) {
+            return ResponseEntity.notFound().build();
+        }
+        if (req.getTxid() == null || req.getTxid().isBlank() || req.getExistingTransactionId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing txid/existingTransactionId"));
+        }
+        Transaction tx = depotService.getTransaction(req.getExistingTransactionId()).orElse(null);
+        if (tx == null || !tx.getPosition().getId().equals(positionId)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Transaktion nicht gefunden"));
+        }
+        if (tx.getType() != TransactionType.TRANSFER_IN && tx.getType() != TransactionType.TRANSFER_OUT) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Nur TRANSFER_IN/TRANSFER_OUT können verknüpft werden"));
+        }
+        if (tx.getBlockchainTxId() != null && !tx.getBlockchainTxId().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Transaktion hat bereits eine TXID"));
+        }
+        if (depotService.transactionExistsByBlockchainTxId(req.getTxid())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Diese TXID ist bereits einer anderen Transaktion zugeordnet"));
+        }
+        tx.setBlockchainTxId(req.getTxid());
+        depotService.saveTransaction(tx);
+        // Self-transfer pair: propagate the TXID to the other leg if it's still empty there — same as a manual edit (see updateTransaction).
+        depotService.syncBlockchainTxIdToPairedTransfer(tx);
+        return ResponseEntity.ok(Map.of("linked", true, "transactionId", tx.getId()));
+    }
+
+    /** Imports the given (confirmed, not-yet-tracked) TXIDs from an address's last-fetched recent transactions as new TRANSFER_IN/OUT transactions. */
+    @PostMapping("/positions/{positionId}/addresses/{addressId}/mempool-import")
+    public ResponseEntity<Map<String, Object>> importAddressTransactions(
+            @PathVariable("positionId") Long positionId,
+            @PathVariable("addressId") Long addressId,
+            @RequestBody AddressImportRequest req) {
+        PositionAddress addr = depotService.getPositionAddress(addressId).orElse(null);
+        if (addr == null || !addr.getPosition().getId().equals(positionId)) {
+            return ResponseEntity.notFound().build();
+        }
+        if (req.getTxids() == null || req.getTxids().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing txids"));
+        }
+        try {
+            // re-fetch rather than trusting client-supplied amounts/dates — the client only sends which txids it wants
+            List<MempoolPriceService.AddressTx> txs = mempoolPriceService.fetchAddressTxs(addr.getAddress(), 50);
+            java.util.Set<String> requested = new java.util.HashSet<>(req.getTxids());
+            int imported = 0;
+            List<String> skipped = new java.util.ArrayList<>();
+            for (MempoolPriceService.AddressTx tx : txs) {
+                if (!requested.contains(tx.txid())) continue;
+                // unconfirmed (no block_time yet) and already-tracked txs are silently skipped —
+                // the UI only offers confirmed, not-yet-tracked rows as selectable in the first place
+                if (!tx.confirmed() || tx.blockTimeEpochSeconds() == null
+                        || depotService.transactionExistsByBlockchainTxId(tx.txid())) {
+                    skipped.add(tx.txid());
+                    continue;
+                }
+                Transaction t = new Transaction();
+                t.setPosition(addr.getPosition());
+                t.setType(tx.netSats() >= 0 ? TransactionType.TRANSFER_IN : TransactionType.TRANSFER_OUT);
+                t.setDate(LocalDateTime.ofInstant(java.time.Instant.ofEpochSecond(tx.blockTimeEpochSeconds()), MEMPOOL_IMPORT_ZONE));
+                t.setQuantity(BigDecimal.valueOf(Math.abs(tx.netSats())).divide(BigDecimal.valueOf(100_000_000L), 8, java.math.RoundingMode.UNNECESSARY));
+                t.setExchangeRate(BigDecimal.ONE);
+                t.setTransactionId(UUID.randomUUID().toString());
+                t.setBlockchainTxId(tx.txid());
+                // no matching counterpart known — flagged as a solo transfer, same as the existing "Solo-Transfer" bulk action
+                t.setTransferId(UUID.randomUUID().toString());
+                depotService.saveTransaction(t);
+                imported++;
+            }
+            return ResponseEntity.ok(Map.of("imported", imported, "skipped", skipped));
+        } catch (MempoolPriceService.MempoolException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /** Deletes a position, refusing if it still has transactions. */
@@ -880,6 +1326,8 @@ public class DepotRestController {
     @lombok.Data
     public static class AppSettingsUpdateRequest {
         private java.time.LocalDate taxHoldingPeriodCutoffDate;
+        private String  mempoolHost;
+        private Integer mempoolPort;
     }
 
 
@@ -902,6 +1350,7 @@ public class DepotRestController {
         private String exchangeRate;
         private String comment;
         private String transactionId;
+        private String blockchainTxId;    // real on-chain BTC TXID, optional CSV mapping (TRANSFER_IN/TRANSFER_OUT only)
         private String transferId;
     }
 
@@ -917,6 +1366,7 @@ public class DepotRestController {
         private java.math.BigDecimal exchangeRate;
         private String comment;
         private String exchange;
+        private String blockchainTxId;                   // real on-chain BTC TXID, TRANSFER_IN/TRANSFER_OUT only, soft-validated (see tx-form.js)
         private String transferTarget;                   // position label for the paired TRANSFER_IN
         private String transferInDate;                    // optional, defaults to date; format "yyyy-MM-dd HH:mm:ss"
         private java.math.BigDecimal transferInQuantity;  // optional, defaults to quantity
@@ -950,8 +1400,30 @@ public class DepotRestController {
     public static class PositionRequest {
         private String label;
         private String type;
+        private String description;
+        private List<PositionAddressRequest> addresses;
     }
-    
+
+    @lombok.Data
+    public static class PositionAddressRequest {
+        /** Null for a new address; set to an existing position_address.id to update it in place. */
+        private Long id;
+        private String address;
+        private String label;
+    }
+
+    @lombok.Data
+    public static class AddressImportRequest {
+        private List<String> txids;
+    }
+
+    @lombok.Data
+    public static class AddressLinkRequest {
+        private String txid;
+        /** Transaction#id (DB primary key) of the existing, TXID-less transaction to link — not to be confused with Transaction#transactionId (the String business key). */
+        private Long existingTransactionId;
+    }
+
     @lombok.Data
     public static class BulkSoloTransferRequest {
         private List<Long> ids;

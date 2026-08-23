@@ -12,6 +12,7 @@ import com.thatsme4now.depot.dto.FullExportDTO;
 import com.thatsme4now.depot.dto.HistoricalPriceExportDTO;
 import com.thatsme4now.depot.dto.ImportHistoryExportDTO;
 import com.thatsme4now.depot.dto.MonthlyPriceExportDTO;
+import com.thatsme4now.depot.dto.PositionAddressExportDTO;
 import com.thatsme4now.depot.dto.PositionExportDTO;
 import com.thatsme4now.depot.dto.PriceHistoryExportDTO;
 import com.thatsme4now.depot.dto.TransactionExportDTO;
@@ -20,12 +21,14 @@ import com.thatsme4now.depot.entity.HistoricalPrice;
 import com.thatsme4now.depot.entity.ImportHistory;
 import com.thatsme4now.depot.entity.MonthlyPrice;
 import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PositionAddress;
 import com.thatsme4now.depot.entity.PriceHistory;
 import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.repository.CurrentPriceRepository;
 import com.thatsme4now.depot.repository.HistoricalPriceRepository;
 import com.thatsme4now.depot.repository.ImportHistoryRepository;
 import com.thatsme4now.depot.repository.MonthlyPriceRepository;
+import com.thatsme4now.depot.repository.PositionAddressRepository;
 import com.thatsme4now.depot.repository.PositionRepository;
 import com.thatsme4now.depot.repository.PriceHistoryRepository;
 import com.thatsme4now.depot.repository.TransactionRepository;
@@ -48,6 +51,11 @@ import org.springframework.transaction.annotation.Transactional;
  * (e.g. a backup from before this update), the corresponding table is left
  * untouched during restore instead of being cleared (see {@link #importFull}).
  *
+ * Since version 3, position.description and position_address (Bitcoin addresses +
+ * their cached last mempool fetch) are covered too — see #restorePositionAddresses,
+ * which is the one section that can't follow the "leave untouched if missing"
+ * rule above, since position itself is always wiped+reinserted on every restore.
+ *
  * import_staging_row (the working state of an in-progress import) is deliberately
  * NOT part of the backup — it's purely transient and is cleared on every new upload anyway.
  */
@@ -57,6 +65,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DataExportService {
 
     private final PositionRepository positionRepo;
+    private final PositionAddressRepository positionAddressRepo;
     private final TransactionRepository transactionRepo;
     private final ImportHistoryRepository importHistoryRepo;
     private final PriceHistoryRepository priceHistoryRepo;
@@ -86,6 +95,8 @@ public class DataExportService {
         dto.setPositions(positionRepo.findAll().stream()
                 .map(this::toDto).collect(Collectors.toList()));
         dto.setTransactions(transactionRepo.findAll().stream()
+                .map(this::toDto).collect(Collectors.toList()));
+        dto.setPositionAddresses(positionAddressRepo.findAll().stream()
                 .map(this::toDto).collect(Collectors.toList()));
         dto.setImportHistory(importHistoryRepo.findAll().stream()
                 .map(this::toDto).collect(Collectors.toList()));
@@ -137,21 +148,25 @@ public class DataExportService {
         long maxPositionId = 0;
         for (PositionExportDTO p : dto.getPositions()) {
             jdbcTemplate.update(
-                "INSERT INTO `position` (id, label, type, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
-                p.getId(), p.getLabel(), p.getType().name());
+                "INSERT INTO `position` (id, label, type, description, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
+                p.getId(), p.getLabel(), p.getType().name(), p.getDescription());
             maxPositionId = Math.max(maxPositionId, p.getId());
         }
         jdbcTemplate.update("ALTER TABLE `position` AUTO_INCREMENT = " + (maxPositionId + 1));
+
+        // position wurde gerade komplett geleert+neu eingefügt -> alte position_address-Zeilen
+        // sind per ON DELETE CASCADE bereits mit weg; hier werden die aus dem Backup wieder eingefügt.
+        int positionAddressCount = restorePositionAddresses(dto.getPositionAddresses());
 
         boolean importHistoryRestored = restoreImportHistory(dto.getImportHistory());
 
         long maxTransactionId = 0;
         for (TransactionExportDTO t : dto.getTransactions()) {
             jdbcTemplate.update(
-                "INSERT INTO `transaction` (id, transaction_id, position_id, type, date, quantity, " +
+                "INSERT INTO `transaction` (id, transaction_id, blockchain_tx_id, position_id, type, date, quantity, " +
                 "quantity_fiat, currency, exchange_rate, price_per_btc, fees, fees_currency, comment, " +
-                "transfer_id, is_duplicate, import_history_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
-                t.getId(), t.getTransactionId(), t.getPositionId(), t.getType().name(), t.getDate(),
+                "transfer_id, is_duplicate, import_history_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
+                t.getId(), t.getTransactionId(), t.getBlockchainTxId(), t.getPositionId(), t.getType().name(), t.getDate(),
                 t.getQuantity(), t.getQuantityFiat(), t.getCurrency(), t.getExchangeRate(),
                 t.getPricePerBtc(), t.getFees(), t.getFeesCurrency(), t.getComment(),
                 t.getTransferId(), t.isDuplicate(), t.getImportHistoryId());
@@ -165,15 +180,38 @@ public class DataExportService {
         int historicalPriceCount = restoreHistoricalPrices(dto.getHistoricalPrices());
         int monthlyPriceCount   = restoreMonthlyPrices(dto.getMonthlyPrices());
 
-        log.info("Backup restore: {} positions, {} transactions, import-history restored={}, " +
+        log.info("Backup restore: {} positions, {} transactions, {} position-addresses, import-history restored={}, " +
                  "{} price-history, {} current-price, {} historical-price, {} monthly-price rows",
-                 dto.getPositions().size(), dto.getTransactions().size(), importHistoryRestored,
+                 dto.getPositions().size(), dto.getTransactions().size(), positionAddressCount, importHistoryRestored,
                  priceHistoryCount, currentPriceCount, historicalPriceCount, monthlyPriceCount);
 
         ImportSummary summary = new ImportSummary();
         summary.positions = dto.getPositions().size();
         summary.transactions = dto.getTransactions().size();
         return summary;
+    }
+
+    /**
+     * Restores position_address rows (Bitcoin addresses + their cached last mempool fetch).
+     * Unlike the other optional sections below, there's no "leave untouched" case here: the
+     * position table above is always fully cleared+reinserted on every restore, which already
+     * cascade-deletes any existing position_address rows regardless of whether this section is
+     * present — so a null list (old backup, pre-dates this feature) simply has nothing to restore.
+     */
+    private int restorePositionAddresses(java.util.List<PositionAddressExportDTO> rows) {
+        if (rows == null) return 0;
+        jdbcTemplate.update("DELETE FROM position_address");
+        long maxId = 0;
+        for (PositionAddressExportDTO a : rows) {
+            jdbcTemplate.update(
+                "INSERT INTO position_address (id, position_id, address, label, last_fetch_json, " +
+                "last_fetch_balance_sats, last_fetch_txs_json, last_fetch_at) VALUES (?,?,?,?,?,?,?,?)",
+                a.getId(), a.getPositionId(), a.getAddress(), a.getLabel(),
+                a.getLastFetchJson(), a.getLastFetchBalanceSats(), a.getLastFetchTxsJson(), a.getLastFetchAt());
+            maxId = Math.max(maxId, a.getId());
+        }
+        jdbcTemplate.update("ALTER TABLE position_address AUTO_INCREMENT = " + (maxId + 1));
+        return rows.size();
     }
 
     /** @return false if the section was missing from the backup (table is left untouched). */
@@ -255,6 +293,20 @@ public class DataExportService {
         dto.setId(p.getId());
         dto.setLabel(p.getLabel());
         dto.setType(p.getType());
+        dto.setDescription(p.getDescription());
+        return dto;
+    }
+
+    private PositionAddressExportDTO toDto(PositionAddress a) {
+        PositionAddressExportDTO dto = new PositionAddressExportDTO();
+        dto.setId(a.getId());
+        dto.setPositionId(a.getPosition().getId());
+        dto.setAddress(a.getAddress());
+        dto.setLabel(a.getLabel());
+        dto.setLastFetchJson(a.getLastFetchJson());
+        dto.setLastFetchBalanceSats(a.getLastFetchBalanceSats());
+        dto.setLastFetchTxsJson(a.getLastFetchTxsJson());
+        dto.setLastFetchAt(a.getLastFetchAt());
         return dto;
     }
 
@@ -262,6 +314,7 @@ public class DataExportService {
         TransactionExportDTO dto = new TransactionExportDTO();
         dto.setId(tx.getId());
         dto.setTransactionId(tx.getTransactionId());
+        dto.setBlockchainTxId(tx.getBlockchainTxId());
         dto.setPositionId(tx.getPosition().getId());
         dto.setType(tx.getType());
         dto.setDate(tx.getDate());

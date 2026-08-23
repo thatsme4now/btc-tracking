@@ -116,10 +116,11 @@
                     <th class="text-end" data-i18n="table.col.btc">BTC</th>
                     <th class="text-end" data-i18n="table.col.total">Betrag</th>
                     <th data-i18n="table.col.transferId">Transfer-ID</th>
+                    <th data-i18n="modal.field.blockchainTxId"></th>
                 </tr>
                 </thead>
                 <tbody id="stagingTableBody">
-                <tr><td colspan="8" class="text-center text-muted py-3" data-i18n="dt.loading">Wird geladen…</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-3" data-i18n="dt.loading">Wird geladen…</td></tr>
                 </tbody>
             </table>
         </div>
@@ -188,6 +189,11 @@
                         <input type="text" id="stagingEditTransferId" class="form-control depot-input" maxlength="36"/>
                     </div>
                     <div class="col-lg-6">
+                        <label class="depot-label" data-i18n="modal.field.blockchainTxId">On-chain TXID</label>
+                        <input type="text" id="stagingEditBlockchainTxId" class="form-control depot-input" maxlength="64"
+                               placeholder="64-character hex TXID" data-i18n-placeholder="modal.field.blockchainTxId.placeholder"/>
+                    </div>
+                    <div class="col-lg-12">
                         <label class="depot-label" data-i18n="modal.field.comment">Kommentar</label>
                         <input type="text" id="stagingEditComment" class="form-control depot-input" maxlength="255"/>
                     </div>

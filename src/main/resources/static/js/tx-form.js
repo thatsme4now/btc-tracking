@@ -224,12 +224,60 @@ async function openEditTx(tx) {
 
     document.getElementById('editTxType').disabled = true;
     const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
+    const isTransfer = tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT';
     document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
     document.querySelectorAll('.fee-field').forEach(el => el.classList.toggle('d-none', tx.type === 'TRANSFER_IN'));
+    document.querySelectorAll('.transfer-field').forEach(el => el.classList.toggle('d-none', !isTransfer));
+    const bcEl = document.getElementById('editTxBlockchainTxId');
+    if (bcEl) bcEl.value = tx.blockchainTxId || '';
     _updateTxExchangeRatePreview('edit');
+    _updateMempoolJumpButton();
 
     if (!txModal) txModal = new bootstrap.Modal(document.getElementById('txModal'));
     txModal.show();
+}
+
+// ── On-chain TXID: soft validation + jump-link into the configured mempool instance ──
+
+/** Weiche Validierung: hex-length hint only, never blocks typing or saving. */
+function _isPlausibleTxId(v) {
+    return /^[0-9a-fA-F]{64}$/.test(v);
+}
+
+function _updateMempoolJumpButton() {
+    const input   = document.getElementById('editTxBlockchainTxId');
+    const btn     = document.getElementById('editTxMempoolJumpBtn');
+    const warning = document.getElementById('editTxBlockchainTxIdWarning');
+    if (!input || !btn) return;
+
+    const value = input.value.trim();
+    const configured = typeof _mempoolConfigured !== 'undefined' && _mempoolConfigured;
+    btn.disabled = !value || !configured;
+    btn.title = configured ? t('modal.field.blockchainTxId.jump') : t('modal.field.blockchainTxId.notConfigured');
+
+    if (warning) warning.classList.toggle('d-none', !value || _isPlausibleTxId(value));
+}
+
+function openMempoolTxLink() {
+    const input = document.getElementById('editTxBlockchainTxId');
+    const value = input ? input.value.trim() : '';
+    if (!value) return;
+    _openMempoolUrl(value);
+}
+
+/** Table-row jump icon (overview.html's desktop table + mobile card, see depot.js). */
+function jumpToMempoolTx(txId) {
+    if (!txId) return;
+    _openMempoolUrl(txId);
+}
+
+function _openMempoolUrl(txId) {
+    const url = (typeof buildMempoolTxUrl === 'function') ? buildMempoolTxUrl(txId) : null;
+    if (!url) {
+        showToast('✗ ' + t('modal.field.blockchainTxId.notConfigured'), 'error');
+        return;
+    }
+    window.open(url, '_blank', 'noopener');
 }
 
 // ── Save (Add or Edit) ─────────────────────────────────────
@@ -253,6 +301,12 @@ function saveOrAddTx(isAdd) {
         comment:      document.getElementById(pref + 'TxComment').value,
         exchange:     _getExchangeValue(pref)
     };
+
+    // On-chain TXID: edit-modal only (the field doesn't exist in the Add-modal).
+    if (!isAdd) {
+        const bcEl = document.getElementById('editTxBlockchainTxId');
+        if (bcEl) payload.blockchainTxId = bcEl.value.trim() || null;
+    }
 
     // TRANSFER_OUT pairing (Add-modal only)
     if (isAdd && txType === 'TRANSFER_OUT') {

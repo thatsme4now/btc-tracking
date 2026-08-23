@@ -78,12 +78,12 @@ function renderStagingTable() {
     const rows = _stagingFilterMode === 'errors' ? _stagingRows.filter(r => r.hasError) : _stagingRows;
 
     if (!_stagingRows.length) {
-        body.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4" data-i18n="import.review.empty">Keine Zeilen (mehr) vorhanden.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4" data-i18n="import.review.empty">Keine Zeilen (mehr) vorhanden.</td></tr>`;
         I18N.applyI18n();
         return;
     }
     if (!rows.length) {
-        body.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-4" data-i18n="import.review.filter.noErrors">Keine fehlerhaften Zeilen (mehr).</td></tr>`;
+        body.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-4" data-i18n="import.review.filter.noErrors">Keine fehlerhaften Zeilen (mehr).</td></tr>`;
         I18N.applyI18n();
         return;
     }
@@ -117,6 +117,7 @@ function renderStagingTable() {
             <td class="text-end">${row.quantity != null ? Number(row.quantity).toFixed(8) : '–'}</td>
             <td class="text-end">${amount}</td>
             <td style="font-size:.7rem;color:var(--text-muted)">${esc(row.transferId ? row.transferId.slice(0, 8) + '…' : '–')}</td>
+            <td style="font-size:.7rem;color:var(--text-muted)" title="${esc(row.blockchainTxId || '')}">${esc(row.blockchainTxId ? row.blockchainTxId.slice(0, 8) + '…' : '–')}</td>
         </tr>`;
     }).join('');
     I18N.applyI18n();
@@ -374,6 +375,7 @@ function openStagingEdit(id) {
     document.getElementById('stagingEditFees').value = row.fees != null ? row.fees : '';
     document.getElementById('stagingEditFeesCurrency').value = row.feesCurrency || '';
     document.getElementById('stagingEditTransferId').value = row.transferId || '';
+    document.getElementById('stagingEditBlockchainTxId').value = row.blockchainTxId || '';
     document.getElementById('stagingEditComment').value = row.comment || '';
 
     _updateStagingEditExchangeRatePreview();
@@ -413,6 +415,7 @@ function saveStagingEdit() {
         fees: num(document.getElementById('stagingEditFees').value),
         feesCurrency: document.getElementById('stagingEditFeesCurrency').value.trim(),
         transferId: document.getElementById('stagingEditTransferId').value.trim(),
+        blockchainTxId: document.getElementById('stagingEditBlockchainTxId').value.trim(),
         comment: document.getElementById('stagingEditComment').value.trim(),
     };
 

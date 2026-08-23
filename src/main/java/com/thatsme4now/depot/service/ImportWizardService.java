@@ -262,6 +262,7 @@ public class ImportWizardService {
         row.setFeesCurrency(isSatoshiUnit(feeCur) ? "BTC" : feeCur);
         row.setComment(blankToNull(r.getComment()));
         row.setTransactionId(blankToNull(r.getTransactionId()));
+        row.setBlockchainTxId(blankToNull(r.getBlockchainTxId()));
         row.setTransferId(blankToNull(r.getTransferId()));
         row.setExchangeRate(exRate != null && exRate.compareTo(BigDecimal.ZERO) > 0 ? exRate : BigDecimal.ONE);
 
@@ -369,6 +370,9 @@ public class ImportWizardService {
         String comment = blankToNull(r.getComment());
         String transferId = UUID.randomUUID().toString();
         String baseTxId = blankToNull(r.getTransactionId());
+        // One physical on-chain transaction -> both legs get the identical,
+        // unsuffixed blockchainTxId (unlike transactionId's -in/-out dedup suffix).
+        String baseBlockchainTxId = blankToNull(r.getBlockchainTxId());
 
         List<String> errors = new ArrayList<>();
         if (dateTime == null) errors.add("invalid_date");
@@ -390,6 +394,7 @@ public class ImportWizardService {
         out.setTransferId(transferId);
         out.setExchangeRate(BigDecimal.ONE);
         out.setTransactionId(baseTxId != null ? baseTxId + "-out" : null);
+        out.setBlockchainTxId(baseBlockchainTxId);
         out.setHasError(hasError);
         out.setErrorReason(reason);
 
@@ -404,6 +409,7 @@ public class ImportWizardService {
         in.setTransferId(transferId);
         in.setExchangeRate(BigDecimal.ONE);
         in.setTransactionId(baseTxId != null ? baseTxId + "-in" : null);
+        in.setBlockchainTxId(baseBlockchainTxId);
         in.setHasError(hasError);
         in.setErrorReason(reason);
 
@@ -503,6 +509,10 @@ public class ImportWizardService {
         if (req.getTransferId() != null) {
             row.setTransferId(req.getTransferId().isBlank() ? null : req.getTransferId().trim());
         }
+        // Unconditional (like comment above), so clearing the field in the
+        // UI and saving actually clears it — not just "set if provided".
+        String blockchainTxId = req.getBlockchainTxId() != null ? req.getBlockchainTxId().trim() : null;
+        row.setBlockchainTxId((blockchainTxId == null || blockchainTxId.isBlank()) ? null : blockchainTxId);
 
         List<String> errors = new ArrayList<>();
         if (row.getDateParsed() == null) errors.add("invalid_date");
@@ -516,7 +526,25 @@ public class ImportWizardService {
         recomputeFxForRow(row, displayCurrency);
 
         stagingRepo.save(row);
+        syncBlockchainTxIdToPairedStaging(row);
         return toDTO(row);
+    }
+
+    /** Mirrors {@link com.thatsme4now.depot.service.DepotService#syncBlockchainTxIdToPairedTransfer}
+     *  for staging rows: copies blockchainTxId onto the paired leg of a self-transfer
+     *  (same transferId) if that leg's field is still empty. No silent overwrite on conflict. */
+    private void syncBlockchainTxIdToPairedStaging(ImportStagingRow row) {
+        if (row.getTransferId() == null
+                || row.getBlockchainTxId() == null || row.getBlockchainTxId().isBlank()) {
+            return;
+        }
+        for (ImportStagingRow other : stagingRepo.findByTransferId(row.getTransferId())) {
+            if (other.getId() != null && other.getId().equals(row.getId())) continue;
+            if (other.getBlockchainTxId() == null || other.getBlockchainTxId().isBlank()) {
+                other.setBlockchainTxId(row.getBlockchainTxId());
+                stagingRepo.save(other);
+            }
+        }
     }
 
     private void recomputeDuplicateForRow(ImportStagingRow row) {
@@ -705,6 +733,7 @@ public class ImportWizardService {
                 tx.setTransferId(row.getTransferId());
                 tx.setComment(row.getComment());
                 tx.setTransactionId(row.getTransactionId() != null ? row.getTransactionId() : UUID.randomUUID().toString());
+                tx.setBlockchainTxId(row.getBlockchainTxId());
                 tx.setDuplicate(row.isDuplicate());
                 tx.setImportHistoryId(history.getId());
                 transactionRepo.save(tx);
@@ -830,6 +859,7 @@ public class ImportWizardService {
         dto.setFeesCurrency(row.getFeesCurrency());
         dto.setComment(row.getComment());
         dto.setTransactionId(row.getTransactionId());
+        dto.setBlockchainTxId(row.getBlockchainTxId());
         dto.setTransferId(row.getTransferId());
         dto.setDuplicate(row.isDuplicate());
         dto.setFxWarning(row.isFxWarning());
@@ -894,6 +924,7 @@ public class ImportWizardService {
         private BigDecimal exchangeRate;
         private String comment;
         private String exchange;
+        private String blockchainTxId;
         private String transferId;
     }
 }

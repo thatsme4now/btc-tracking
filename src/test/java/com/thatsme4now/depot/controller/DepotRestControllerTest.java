@@ -1,6 +1,9 @@
 package com.thatsme4now.depot.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -17,6 +20,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -24,14 +28,21 @@ import com.thatsme4now.depot.BaseWebIntegrationTest;
 import com.thatsme4now.depot.TestFixtures;
 import com.thatsme4now.depot.dto.TransactionDTO;
 import com.thatsme4now.depot.entity.Position;
+import com.thatsme4now.depot.entity.PositionAddress;
 import com.thatsme4now.depot.entity.PositionType;
 import com.thatsme4now.depot.entity.Transaction;
 import com.thatsme4now.depot.service.DepotService;
+import com.thatsme4now.depot.service.MempoolPriceService;
 
 class DepotRestControllerTest extends BaseWebIntegrationTest {
 
     @Autowired
     private DepotService depotService;
+
+    // Mocked out so these tests never make a real HTTP call to a mempool instance — see the
+    // "Mempool address balance" section below, which only asserts on how the controller calls it.
+    @MockBean
+    private MempoolPriceService mempoolPriceService;
 
     // ── Positions ────────────────────────────────────────────────────────
 
@@ -343,5 +354,51 @@ class DepotRestControllerTest extends BaseWebIntegrationTest {
                 .andExpect(status().isNoContent());
 
         org.assertj.core.api.Assertions.assertThat(depotService.getAllTransactions()).isEmpty();
+    }
+
+    // ── Mempool address balance ─────────────────────────────────────────
+    // Regression coverage for the recent-tx fetch limit (10 → 50): asserts the controller asks
+    // MempoolPriceService for exactly 50 transactions, at both call sites that fetch an address's
+    // recent txs (fetchAndPersistAddressBalance and the tx-import endpoint).
+
+    private PositionAddress addressFixture(Position position, String address) {
+        PositionAddress a = new PositionAddress();
+        a.setPosition(position);
+        a.setAddress(address);
+        a.setLabel("Cold Wallet");
+        return depotService.savePositionAddress(a);
+    }
+
+    @Test
+    void fetchAddressBalance_requestsUpTo50RecentTransactions() throws Exception {
+        Position p = depotService.save(TestFixtures.position("Cold Wallet", PositionType.WALLET));
+        PositionAddress addr = addressFixture(p, "bc1qxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxy");
+
+        when(mempoolPriceService.fetchAddressInfo(addr.getAddress()))
+                .thenReturn(new MempoolPriceService.AddressInfo(100_000L, 0L, 3L, 0L, "{}"));
+        when(mempoolPriceService.fetchAddressTxs(eq(addr.getAddress()), eq(50)))
+                .thenReturn(List.of());
+        when(mempoolPriceService.serializeAddressTxs(List.of())).thenReturn("[]");
+
+        mockMvc.perform(post("/api/btc-tracking/positions/" + p.getId() + "/addresses/" + addr.getId() + "/mempool-balance"))
+                .andExpect(status().isOk());
+
+        verify(mempoolPriceService).fetchAddressTxs(eq(addr.getAddress()), eq(50));
+    }
+
+    @Test
+    void importAddressTransactions_requestsUpTo50RecentTransactions() throws Exception {
+        Position p = depotService.save(TestFixtures.position("Cold Wallet", PositionType.WALLET));
+        PositionAddress addr = addressFixture(p, "bc1qxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxyxy");
+
+        when(mempoolPriceService.fetchAddressTxs(eq(addr.getAddress()), eq(50)))
+                .thenReturn(List.of());
+
+        String body = "{\"txids\":[\"deadbeef\"]}";
+        mockMvc.perform(post("/api/btc-tracking/positions/" + p.getId() + "/addresses/" + addr.getId() + "/mempool-import")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+
+        verify(mempoolPriceService).fetchAddressTxs(eq(addr.getAddress()), eq(50));
     }
 }

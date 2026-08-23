@@ -92,6 +92,7 @@
 	                                        <th data-i18n="table.col.type">Type</th>
 	                                        <th class="text-end" data-i18n="table.col.btc">BTC</th>
 	                                        <th class="text-end" data-i18n="table.col.sats">Sats</th>
+	                                        <th class="text-end" data-i18n="table.col.onchain">On-Chain</th>
 	                                        <th class="text-end" data-i18n="table.col.value">Value</th>
 	                                    </tr>
 	                                    </thead>
@@ -125,6 +126,20 @@
 	                                                th:text="${#numbers.formatDecimal(p.quantity, 1, 'POINT', 8, 'COMMA')}"></td>
 	                                            <td class="text-end text-muted" data-i18n-label="table.col.sats"
 	                                                th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></td>
+	                                            <td class="text-end" data-i18n-label="table.col.onchain">
+	                                                <span th:if="${!p.hasAddresses}" class="text-muted">–</span>
+	                                                <button th:if="${p.hasAddresses}" type="button"
+	                                                        class="btn btn-xs depot-btn-icon onchain-balance-btn"
+	                                                        th:classappend="${p.onchainBalanceDiffers} ? 'onchain-balance-diff' : ''"
+	                                                        th:data-id="${p.id}" th:data-label="${p.label}"
+	                                                        onclick="event.stopPropagation(); openAddressOverview(this.dataset.id, this.dataset.label)"
+	                                                        data-i18n-title="form.position.addresses.overview" title="Address overview">
+	                                                    <span th:if="${p.onchainBalanceSats != null}" th:text="${#numbers.formatDecimal(p.onchainBalanceBtc, 1, 'POINT', 8, 'COMMA')}"></span>
+	                                                    <i th:if="${p.onchainBalanceSats == null}" class="bi bi-arrow-repeat text-muted"></i>
+	                                                    <i th:if="${p.onchainBalancePartial}" class="bi bi-exclamation-triangle onchain-balance-partial-icon"
+	                                                       data-i18n-title="form.position.addresses.partialHint" title="Not every address has been fetched yet"></i>
+	                                                </button>
+	                                            </td>
 	                                            <td class="text-end fw-medium" data-i18n-label="table.col.value" th:if="${p.totalValue != null}">
 	                                                <span th:text="${#numbers.formatDecimal(p.totalValue, 1, 'POINT', 2, 'COMMA')}"></span>
 	                                                <span class="currency-symbol"></span>
@@ -135,7 +150,7 @@
 	                                            <td></td><td></td><td></td><td class="text-center text-muted py-4">
 	                                                <span data-i18n="table.empty">No positions yet.</span>
 	                                                <a href="#" onclick="openPositionModal(null)" data-i18n="table.empty.link">Add your first wallet or exchange →</a>
-	                                            </td><td></td><td></td>
+	                                            </td><td></td><td></td><td></td>
 	                                        </tr>
 	                                    </tbody>
 	                                </table>
@@ -174,6 +189,21 @@
 						<div class="overview-tx-field">
 							<span class="overview-tx-field-label" data-i18n="table.col.sats">Sats</span>
 							<span class="overview-tx-field-value" th:text="${#numbers.formatInteger(p.quantityInSats, 1, 'POINT')}"></span>
+						</div>
+						<div class="overview-tx-field" th:if="${p.hasAddresses}">
+							<span class="overview-tx-field-label" data-i18n="table.col.onchain">On-Chain</span>
+							<span class="overview-tx-field-value">
+								<button type="button" class="btn btn-xs depot-btn-icon onchain-balance-btn"
+								        th:classappend="${p.onchainBalanceDiffers} ? 'onchain-balance-diff' : ''"
+								        th:data-id="${p.id}" th:data-label="${p.label}"
+								        onclick="event.stopPropagation(); openAddressOverview(this.dataset.id, this.dataset.label)"
+								        data-i18n-title="form.position.addresses.overview" title="Address overview">
+									<span th:if="${p.onchainBalanceSats != null}" th:text="${#numbers.formatDecimal(p.onchainBalanceBtc, 1, 'POINT', 8, 'COMMA')}"></span>
+									<i th:if="${p.onchainBalanceSats == null}" class="bi bi-arrow-repeat text-muted"></i>
+									<i th:if="${p.onchainBalancePartial}" class="bi bi-exclamation-triangle onchain-balance-partial-icon"
+									   data-i18n-title="form.position.addresses.partialHint" title="Not every address has been fetched yet"></i>
+								</button>
+							</span>
 						</div>
 						<div class="overview-tx-field" th:if="${p.totalValue != null}">
 							<span class="overview-tx-field-label" data-i18n="table.col.value">Value</span>
@@ -279,6 +309,15 @@
 			        </button>
 			    </div>
 			</div>
+
+				<div id="txFilterGroup" class="pill-filter px-1 py-2" style="flex-wrap:wrap;border-bottom:1px solid var(--border)">
+					<button type="button" class="pill-filter-btn is-active" data-mode="all" onclick="toggleTxPillFilter('all')" data-i18n="table.filter.all">Alle</button>
+					<button type="button" class="pill-filter-btn" data-mode="comment" onclick="toggleTxPillFilter('comment')" data-i18n="table.filter.withComment">Mit Kommentar</button>
+					<button type="button" class="pill-filter-btn" data-mode="txid" onclick="toggleTxPillFilter('txid')" data-i18n="table.filter.withTxId">Mit On-Chain-TXID</button>
+					<button type="button" class="pill-filter-btn" data-mode="duplicate" onclick="toggleTxPillFilter('duplicate')" data-i18n="table.filter.duplicates">Mögliche Duplikate</button>
+					<button type="button" class="pill-filter-btn" data-mode="currency" onclick="toggleTxPillFilter('currency')" data-i18n="table.filter.currencyNoRate">Fremdwährung ohne Wechselkurs</button>
+					<button type="button" class="pill-filter-btn" data-mode="solo" onclick="toggleTxPillFilter('solo')" data-i18n="table.filter.soloTransfer">Solo-Transfer</button>
+				</div>
 
 				<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
 				    <span class="tx-legend-item">
@@ -821,7 +860,7 @@
 
     <!-- Add/Edit Wallet/Exchange -->
     <div class="modal fade" id="positionModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
                 <div class="modal-header" style="border-bottom:1px solid var(--border)">
                     <span class="depot-card-header mb-0" id="positionModalTitle" data-i18n="form.position.titleNew">New Wallet / Exchange</span>
@@ -840,12 +879,34 @@
                                maxlength="100"
                                onkeydown="if(event.key==='Enter') savePosition()"/>
                     </div>
-                    <div>
+                    <div class="mb-3">
                         <label class="depot-label" data-i18n="modal.field.type">Type</label>
                         <select id="positionType" class="form-select depot-input">
                             <option value="EXCHANGE" data-i18n="form.position.type.exchange">Exchange</option>
                             <option value="WALLET" data-i18n="form.position.type.wallet">Wallet</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="depot-label" data-i18n="form.position.description">Description</label>
+                        <textarea id="positionDescription" class="form-control depot-input" rows="2"
+                                  maxlength="2000"
+                                  data-i18n-placeholder="form.position.description.placeholder"
+                                  placeholder="Notes about custody, seed storage, etc."></textarea>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="depot-label mb-0" data-i18n="form.position.addresses.title">Bitcoin addresses</label>
+                            <div>
+                                <button type="button" id="positionFetchAllBtn" class="btn btn-xs depot-btn-outline d-none"
+                                        onclick="openAddressOverview(document.getElementById('positionId').value, document.getElementById('positionLabel').value)">
+                                    <i class="bi bi-list-check me-1"></i><span data-i18n="form.position.addresses.overview">Address overview</span>
+                                </button>
+                                <button type="button" class="btn btn-xs depot-btn-outline" onclick="addPositionAddressRow()">
+                                    <i class="bi bi-plus-lg me-1"></i><span data-i18n="form.position.addresses.add">Add address</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="positionAddressList"></div>
                     </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
@@ -853,6 +914,28 @@
                         <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.btn.save">Save</span>
                     </button>
                     <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="form.position.btn.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address balance / import (single-address or bundled all-addresses view) -->
+    <div class="modal fade" id="addressBalanceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" id="addressBalanceModalTitle">—</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="addressBalanceSummary" class="d-none mb-3"></div>
+                    <div id="addressBalanceBody"></div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button type="button" id="addressBalanceRefetchAllBtn" class="btn depot-btn-outline d-none" onclick="refetchAllAddressBalances()">
+                        <i class="bi bi-arrow-repeat me-1"></i><span data-i18n="form.position.addresses.refetchAll">Fetch all again (live)</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Close</button>
                 </div>
             </div>
         </div>

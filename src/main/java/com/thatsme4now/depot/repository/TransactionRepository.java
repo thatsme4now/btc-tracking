@@ -38,6 +38,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     
     boolean existsByTransactionId(String transactionId);
 
+    /** Used by the address-import feature to check whether an on-chain TXID is already tracked (any position). */
+    boolean existsByBlockchainTxId(String blockchainTxId);
+
+    /**
+     * Candidate search for the address-import "Verknüpfen" flow: an existing TRANSFER_IN/OUT
+     * transaction on the same position, without a TXID yet, whose amount matches an on-chain tx
+     * exactly and whose date falls on the same calendar day as that tx's block_time.
+     */
+    List<Transaction> findByPositionIdAndTypeAndBlockchainTxIdIsNullAndQuantityAndDateBetween(
+            Long positionId, TransactionType type, BigDecimal quantity, LocalDateTime start, LocalDateTime end);
+
     long countByImportHistoryId(Long importHistoryId);
 
     void deleteByImportHistoryId(Long importHistoryId);

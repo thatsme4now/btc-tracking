@@ -28,4 +28,8 @@ public class CurrentPrice {
 
     @Column(name = "loaded_at")
     private LocalDateTime loadedAt = LocalDateTime.now();
+
+    /** "MANUAL" (Standard, manuelle Eingabe) oder "MEMPOOL" (per Knopfdruck von der konfigurierten mempool-API geholt). */
+    @Column(length = 20)
+    private String source = "MANUAL";
 }

@@ -52,10 +52,20 @@
 
 .holdings-chart-block.dragging { opacity: .4; }
 
-/* Pin ApexCharts tooltip to the right edge via CSS instead of its default JS-computed position, which overflows near the right edge. */
+/* Pin ApexCharts tooltip to the top of its tile via CSS instead of its default JS-computed
+   position (height of the hovered bar) — and to the right edge by default, which also avoids the
+   overflow ApexCharts' own positioning caused near the right edge. When the hovered bar is in the
+   last quarter of the chart (see _holdingsTooltipEdgeFlip in holdings.js, which toggles
+   .holdings-tooltip-left on the tile), the more specific rule below flips it to the left instead
+   — otherwise a right-anchored tooltip would sit directly on top of that bar. */
 .holdings-chart-block .apexcharts-tooltip {
+    top: 0 !important;
     left: auto !important;
     right: 0 !important;
+}
+.holdings-chart-block.holdings-tooltip-left .apexcharts-tooltip {
+    left: 0 !important;
+    right: auto !important;
 }
 
 /* Tiles that must always be 1 slot wide (--cols/--span set by holdings.js updateHoldingsRowCols). */
@@ -95,6 +105,43 @@
     padding: 0;
 }
 .holdings-block-move-btn:hover { color: var(--accent); border-color: var(--accent); }
+.holdings-block-remove-btn:hover { color: #dc3545; border-color: #dc3545; }
+
+/* Tile removed by the user (X button / "Kacheln verwalten" modal) — see holdings.js
+   holdingsSetTileHidden/applyHoldingsHiddenTiles. Kept separate from the plain d-none class, which
+   is still used exclusively for the mempool-clock tile's own config-gated visibility, so the two
+   independent reasons for a tile being hidden never fight over the same class. */
+.holdings-user-hidden { display: none !important; }
+
+/* ── "Kacheln verwalten" modal ─────────────────────────── */
+.holdings-manage-hint {
+    font-size: .72rem;
+    color: var(--text-muted);
+    margin: 0 0 .85rem;
+}
+.holdings-manage-tile-row {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-size: .82rem;
+    color: var(--text);
+    cursor: pointer;
+}
+.holdings-manage-tile-row.disabled {
+    color: var(--text-muted);
+    cursor: default;
+}
+.holdings-manage-tile-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    flex: 0 0 auto;
+}
+.holdings-manage-tile-hint {
+    font-size: .64rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
 
 /* ── Reference-price table ─────────────────────────────── */
 .holdings-refprices-hint {
@@ -181,9 +228,22 @@
 /* ── Chart containers ────────────────────────────────────── */
 #holdingsDonutChart { min-height: 260px; }
 
+/* Embedded mempool "clock" (next-block) visualization — 1-slot tile, see holdings.html/js */
+.holdings-mempoolclock-frame {
+    width: 100%;
+    height: 320px;
+    border: 0;
+    border-radius: var(--radius);
+    display: block;
+}
+
 /* ── Responsive: single column, no drag on tablet/phone ── */
 @media (max-width: 991px) {
     .holdings-grid-row,
     .holdings-grid-row.empty { grid-template-columns: 1fr !important; }
     .holdings-drag-handle { display: none; }
+    /* Granularity pills (Einzel-Kauf/Pro Monat/Pro Jahr) drop to their own line instead of
+       squeezing against the title + move-buttons in one row. */
+    .holdings-chart-title { flex-wrap: wrap; }
+    .holdings-chart-title .pill-filter { order: 3; flex: 1 0 100%; margin-top: .35rem; }
 }

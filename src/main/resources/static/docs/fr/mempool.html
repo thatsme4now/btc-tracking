@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC-Tracking App — Intégration Mempool</title>
+<link rel="stylesheet" href="../docs-fonts.css">
+<style>
+  :root{
+    --bg: #0b0d12;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --border: #262b36;
+    --text: #d8dce3;
+    --muted: #7d8494;
+    --accent: #f0a742;
+    --accent-dim: #8a6533;
+    --green: #4ade80;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+  }
+  header.hero{
+    padding:64px 24px 48px;
+    max-width:1100px;
+    margin:0 auto;
+    border-bottom:1px solid var(--border);
+  }
+  .hero-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--border);
+    padding:6px 12px;
+    border-radius:4px;
+    margin-bottom:24px;
+  }
+  .hero-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(28px,4vw,42px);
+    font-weight:700;
+    margin:0 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h1 .btc{color:var(--accent);}
+  .hero p.lead{
+    color:var(--muted);
+    font-size:16px;
+    max-width:640px;
+    margin:0 0 24px;
+  }
+  .back-link{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    display:inline-block;
+    transition:border-color .15s, color .15s;
+  }
+  .back-link:hover{border-color:var(--accent); color:var(--accent);}
+  .lang-switch{
+    display:inline-flex;
+    gap:2px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:3px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    margin-bottom:16px;
+  }
+  .lang-switch a{
+    text-decoration:none;
+    color:var(--muted);
+    padding:5px 10px;
+    border-radius:4px;
+  }
+  .lang-switch a.active{
+    background:var(--accent);
+    color:var(--bg);
+    font-weight:600;
+  }
+  .lang-switch a:not(.active):hover{color:var(--text);}
+  nav.steps{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 24px 0;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  nav.steps a{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text);
+    text-decoration:none;
+    border:1px solid var(--border);
+    background:var(--panel);
+    padding:8px 12px;
+    border-radius:4px;
+    transition:border-color .15s, color .15s;
+  }
+  nav.steps a:hover{border-color:var(--accent); color:var(--accent);}
+  nav.steps a span{color:var(--accent); margin-right:6px;}
+  main{max-width:1100px; margin:0 auto; padding:24px;}
+  section.step{
+    padding:56px 0;
+    border-bottom:1px solid var(--border);
+  }
+  section.step:last-of-type{border-bottom:none;}
+  .step-num{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+  }
+  h2{
+    font-family:'JetBrains Mono',monospace;
+    font-size:24px;
+    margin:8px 0 16px;
+    letter-spacing:-0.01em;
+  }
+  h3{
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    margin:32px 0 12px;
+    color:var(--accent);
+  }
+  section.step p{color:var(--text);}
+  section.step p.muted{color:var(--muted); font-size:15px;}
+  ol.steplist{
+    margin:16px 0;
+    padding-left:0;
+    list-style:none;
+    counter-reset:step;
+  }
+  ol.steplist li{
+    counter-increment:step;
+    position:relative;
+    padding:14px 16px 14px 52px;
+    margin-bottom:10px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    color:var(--text);
+    font-size:14.5px;
+  }
+  ol.steplist li::before{
+    content:counter(step);
+    position:absolute;
+    left:14px;
+    top:14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    color:var(--bg);
+    background:var(--accent);
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  ol.steplist li b{color:var(--text);}
+  ul.tight{margin:16px 0; padding-left:20px;}
+  ul.tight li{margin-bottom:8px; color:var(--text);}
+  ul.tight li b{color:var(--text); font-weight:600;}
+  code, .inline-code{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:0.9em;
+    color:var(--accent);
+  }
+  .note{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:6px;
+    padding:14px 16px;
+    margin:20px 0;
+    font-size:14px;
+    color:var(--text);
+  }
+  .note b{color:var(--accent);}
+  table.compare{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:14px;
+  }
+  table.compare th, table.compare td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  table.compare th{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--accent);
+    font-weight:600;
+  }
+  table.compare td.field{font-family:'JetBrains Mono',monospace; color:var(--text); white-space:nowrap;}
+  table.compare td.desc{color:var(--muted);}
+  figure{
+    margin:0 0 20px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    overflow:hidden;
+    background:var(--panel);
+  }
+  figure img{
+    display:block;
+    width:100%;
+    height:auto;
+    cursor:zoom-in;
+    transition:opacity .15s;
+  }
+  figure img:hover{opacity:.88;}
+  figcaption{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    padding:10px 14px;
+    border-top:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  figcaption .zoom-hint{
+    color:var(--accent-dim);
+    white-space:nowrap;
+    font-size:11px;
+  }
+  .lightbox{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,10,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    z-index:1000;
+    cursor:zoom-out;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox img{
+    max-width:100%;
+    max-height:100%;
+    border-radius:8px;
+    border:1px solid var(--border);
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  }
+  .lightbox .lb-close{
+    position:fixed;
+    top:24px;
+    right:28px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 12px;
+    cursor:pointer;
+  }
+  .lightbox .lb-close:hover{color:var(--accent); border-color:var(--accent);}
+  footer{
+    max-width:1100px;
+    margin:0 auto;
+    padding:40px 24px 64px;
+    color:var(--muted);
+    font-size:13px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  footer a{color:var(--muted);}
+  @media (max-width:600px){
+    header.hero{padding:48px 20px 32px;}
+    section.step{padding:40px 0;}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="lang-switch">
+    <a href="../de/mempool.html">DE</a>
+    <a href="../mempool.html">EN</a>
+    <a href="../es/mempool.html">ES</a>
+    <a href="mempool.html" class="active">FR</a>
+    <a href="../it/mempool.html">IT</a>
+    <a href="../th/mempool.html">TH</a>
+  </div>
+  <div class="hero-tag"><span class="dot"></span>Intégration Mempool · Français</div>
+  <h1>₿<span class="btc"> Bitcoin</span> Portfolio — Intégration Mempool</h1>
+  <p class="lead">
+    Comment connecter l'app à votre propre instance mempool auto-hébergée, et ce que cela
+    débloque : cours actuel et remplissage historique, suivi d'adresses on-chain avec soldes mis
+    en cache, liaison de transactions on-chain avec des entrées existantes, et la colonne on-chain
+    dans le tableau des positions.
+  </p>
+  <div style="display:flex;flex-wrap:wrap;gap:12px">
+    <a class="back-link" href="index.html">← Retour au guide</a>
+    <a class="back-link" href="usage.html">Utilisation / Installation →</a>
+    <a class="back-link" href="visualizations.html">Visualisations →</a>
+  </div>
+</header>
+<nav class="steps">
+  <a href="#setup"><span>A</span>Configuration et cours</a>
+  <a href="#addresses"><span>B</span>Adresses et solde on-chain</a>
+  <a href="#link-import"><span>C</span>Lier et importer</a>
+  <a href="#txid"><span>D</span>TXID dans la boîte de dialogue d'édition</a>
+</nav>
+<main>
+  <section class="step" id="setup">
+    <div class="step-num">PARTIE A</div>
+    <h2>Configuration et cours</h2>
+    <p>
+      Chaque fonctionnalité basée sur mempool dans cette app — cours, remplissage historique,
+      suivi d'adresses, liens directs vers la TXID — nécessite d'abord une instance mempool
+      configurée. Jusque-là, tout dans cette section reste désactivé.
+    </p>
+    <div class="note">
+      <span>ℹ</span>
+      <span><b>Auto-hébergée uniquement, pas mempool.space :</b> l'app communique avec votre
+      propre instance mempool (p. ex. l'app mempool sur votre Umbrel, ou une instance sur votre
+      réseau local) via un simple <span class="inline-code">hôte:port</span> — elle n'appelle pas
+      directement l'API publique de mempool.space. Si vous n'en avez pas encore, l'Umbrel Community
+      App Store décrit sur la page <a href="usage.html" style="color:var(--accent)">Utilisation /
+      Installation</a> est un moyen d'en obtenir une.</span>
+    </div>
+    <h3>Configurer l'instance</h3>
+    <p>
+      Ouvrez l'icône d'engrenage dans l'en-tête → <b>Paramètres</b> → section
+      <b>« Intégration Mempool (optionnel) »</b>.
+    </p>
+    <table class="compare">
+      <tr><th>Champ</th><th>Signification</th></tr>
+      <tr><td class="field">Hôte</td><td class="desc">Nom d'hôte ou IP de votre instance mempool, p. ex. <span class="inline-code">localhost</span> ou une IP locale. Sans schéma (pas de <span class="inline-code">http://</span>).</td></tr>
+      <tr><td class="field">Port</td><td class="desc">Port sur lequel votre instance mempool écoute.</td></tr>
+      <tr><td class="field">Laissé vide</td><td class="desc">Toutes les fonctionnalités mempool restent désactivées — rien n'est jamais appelé tant que les deux champs ne sont pas remplis.</td></tr>
+    </table>
+    <figure>
+      <img src="../images/mempool_settings.png" alt="Boîte de dialogue des paramètres avec les champs hôte/port de l'intégration Mempool" onclick="openLightbox(this)">
+      <figcaption>Paramètres → Intégration Mempool : hôte + port <span class="zoom-hint">Cliquer pour agrandir ↗</span></figcaption>
+    </figure>
+    <div class="note">
+      <span>🔒</span>
+      <span><b>Confidentialité :</b> c'est le serveur de cette app — pas votre navigateur — qui se
+      connecte à l'hôte configuré. Utilisez uniquement votre réseau local ; ne pointez pas vers une
+      instance publique que vous ne contrôlez pas.</span>
+    </div>
+    <h3>Cours actuel et remplissage historique</h3>
+    <p>
+      Une fois configurée, trois endroits commencent à l'utiliser :
+    </p>
+    <ul class="tight">
+      <li><b>Badge de cours dans l'en-tête</b> — la petite icône mempool à côté du prix récupère le cours actuel de votre devise d'affichage directement depuis votre instance.</li>
+      <li><b>Vue Holdings</b> — « Remplir les années manquantes depuis mempool (EUR+USD) » complète les cours de référence de fin d'année manquants à partir de la série historique de votre instance.</li>
+      <li><b>Vue Annuelle</b> — « Remplir les mois manquants depuis mempool (EUR+USD) » fait de même par mois.</li>
+    </ul>
+    <div class="note">
+      <span>ℹ</span>
+      <span>Le remplissage historique ne couvre que <b>l'EUR et l'USD</b> — les autres devises
+      d'affichage n'ont pas de série historique et doivent être saisies manuellement. Une donnée ne
+      compte que si elle est suffisamment proche de la date cible (fin d'année/de mois) ; sinon,
+      cette période reste non remplie plutôt que d'afficher une estimation trompeuse.</span>
+    </div>
+    <h3>Horloge mempool (vue Holdings)</h3>
+    <p>
+      La vue Holdings comporte aussi une petite tuile <b>« Mempool »</b> avec une visualisation en
+      direct du prochain bloc/des frais, intégrée depuis votre instance configurée — avec un
+      raccourci « ouvrir dans un nouvel onglet ». Elle utilise le même hôte/port, sans configuration
+      supplémentaire.
+    </p>
+  </section>
+
+  <section class="step" id="addresses">
+    <div class="step-num">PARTIE B</div>
+    <h2>Adresses et solde on-chain</h2>
+    <p>
+      Associez une ou plusieurs adresses Bitcoin à une position (wallet/exchange) pour comparer sa
+      quantité de BTC enregistrée avec ce qui se trouve réellement on-chain — sans quitter l'app.
+    </p>
+    <h3>Ajouter une adresse</h3>
+    <p>
+      Ouvrez une position en édition → section <b>« Adresses Bitcoin »</b> → saisissez l'adresse
+      (p. ex. <span class="inline-code">bc1q…</span>) et éventuellement une étiquette, puis
+      <b>« Ajouter une adresse »</b>.
+    </p>
+    <figure>
+      <img src="../images/mempool_address_add.png" alt="Boîte de dialogue d'édition de position avec la section Adresses Bitcoin et le formulaire d'ajout d'adresse" onclick="openLightbox(this)">
+      <figcaption>Boîte de dialogue de position : liste d'adresses + « Ajouter une adresse » <span class="zoom-hint">Cliquer pour agrandir ↗</span></figcaption>
+    </figure>
+    <h3>Récupérer un solde</h3>
+    <p>
+      Chaque adresse dispose de <b>« Voir le solde »</b> / <b>« Récupérer »</b>. La première
+      récupération appelle votre instance mempool et met en cache le résultat complet — solde
+      confirmé, solde non confirmé et jusqu'à 50 transactions récentes. En rouvrant la boîte de
+      dialogue, cet état en cache s'affiche instantanément, avec l'heure de la dernière
+      récupération (<b>« Dernière récupération »</b>) — aucun appel réseau tant que vous
+      n'actualisez pas explicitement.
+    </p>
+    <table class="compare">
+      <tr><th>Champ</th><th>Signification</th></tr>
+      <tr><td class="field">Solde confirmé</td><td class="desc">Solde on-chain issu uniquement des transactions confirmées.</td></tr>
+      <tr><td class="field">Non confirmé</td><td class="desc">Effet net des transactions encore dans le mempool, affiché séparément.</td></tr>
+      <tr><td class="field">Reçu / Envoyé</td><td class="desc">Direction et montant net de chacune des jusqu'à 50 transactions récentes.</td></tr>
+      <tr><td class="field">Déjà enregistrée</td><td class="desc">Vérifiée en direct par rapport à votre liste de transactions actuelle — jamais mise en cache, donc jamais obsolète.</td></tr>
+    </table>
+    <div class="note">
+      <span>ℹ</span>
+      <span><b>« Jamais récupéré »</b> s'affiche jusqu'à la première récupération — cliquez sur
+      « Récupérer » pour l'état on-chain actuel. Ensuite, actualiser reste toujours votre choix,
+      cette fonctionnalité n'appelle donc jamais rien d'elle-même.</span>
+    </div>
+    <h3>Vue d'ensemble des adresses (toutes en une fois)</h3>
+    <p>
+      Pour une position avec plusieurs adresses, <b>« Vue d'ensemble des adresses »</b> les ouvre
+      toutes ensemble, instantanément depuis le cache. Un bouton séparé
+      <b>« Tout réactualiser (en direct) »</b> déclenche un nouvel appel pour chaque adresse en une
+      seule fois.
+    </p>
+    <figure>
+      <img src="../images/mempool_address_overview.png" alt="Boîte de dialogue de vue d'ensemble groupée des adresses montrant toutes les adresses d'une position à la fois" onclick="openLightbox(this)">
+      <figcaption>Vue d'ensemble des adresses : toutes les adresses d'une position, vue en cache + réactualisation en direct <span class="zoom-hint">Cliquer pour agrandir ↗</span></figcaption>
+    </figure>
+    <h3>Colonne On-Chain dans le tableau des positions</h3>
+    <p>
+      Le tableau de Gestion des données a une colonne <b>« On-Chain »</b>, calculée uniquement à
+      partir des soldes en cache ci-dessus — aucun appel réseau au chargement de la page. Cliquer
+      sur une valeur ouvre directement la vue d'ensemble des adresses de cette position.
+    </p>
+    <table class="compare">
+      <tr><th>État</th><th>Signification</th></tr>
+      <tr><td class="field">–</td><td class="desc">La position n'a aucune adresse associée.</td></tr>
+      <tr><td class="field">⚠ partiel</td><td class="desc">Toutes les adresses n'ont pas encore été récupérées au moins une fois — la somme affichée ne couvre que celles déjà récupérées.</td></tr>
+      <tr><td class="field">surligné</td><td class="desc">La somme on-chain diffère de la quantité de BTC enregistrée pour cette position — à examiner, même en cas de récupération partielle.</td></tr>
+    </table>
+    <figure>
+      <img src="../images/mempool_onchain_column.png" alt="Tableau des positions avec la colonne On-Chain, montrant un indicateur de récupération partielle et une différence surlignée" onclick="openLightbox(this)">
+      <figcaption>Gestion des données : colonne On-Chain avec indicateur de récupération partielle + différence surlignée <span class="zoom-hint">Cliquer pour agrandir ↗</span></figcaption>
+    </figure>
+  </section>
+
+  <section class="step" id="link-import">
+    <div class="step-num">PARTIE C</div>
+    <h2>Lier et importer</h2>
+    <p>
+      Lorsqu'une transaction on-chain récupérée n'est pas encore enregistrée, deux options
+      s'offrent à vous — selon qu'elle est vraiment nouvelle ou déjà enregistrée sans TXID.
+    </p>
+    <h3>Lier à une transaction existante</h3>
+    <p>
+      Pour chaque transaction confirmée non encore enregistrée, l'app recherche parmi vos
+      transactions TRANSFER_IN/TRANSFER_OUT existantes sur la même position une correspondance :
+      pas encore de TXID, montant en BTC exactement identique, même jour calendaire que la
+      transaction on-chain. Une correspondance affiche <b>« Transaction existante possible
+      trouvée »</b> avec un bouton <b>« Lier »</b>.
+    </p>
+    <ol class="steplist">
+      <li>Cliquez sur <b>« Lier »</b> sur le candidat correspondant.</li>
+      <li>Seule la TXID on-chain est renseignée sur votre transaction existante — montant, date,
+        position et tout le reste restent exactement tels que vous les avez saisis.</li>
+      <li>En cas de plusieurs candidats correspondants, tous sont listés — vous choisissez
+        vous-même le bon.</li>
+    </ol>
+    <figure>
+      <img src="../images/mempool_link_candidate.png" alt="Candidat correspondant trouvé pour une transaction on-chain, avec le bouton Lier" onclick="openLightbox(this)">
+      <figcaption>Correspondance trouvée : lier plutôt que créer un doublon <span class="zoom-hint">Cliquer pour agrandir ↗</span></figcaption>
+    </figure>
+    <h3>Importer comme nouvelle transaction</h3>
+    <p>
+      Aucune correspondance, ou aucun candidat ne convient ? <b>« Importer quand même »</b> crée
+      une toute nouvelle transaction TRANSFER_IN/TRANSFER_OUT, avec la TXID on-chain déjà
+      renseignée.
+    </p>
+    <div class="note">
+      <span>ℹ</span>
+      <span>La correspondance est volontairement restreinte : uniquement TRANSFER_IN/TRANSFER_OUT,
+      uniquement la même position, montant exact, même jour. Elle vise à couvrir le cas évident —
+      un mouvement on-chain déjà saisi manuellement avant l'ajout de l'adresse — pas à deviner dans
+      des situations ambiguës.</span>
+    </div>
+  </section>
+
+  <section class="step" style="border-bottom:none" id="txid">
+    <div class="step-num">PARTIE D</div>
+    <h2>TXID dans la boîte de dialogue d'édition</h2>
+    <p>
+      Chaque transaction TRANSFER_IN/TRANSFER_OUT dispose d'un champ optionnel
+      <b>TXID on-chain</b> dans sa boîte de dialogue d'édition — renseigné automatiquement par la
+      liaison/l'import ci-dessus, ou saisi manuellement.
+    </p>
+    <table class="compare">
+      <tr><th>Champ</th><th>Signification</th></tr>
+      <tr><td class="field">TXID on-chain</td><td class="desc">TXID hexadécimale de 64 caractères. Validation souple uniquement — une valeur qui ne ressemble pas à une TXID valide affiche un avertissement, mais est tout de même enregistrée telle quelle.</td></tr>
+      <tr><td class="field">Bouton de saut</td><td class="desc">Ouvre la transaction directement dans votre instance mempool configurée. Désactivé si aucune instance n'est configurée.</td></tr>
+    </table>
+    <h3>Paires d'auto-transfert</h3>
+    <p>
+      Un transfert entre deux de vos propres positions est physiquement une seule transaction
+      on-chain, stockée comme une paire TRANSFER_OUT/TRANSFER_IN liée. Le champ TXID garde les
+      deux côtés synchronisés :
+    </p>
+    <ul class="tight">
+      <li><b>Définir</b> une TXID sur un côté remplit automatiquement l'autre côté — mais seulement
+        s'il est encore vide. Une valeur différente de l'autre côté n'est jamais écrasée en
+        silence.</li>
+      <li><b>Effacer</b> une TXID sur un côté l'efface aussi sur le côté apparié,
+        inconditionnellement — donc supprimer une TXID erronée la supprime toujours des deux côtés
+        de la paire, en une seule modification.</li>
+    </ul>
+    <div class="note">
+      <span>ℹ</span>
+      <span>Cette synchronisation ne s'exécute qu'à l'enregistrement, et uniquement entre les deux
+      côtés du même transfert — les transactions sans rapport ne sont jamais touchées.</span>
+    </div>
+  </section>
+</main>
+<footer>
+  BTC-Tracking App · Intégration Mempool · <a href="index.html">← Retour au guide</a>
+</footer>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lb-close" onclick="closeLightbox()">✕ Fermer (Échap)</div>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+  function openLightbox(imgEl){
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightbox-img');
+    lbImg.src = imgEl.src;
+    lbImg.alt = imgEl.alt;
+    lb.classList.add('open');
+  }
+  function closeLightbox(){
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+</script>
+
+</body>
+</html>

@@ -33,6 +33,17 @@
                     <div class="form-text text-muted" style="font-size:.68rem" data-i18n="modal.settings.taxCutoff.hint">
                         For coins bought on or after this date, the 1-year tax-free holding period no longer applies. Leave empty to disable. Informational only, not tax advice.
                     </div>
+
+                    <label class="depot-label mb-2 mt-3" data-i18n="modal.settings.mempool">Mempool integration (optional)</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="mempoolHostInput" class="form-control depot-input" style="flex:2"
+                               data-i18n-placeholder="modal.settings.mempool.hostPlaceholder" placeholder="localhost" autocomplete="off" spellcheck="false"/>
+                        <input type="number" id="mempoolPortInput" class="form-control depot-input" style="flex:1"
+                               placeholder="3006" min="1" max="65535" step="1"/>
+                    </div>
+                    <div class="form-text text-muted" style="font-size:.68rem" data-i18n="modal.settings.mempool.hint">
+                        Host/port of your own self-hosted mempool instance (e.g. on your Umbrel/LAN) — enables fetching the current price and filling missing monthly prices. Leave empty to disable. This app's own server (not your browser) connects to this host — use your local network only.
+                    </div>
                 </div>
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
                     <button class="btn depot-btn-primary" onclick="saveSettings()" data-i18n="modal.settings.btn.save">Save</button>

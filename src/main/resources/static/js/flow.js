@@ -775,6 +775,10 @@ function _renderFlowTxCard(item) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.jump'))}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${positionSub}

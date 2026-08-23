@@ -579,6 +579,10 @@ function _yearlyRenderBuyTile(tx, meta, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -668,6 +672,10 @@ function _yearlyRenderSellTile(tx, consumed, currency) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -795,6 +803,10 @@ function _yearlyRenderTransferTile(tx) {
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc((typeof t === 'function') ? t('modal.field.blockchainTxId.jump') : 'Zu mempool springen')}"
+                        onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </button>` : ''}
             </span>
         </div>
         ${_yearlyFieldRow((typeof t === 'function') ? t('table.col.date') : 'Datum', date)}
@@ -911,11 +923,19 @@ async function yearlyLoadPriceModal() {
                 </div>`;
             }).join('');
 
+            const mempoolAvailable = (typeof _mempoolConfigured !== 'undefined') && _mempoolConfigured;
             return `<div class="yearly-price-year-block">
-                <button type="button" class="yearly-price-year-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}"
-                        aria-expanded="${expanded}" aria-controls="${collapseId}">
-                    <i class="bi bi-chevron-down"></i> ${year}
-                </button>
+                <div class="d-flex align-items-center justify-content-between">
+                    <button type="button" class="yearly-price-year-toggle" data-bs-toggle="collapse" data-bs-target="#${collapseId}"
+                            aria-expanded="${expanded}" aria-controls="${collapseId}">
+                        <i class="bi bi-chevron-down"></i> ${year}
+                    </button>
+                    <button type="button" class="btn btn-xs depot-btn-outline${mempoolAvailable ? '' : ' d-none'}"
+                            onclick="event.stopPropagation(); yearlyFillMissingFromMempool(${year}, this)"
+                            data-i18n-title="yearly.priceModal.fillMissing" title="Fehlende Monate von mempool füllen (EUR+USD)">
+                        <i class="bi bi-cloud-arrow-down"></i>
+                    </button>
+                </div>
                 <div class="collapse${expanded ? ' show' : ''}" id="${collapseId}">
                     <div class="yearly-price-rows">${rowsHtml}</div>
                 </div>
@@ -950,6 +970,32 @@ async function yearlySaveMonthlyPrice(btn) {
         yearlyLoadOverview(_yearlySelectedYear);
     } catch (err) {
         showToast('✗ ' + err.message, 'error');
+    }
+}
+
+// Bulk-fills missing (empty) monthly Ultimo prices for one year from the
+// mempool instance configured in Settings → Mempool-Integration (EUR+USD
+// together, one historical-price call per currency on the backend). Never
+// touches months that already have a value (manual, seeded, or from an
+// earlier mempool fill).
+async function yearlyFillMissingFromMempool(year, btn) {
+    if (btn) btn.disabled = true;
+    try {
+        const res = await fetch(`/api/btc-tracking/monthly-prices/fill-missing?year=${year}`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+
+        const msg = (typeof t === 'function')
+            ? t('yearly.toast.fillMissing', { FILLED: data.filled, NOTFOUND: data.notFound })
+            : `${data.filled} Monat(e) befüllt, ${data.notFound} ohne Daten`;
+        showToast('✓ ' + msg, 'success');
+
+        await yearlyLoadPriceModal();
+        yearlyLoadOverview(_yearlySelectedYear);
+    } catch (err) {
+        showToast('✗ ' + err.message, 'error');
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 

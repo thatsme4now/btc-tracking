@@ -21,9 +21,14 @@
     <div class="depot-card mb-3">
         <div class="depot-card-header d-flex align-items-center justify-content-between">
             <span data-i18n="holdings.title">Bestandsansicht</span>
-            <button id="holdingsResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetHoldingsLayout()">
-                <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
-            </button>
+            <span class="d-flex gap-2">
+                <button id="holdingsManageTilesBtn" class="btn btn-xs depot-btn-outline d-none" data-bs-toggle="modal" data-bs-target="#holdingsManageTilesModal">
+                    <i class="bi bi-ui-checks me-1"></i><span data-i18n="holdings.layout.manage">Kacheln verwalten</span>
+                </button>
+                <button id="holdingsResetLayoutBtn" class="btn btn-xs depot-btn-outline d-none" onclick="resetHoldingsLayout()">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i><span data-i18n="holdings.layout.reset">Layout zurücksetzen</span>
+                </button>
+            </span>
         </div>
 
         <div id="holdingsLoading" style="color:var(--text-muted);padding:1rem" data-i18n="holdings.loading">Lade Daten…</div>
@@ -44,6 +49,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-metrics', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-metrics', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-metrics')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsMetricsBody">
@@ -110,6 +116,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-buys')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsBuysChart"></div>
@@ -122,6 +129,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-realized-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-realized-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-realized-pnl')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsRealizedPnlChart"></div>
@@ -134,6 +142,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-unrealized-pnl', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-unrealized-pnl', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-unrealized-pnl')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsUnrealizedPnlChart"></div>
@@ -149,6 +158,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-balance', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-balance', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-balance')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsBalanceChart"></div>
@@ -159,8 +169,14 @@
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.refPrices.title">Referenzkurse pro Jahr (31.12.)</span>
                             <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn d-none" id="holdingsRefPricesFillBtn"
+                                        onclick="holdingsFillMissingFromMempool(this)"
+                                        data-i18n-title="holdings.refPrices.fillMissing" title="Fehlende Jahre von mempool füllen (EUR+USD)">
+                                    <i class="bi bi-cloud-arrow-down"></i>
+                                </button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-refprices', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-refprices', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-refprices')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <p class="holdings-refprices-hint" data-i18n="holdings.refPrices.hint">
@@ -185,6 +201,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-allocation', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-allocation', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-allocation')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsDonutChart"></div>
@@ -197,9 +214,15 @@
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyPercent">Gewinn/Verlust je Kauf (Prozent)</span>
+                            <span class="pill-filter">
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="single" onclick="setHoldingsBuyGranularity('single')" data-i18n="holdings.buyGranularity.single">Einzel-Kauf</button>
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="month" onclick="setHoldingsBuyGranularity('month')" data-i18n="holdings.buyGranularity.month">Pro Monat</button>
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="year" onclick="setHoldingsBuyGranularity('year')" data-i18n="holdings.buyGranularity.year">Pro Jahr</button>
+                            </span>
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buypercent', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buypercent', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-buypercent')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsBuyPercentChart"></div>
@@ -211,9 +234,15 @@
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.chart.buyAbs">Gewinn/Verlust je Kauf (Betrag)</span>
+                            <span class="pill-filter">
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="single" onclick="setHoldingsBuyGranularity('single')" data-i18n="holdings.buyGranularity.single">Einzel-Kauf</button>
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="month" onclick="setHoldingsBuyGranularity('month')" data-i18n="holdings.buyGranularity.month">Pro Monat</button>
+                                <button type="button" class="pill-filter-btn holdings-buy-granularity-btn" data-granularity="year" onclick="setHoldingsBuyGranularity('year')" data-i18n="holdings.buyGranularity.year">Pro Jahr</button>
+                            </span>
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buyabs', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buyabs', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-buyabs')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsBuyAbsChart"></div>
@@ -228,6 +257,7 @@
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buydetail', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buydetail', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-buydetail')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
                             </span>
                         </div>
                         <div id="holdingsBuyDetailEmpty" class="flow-tx-empty" data-i18n="holdings.buyDetail.empty">Klicke in „Gewinn/Verlust je Kauf (Prozent)“ oder „Gewinn/Verlust je Kauf (Betrag)“ auf einen Balken für Details.</div>
@@ -237,14 +267,71 @@
                                 <div class="holdings-buydetail-sells-title" data-i18n="holdings.buyDetail.sells">Zugehörige Verkäufe</div>
                                 <div id="holdingsBuyDetailSells" class="flow-tx-list"></div>
                             </div>
+                            <div id="holdingsBuyDetailPeriodWrap" class="d-none">
+                                <div class="holdings-buydetail-sells-title" data-i18n="holdings.buyDetail.periodBuys">Käufe in diesem Zeitraum</div>
+                                <div id="holdingsBuyDetailPeriodList" class="flow-tx-list"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="holdings-grid-row" id="holdings-row-4" data-row="6"><span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span></div>
+                <div class="holdings-grid-row" id="holdings-row-4" data-row="6">
+                    <span class="holdings-empty-row-label" data-i18n="holdings.layout.emptyRow">Leer</span>
+                    <div class="holdings-chart-block holdings-draggable holdings-block-capped d-none" id="holdings-block-mempoolclock">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.mempoolClock.title">Mempool</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="openHoldingsMempoolClock()" data-i18n-title="holdings.mempoolClock.openNewTab" title="In neuem Tab öffnen"><i class="bi bi-box-arrow-up-right"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-mempoolclock', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-mempoolclock', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-mempoolclock')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
+                            </span>
+                        </div>
+                        <iframe id="holdingsMempoolClockFrame" class="holdings-mempoolclock-frame" loading="lazy" title="Mempool"></iframe>
+                    </div>
+
+                    <!-- Default row position is decided by HOLDINGS_DEFAULT_LAYOUT in holdings.js (initHoldingsLayout()
+                         re-parents every tile into its configured row on load) — not by where this markup physically sits. -->
+                    <div class="holdings-chart-block holdings-draggable" id="holdings-block-buysbyexchange">
+                        <div class="holdings-chart-title">
+                            <i class="bi bi-grip-vertical holdings-drag-handle"></i>
+                            <span class="holdings-chart-title-text" data-i18n="holdings.chart.buysByExchange">Käufe pro Börse</span>
+                            <span class="holdings-block-actions">
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buysbyexchange', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
+                                <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buysbyexchange', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
+                                <button type="button" class="holdings-block-move-btn holdings-block-remove-btn" onclick="holdingsRemoveTile('holdings-block-buysbyexchange')" data-i18n-title="holdings.layout.remove" title="Kachel entfernen"><i class="bi bi-x-lg"></i></button>
+                            </span>
+                        </div>
+                        <div id="holdingsBuysByExchangeChart"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </main>
+
+<!-- Manage Tiles Modal: checkbox list to show/hide dashboard tiles (see holdings.js applyHoldingsHiddenTiles / holdingsSetTileHidden) -->
+<div class="modal fade" id="holdingsManageTilesModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                <span class="depot-card-header mb-0">
+                    <i class="bi bi-ui-checks me-2"></i><span data-i18n="holdings.layout.manage">Kacheln verwalten</span>
+                </span>
+                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="holdings-manage-hint" data-i18n="holdings.layout.manage.hint">Wähle aus, welche Kacheln in der Bestandsansicht angezeigt werden.</p>
+                <div id="holdingsManageTilesList" class="d-flex flex-column gap-2">
+                    <!-- rendered by holdings.js -->
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border)">
+                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.ok">Ok</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="statusToast" class="depot-toast d-none"></div>
 
