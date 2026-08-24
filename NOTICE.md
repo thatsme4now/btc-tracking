@@ -63,6 +63,16 @@ This project includes the following third-party software and fonts.
 
 ---
 
+## Java Libraries
+
+### bitcoinj-core
+- **Version:** 0.16.5
+- **License:** Apache License 2.0
+- **URL:** https://bitcoinj.org / https://github.com/bitcoinj/bitcoinj
+- **Copyright:** Copyright (c) the bitcoinj contributors
+
+---
+
 ## Fonts
 
 ### IBM Plex Mono

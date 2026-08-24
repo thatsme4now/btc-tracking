@@ -69,7 +69,11 @@ function buildMempoolAddressUrl(address) {
 function buildMempoolClockUrl() {
     if (!_mempoolConfigured) return null;
     const lang = (typeof I18N !== 'undefined') ? I18N.currentLang() : 'en';
-    return 'http://' + _mempoolHost + ':' + _mempoolPort + '/' + lang + '/clock/mempool/0';
+	if (lang != 'en') {		
+	    return 'http://' + _mempoolHost + ':' + _mempoolPort + '/' + lang + '/clock/mempool/0';
+	} else {
+		return 'http://' + _mempoolHost + ':' + _mempoolPort + '/clock/mempool/0';
+	}
 }
 
 /** Root URL (no path) of the configured mempool instance — used by the Mempool tile's "open in new tab"

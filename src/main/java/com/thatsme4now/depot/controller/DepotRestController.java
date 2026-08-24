@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,6 +39,7 @@ import com.thatsme4now.depot.service.HoldingsYearlyService;
 import com.thatsme4now.depot.service.MempoolPriceService;
 import com.thatsme4now.depot.service.MonthlyOverviewService;
 import com.thatsme4now.depot.service.MonthlyPriceService;
+import com.thatsme4now.depot.service.XpubScanService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -63,6 +65,7 @@ public class DepotRestController {
     private final MonthlyPriceService monthlyPriceService;
     private final MonthlyOverviewService monthlyOverviewService;
     private final MempoolPriceService mempoolPriceService;
+    private final XpubScanService xpubScanService;
 
     // Used to convert mempool's block_time (Unix epoch, UTC) into this app's LocalDateTime "date"
     // fields when importing on-chain transactions — same zone HistoricalPriceService/MonthlyPriceService use.
@@ -1102,35 +1105,168 @@ public class DepotRestController {
         try {
             // re-fetch rather than trusting client-supplied amounts/dates — the client only sends which txids it wants
             List<MempoolPriceService.AddressTx> txs = mempoolPriceService.fetchAddressTxs(addr.getAddress(), 50);
-            java.util.Set<String> requested = new java.util.HashSet<>(req.getTxids());
-            int imported = 0;
-            List<String> skipped = new java.util.ArrayList<>();
-            for (MempoolPriceService.AddressTx tx : txs) {
-                if (!requested.contains(tx.txid())) continue;
-                // unconfirmed (no block_time yet) and already-tracked txs are silently skipped —
-                // the UI only offers confirmed, not-yet-tracked rows as selectable in the first place
-                if (!tx.confirmed() || tx.blockTimeEpochSeconds() == null
-                        || depotService.transactionExistsByBlockchainTxId(tx.txid())) {
-                    skipped.add(tx.txid());
-                    continue;
-                }
-                Transaction t = new Transaction();
-                t.setPosition(addr.getPosition());
-                t.setType(tx.netSats() >= 0 ? TransactionType.TRANSFER_IN : TransactionType.TRANSFER_OUT);
-                t.setDate(LocalDateTime.ofInstant(java.time.Instant.ofEpochSecond(tx.blockTimeEpochSeconds()), MEMPOOL_IMPORT_ZONE));
-                t.setQuantity(BigDecimal.valueOf(Math.abs(tx.netSats())).divide(BigDecimal.valueOf(100_000_000L), 8, java.math.RoundingMode.UNNECESSARY));
-                t.setExchangeRate(BigDecimal.ONE);
-                t.setTransactionId(UUID.randomUUID().toString());
-                t.setBlockchainTxId(tx.txid());
-                // no matching counterpart known — flagged as a solo transfer, same as the existing "Solo-Transfer" bulk action
-                t.setTransferId(UUID.randomUUID().toString());
-                depotService.saveTransaction(t);
-                imported++;
-            }
-            return ResponseEntity.ok(Map.of("imported", imported, "skipped", skipped));
+            TxImportResult result = importSelectedTxs(addr, txs, new java.util.HashSet<>(req.getTxids()));
+            return ResponseEntity.ok(Map.of("imported", result.imported(), "skipped", result.skipped()));
         } catch (MempoolPriceService.MempoolException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /** Result of {@link #importSelectedTxs}. */
+    private record TxImportResult(int imported, List<String> skipped) {}
+
+    /**
+     * Imports whichever of {@code requestedTxids} are found in {@code txs} as new TRANSFER_IN/OUT
+     * transactions on {@code addr}'s position — shared by the single-address import endpoint above
+     * and the xpub-scan commit endpoint below, so both apply the exact same
+     * confirmed/not-already-tracked rules.
+     */
+    private TxImportResult importSelectedTxs(PositionAddress addr, List<MempoolPriceService.AddressTx> txs, Set<String> requestedTxids) {
+        int imported = 0;
+        List<String> skipped = new java.util.ArrayList<>();
+        for (MempoolPriceService.AddressTx tx : txs) {
+            if (!requestedTxids.contains(tx.txid())) continue;
+            // unconfirmed (no block_time yet) and already-tracked txs are silently skipped —
+            // the UI only offers confirmed, not-yet-tracked rows as selectable in the first place
+            if (!tx.confirmed() || tx.blockTimeEpochSeconds() == null
+                    || depotService.transactionExistsByBlockchainTxId(tx.txid())) {
+                skipped.add(tx.txid());
+                continue;
+            }
+            Transaction t = new Transaction();
+            t.setPosition(addr.getPosition());
+            t.setType(tx.netSats() >= 0 ? TransactionType.TRANSFER_IN : TransactionType.TRANSFER_OUT);
+            t.setDate(LocalDateTime.ofInstant(java.time.Instant.ofEpochSecond(tx.blockTimeEpochSeconds()), MEMPOOL_IMPORT_ZONE));
+            t.setQuantity(BigDecimal.valueOf(Math.abs(tx.netSats())).divide(BigDecimal.valueOf(100_000_000L), 8, java.math.RoundingMode.UNNECESSARY));
+            t.setExchangeRate(BigDecimal.ONE);
+            t.setTransactionId(UUID.randomUUID().toString());
+            t.setBlockchainTxId(tx.txid());
+            // no matching counterpart known — flagged as a solo transfer, same as the existing "Solo-Transfer" bulk action
+            t.setTransferId(UUID.randomUUID().toString());
+            depotService.saveTransaction(t);
+            imported++;
+        }
+        return new TxImportResult(imported, skipped);
+    }
+
+    // ── xpub scan: derive a wallet's addresses from an account-level xpub/ypub/zpub and scan them
+    // for on-chain usage (see XpubScanService for the derivation/scan logic and its security notes).
+    // Nothing is persisted until the frontend calls the commit endpoint with the user's explicit
+    // per-address / per-transaction selection — see xpubScanStatus/xpubScanCommit below.
+
+    @PostMapping("/positions/{positionId}/xpub-scan")
+    public ResponseEntity<Map<String, Object>> startXpubScan(
+            @PathVariable("positionId") Long positionId,
+            @RequestBody XpubScanStartRequest req) {
+        if (depotService.getPosition(positionId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            Set<String> known = depotService.getPositionAddresses(positionId).stream()
+                    .map(PositionAddress::getAddress)
+                    .collect(Collectors.toSet());
+            xpubScanService.startScan(positionId, req.getXpub(), known);
+            return ResponseEntity.ok(Map.of("started", true));
+        } catch (XpubScanService.XpubException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** Polled by the frontend while a scan runs; once status is DONE the full result (found addresses + their txs) is included. */
+    @GetMapping("/positions/{positionId}/xpub-scan")
+    public ResponseEntity<Map<String, Object>> getXpubScanStatus(@PathVariable("positionId") Long positionId) {
+        XpubScanService.ScanState state = xpubScanService.getState(positionId);
+        if (state == null) {
+            return ResponseEntity.notFound().build();
+        }
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("status", state.status.name());
+        body.put("chain", state.chain);
+        body.put("index", state.index);
+        body.put("gapCount", state.gapCount);
+        body.put("checkedCount", state.checkedCount);
+        body.put("foundCount", state.foundCount);
+        if (state.status == XpubScanService.ScanStatus.DONE) {
+            body.put("result", state.result.stream().map(a -> {
+                Map<String, Object> m = new java.util.HashMap<>();
+                m.put("id", a.id());
+                m.put("chain", a.chain());
+                m.put("index", a.index());
+                m.put("address", a.address());
+                m.put("confirmedBalanceSats", a.confirmedBalanceSats());
+                m.put("unconfirmedDeltaSats", a.unconfirmedDeltaSats());
+                m.put("txs", annotateAddressTxs(positionId, a.txs()));
+                return m;
+            }).collect(Collectors.toList()));
+        }
+        if (state.status == XpubScanService.ScanStatus.ERROR) {
+            body.put("error", state.errorMessage);
+        }
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/positions/{positionId}/xpub-scan/cancel")
+    public ResponseEntity<Void> cancelXpubScan(@PathVariable("positionId") Long positionId) {
+        xpubScanService.cancel(positionId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Persists the user's selection from the scan-result review: for each included address, a
+     * PositionAddress row (reusing one that already exists for this position+address, if any) plus
+     * whichever of its transactions were selected — same rules as {@link #importSelectedTxs}. Clears
+     * the scan's in-memory result afterward either way.
+     */
+    @PostMapping("/positions/{positionId}/xpub-scan/commit")
+    public ResponseEntity<Map<String, Object>> commitXpubScan(
+            @PathVariable("positionId") Long positionId,
+            @RequestBody XpubScanCommitRequest req) {
+        Position position = depotService.getPosition(positionId).orElse(null);
+        if (position == null) {
+            return ResponseEntity.notFound().build();
+        }
+        XpubScanService.ScanState state = xpubScanService.getState(positionId);
+        if (state == null || state.status != XpubScanService.ScanStatus.DONE) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Kein abgeschlossener Scan für diese Position vorhanden."));
+        }
+
+        Map<Integer, XpubScanService.ScannedAddress> byId = state.result.stream()
+                .collect(Collectors.toMap(XpubScanService.ScannedAddress::id, a -> a));
+        Map<String, PositionAddress> existingByAddress = depotService.getPositionAddresses(positionId).stream()
+                .collect(Collectors.toMap(PositionAddress::getAddress, a -> a));
+
+        int addressesAdded = 0;
+        int txImported = 0;
+        List<XpubScanCommitEntry> entries = req.getEntries() != null ? req.getEntries() : List.of();
+        for (XpubScanCommitEntry entry : entries) {
+            if (entry == null || !entry.isInclude()) continue;
+            XpubScanService.ScannedAddress found = byId.get(entry.getId());
+            if (found == null) continue;
+
+            PositionAddress addr = existingByAddress.get(found.address());
+            if (addr == null) {
+                addr = new PositionAddress();
+                addr.setPosition(position);
+                addr.setAddress(found.address());
+                addr.setLabel("xpub");
+                addr.setLastFetchJson(found.rawJson());
+                addr.setLastFetchBalanceSats(found.confirmedBalanceSats());
+                addr.setLastFetchTxsJson(mempoolPriceService.serializeAddressTxs(found.txs()));
+                addr.setLastFetchAt(LocalDateTime.now());
+                addr = depotService.savePositionAddress(addr);
+                existingByAddress.put(found.address(), addr);
+                addressesAdded++;
+            }
+
+            List<String> txids = entry.getTxids();
+            if (txids != null && !txids.isEmpty()) {
+                TxImportResult r = importSelectedTxs(addr, found.txs(), new java.util.HashSet<>(txids));
+                txImported += r.imported();
+            }
+        }
+
+        xpubScanService.clear(positionId);
+        return ResponseEntity.ok(Map.of("addressesAdded", addressesAdded, "transactionsImported", txImported));
     }
 
     /** Deletes a position, refusing if it still has transactions. */
@@ -1414,6 +1550,24 @@ public class DepotRestController {
 
     @lombok.Data
     public static class AddressImportRequest {
+        private List<String> txids;
+    }
+
+    @lombok.Data
+    public static class XpubScanStartRequest {
+        private String xpub;
+    }
+
+    @lombok.Data
+    public static class XpubScanCommitRequest {
+        private List<XpubScanCommitEntry> entries;
+    }
+
+    @lombok.Data
+    public static class XpubScanCommitEntry {
+        /** {@link XpubScanService.ScannedAddress#id()} — the scan-local id from the status/result response. */
+        private int id;
+        private boolean include;
         private List<String> txids;
     }
 

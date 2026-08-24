@@ -901,11 +901,38 @@
                                         onclick="openAddressOverview(document.getElementById('positionId').value, document.getElementById('positionLabel').value)">
                                     <i class="bi bi-list-check me-1"></i><span data-i18n="form.position.addresses.overview">Address overview</span>
                                 </button>
+                                <button type="button" id="xpubScanToggleBtn" class="btn btn-xs depot-btn-outline" onclick="toggleXpubScanRow()">
+                                    <i class="bi bi-diagram-3 me-1"></i><span data-i18n="form.position.addresses.xpub">Import from xpub</span>
+                                </button>
                                 <button type="button" class="btn btn-xs depot-btn-outline" onclick="addPositionAddressRow()">
                                     <i class="bi bi-plus-lg me-1"></i><span data-i18n="form.position.addresses.add">Add address</span>
                                 </button>
                             </div>
                         </div>
+
+                        <!-- xpub scan: input row, hidden until "Import from xpub" is clicked; see toggleXpubScanRow/startXpubScan in depot.js -->
+                        <div id="xpubScanInputRow" class="xpub-scan-input-row d-none">
+                            <div class="d-flex gap-2">
+                                <input type="text" id="xpubScanInput" class="form-control depot-input" autocomplete="off" spellcheck="false"
+                                       data-i18n-placeholder="form.position.addresses.xpub.placeholder" placeholder="xpub / ypub / zpub"/>
+                                <button type="button" class="btn btn-xs depot-btn-primary" onclick="startXpubScan()">
+                                    <i class="bi bi-search me-1"></i><span data-i18n="form.position.addresses.xpub.scan">Scan</span>
+                                </button>
+                            </div>
+                            <div class="xpub-scan-hint" data-i18n="form.position.addresses.xpub.hint">
+                                Only used for this scan, never stored or logged — you'll need to enter it again for another scan.
+                            </div>
+                        </div>
+
+                        <!-- xpub scan: live progress, shown while a scan is running; see _pollXpubScanStatus in depot.js -->
+                        <div id="xpubScanProgressRow" class="xpub-scan-progress-row d-none">
+                            <div class="xpub-scan-spinner"><div class="spinner-border spinner-border-sm"></div></div>
+                            <span id="xpubScanProgressText"></span>
+                            <button type="button" class="btn btn-xs depot-btn-outline" onclick="cancelXpubScan()">
+                                <span data-i18n="form.position.addresses.xpub.cancel">Cancel</span>
+                            </button>
+                        </div>
+
                         <div id="positionAddressList"></div>
                     </div>
                 </div>
@@ -934,6 +961,28 @@
                 <div class="modal-footer" style="border-top:1px solid var(--border)">
                     <button type="button" id="addressBalanceRefetchAllBtn" class="btn depot-btn-outline d-none" onclick="refetchAllAddressBalances()">
                         <i class="bi bi-arrow-repeat me-1"></i><span data-i18n="form.position.addresses.refetchAll">Fetch all again (live)</span>
+                    </button>
+                    <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- xpub scan result: all found addresses + their transactions bundled for review — nothing is
+         saved until "Apply" is clicked (see commitXpubScan in depot.js / xpub-scan/commit endpoint). -->
+    <div class="modal fade" id="xpubScanResultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+                <div class="modal-header" style="border-bottom:1px solid var(--border)">
+                    <span class="depot-card-header mb-0" data-i18n="form.position.addresses.xpub.modal.title">xpub scan: found addresses</span>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="xpubScanResultBody"></div>
+                </div>
+                <div class="modal-footer" style="border-top:1px solid var(--border)">
+                    <button type="button" class="btn depot-btn-primary" onclick="commitXpubScan()">
+                        <i class="bi bi-check-lg me-1"></i><span data-i18n="form.position.addresses.xpub.modal.commit">Apply</span>
                     </button>
                     <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Close</button>
                 </div>
