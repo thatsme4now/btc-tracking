@@ -350,13 +350,14 @@
   <a href="#step-5"><span>05</span>CSV Export</a>
   <a href="#step-6"><span>06</span>Weitere Funktionen</a>
   <a href="#step-7"><span>07</span>Einundzwanzig-Modus</a>
+  <a href="#step-8"><span>08</span>Passwort-Login</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>CSV importieren</h2>
       <p>
         Über <b>„CSV importieren“</b> eine Datei auswählen. Der Import läuft als
@@ -413,7 +414,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>Eigenes CSV-Format</h2>
       <p>
         Ohne CoinTracking-Option exportiert die App im eigenen Format. Das ist
@@ -443,7 +444,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>Datenverwaltung</h2>
       <p>
         Positionen und Transaktionen werden auf der Seite <b>„Datenverwaltung“</b>
@@ -532,7 +533,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>App sperren</h2>
       <p>
         Das Schloss-Symbol im Header (neben „Aktionen“ / „Visualisierung“)
@@ -584,7 +585,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>CSV exportieren</h2>
       <p>
         Über <b>„CSV exportieren“</b> im Header lassen sich alle oder — nach
@@ -607,7 +608,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>Weitere Funktionen</h2>
       <p>
         Die Icon-Leiste rechts im Header bündelt globale Einstellungen und
@@ -662,7 +663,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>Einundzwanzig-Modus</h2>
       <p>
         Das „21“-Symbol im Header schaltet ein alternatives Farbschema mit
@@ -682,6 +683,40 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>Passwort-Login</h2>
+      <p>
+        Optional, standardm&auml;&szlig;ig deaktiviert: ein einzelnes, app-weites
+        Passwort, das jede Seite und jeden API-Endpunkt hinter einem
+        Login-Bildschirm sch&uuml;tzt. Aktivieren, &auml;ndern oder deaktivieren unter
+        <b>Einstellungen &rarr; &bdquo;Passwort-Login&ldquo;</b> &mdash; wirkt sofort, kein Neustart
+        n&ouml;tig.
+      </p>
+      <table class="fields">
+        <tr><th>Feld</th><th>Bedeutung</th></tr>
+        <tr><td class="field">Passwort</td><td class="desc">Ein einzelnes app-weites Passwort &mdash; kein Benutzername, keine separaten Konten</td></tr>
+        <tr><td class="field">Aktuelles Passwort</td><td class="desc">Erforderlich, um ein bereits gesetztes Passwort zu &auml;ndern oder zu deaktivieren</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Nur f&uuml;r die Sitzung:</b> der Login ist an die Browser-Sitzung gebunden &mdash; Browser schlie&szlig;en oder App neu starten erfordert erneutes Einloggen. Es gibt kein &bdquo;Angemeldet bleiben&ldquo;.</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>Speicherung:</b> das Passwort wird als <span class="inline-code">BCrypt</span>-Hash gespeichert, nie im Klartext, und nie geloggt. Wiederholte Fehlversuche l&ouml;sen eine steigende Sperrzeit aus, die sich jedes Mal verdoppelt, bis maximal 15 Minuten.</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Verh&auml;ltnis zu &bdquo;App sperren&ldquo; (Schritt 04):</b> beide sind unabh&auml;ngig voneinander. Login regelt, wer die App &uuml;berhaupt erreichen kann; Sperren verschl&uuml;sselt die Daten im Ruhezustand. Sind beide aktiv, ist Login das &auml;u&szlig;ere Gate &mdash; man loggt sich zuerst ein und sieht danach ggf. den &bdquo;App gesperrt&ldquo;-Dialog, falls die App zus&auml;tzlich gesperrt ist.</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>Klartext-HTTP:</b> ohne HTTPS wird das Passwort unverschl&uuml;sselt im Netzwerk &uuml;bertragen. Siehe <a href="usage.html#tls" style="color:var(--accent)">Nutzung &amp; Setup &rarr; TLS / HTTPS</a> f&uuml;r eine Anleitung mit selbstsigniertem Zertifikat.</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>

@@ -165,9 +165,10 @@ let settingsModal = null;
 let _taxCutoffOriginal   = ''; // last value loaded from server, used to detect changes on save
 let _mempoolHostOriginal = '';
 let _mempoolPortOriginal = '';
+let _loginEnabled = false; // last known state from GET /settings, used by saveLoginPassword()/disableLoginPassword()
 
 function openSettings() {
-    // load tax cutoff date + mempool host/port async so opening the modal doesn't wait on the request
+    // load tax cutoff date + mempool host/port + login state async so opening the modal doesn't wait on the request
     fetch('/api/btc-tracking/settings')
         .then(r => r.json())
         .then(data => {
@@ -177,8 +178,18 @@ function openSettings() {
             _mempoolPortOriginal = data.mempoolPort != null ? String(data.mempoolPort) : '';
             document.getElementById('mempoolHostInput').value = _mempoolHostOriginal;
             document.getElementById('mempoolPortInput').value = _mempoolPortOriginal;
+
+            _loginEnabled = !!data.loginEnabled;
+            document.getElementById('loginCurrentPasswordRow').classList.toggle('d-none', !_loginEnabled);
+            document.getElementById('loginDisableBtn').classList.toggle('d-none', !_loginEnabled);
         })
         .catch(() => { /* fields stay empty if the fetch fails */ });
+
+    // Never leave typed passwords sitting in the DOM across modal opens.
+    document.getElementById('loginCurrentPasswordInput').value = '';
+    document.getElementById('loginNewPasswordInput').value = '';
+    document.getElementById('loginNewPasswordConfirmInput').value = '';
+    document.getElementById('loginSettingsError').classList.add('d-none');
     const langContainer = document.getElementById('langOptions');
     const supported     = I18N.supported();
     const currentLang   = I18N.currentLang();
@@ -277,6 +288,85 @@ function saveSettings() {
     }
 
     settingsModal.hide();
+}
+
+// ── Password login (optional, separate from the app "Lock" mechanism further below) ──
+
+function saveLoginPassword() {
+    const currentPassword = document.getElementById('loginCurrentPasswordInput').value;
+    const newPassword     = document.getElementById('loginNewPasswordInput').value;
+    const newPasswordConfirm = document.getElementById('loginNewPasswordConfirmInput').value;
+    const errorEl = document.getElementById('loginSettingsError');
+    errorEl.classList.add('d-none');
+
+    if (!newPassword) {
+        errorEl.textContent = t('modal.settings.login.error.empty');
+        errorEl.classList.remove('d-none');
+        return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+        errorEl.textContent = t('modal.settings.login.error.mismatch');
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    fetch('/api/btc-tracking/settings/login', {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ currentPassword, newPassword, newPasswordConfirm })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok) {
+            errorEl.textContent = (data && data.error) || t('toast.error');
+            errorEl.classList.remove('d-none');
+            return;
+        }
+        showToast('✓ ' + t('modal.settings.login.toast.saved'), 'success');
+        setTimeout(() => window.location.reload(), 600);
+    })
+    .catch(err => {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('d-none');
+    });
+}
+
+function disableLoginPassword() {
+    const currentPassword = document.getElementById('loginCurrentPasswordInput').value;
+    const errorEl = document.getElementById('loginSettingsError');
+    errorEl.classList.add('d-none');
+
+    if (!currentPassword) {
+        errorEl.textContent = t('modal.settings.login.error.currentRequired');
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    fetch('/api/btc-tracking/settings/login', {
+        method:  'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ currentPassword })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok) {
+            errorEl.textContent = (data && data.error) || t('toast.error');
+            errorEl.classList.remove('d-none');
+            return;
+        }
+        showToast('✓ ' + t('modal.settings.login.toast.disabled'), 'success');
+        setTimeout(() => window.location.reload(), 600);
+    })
+    .catch(err => {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('d-none');
+    });
+}
+
+function doLogout() {
+    fetch('/logout', { method: 'POST' })
+        .then(() => { window.location.href = '/login'; })
+        .catch(() => { window.location.href = '/login'; });
 }
 
 // ── Send some Sats ──────────────────────────────────────────

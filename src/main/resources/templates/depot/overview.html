@@ -993,6 +993,7 @@
 <div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
 </main>
 
+<script th:src="@{/js/csrf.js}"></script>
 <script th:inline="javascript">
     /*<![CDATA[*/
     const SERVER_CURRENCY     = /*[[${currency}]]*/ 'EUR';

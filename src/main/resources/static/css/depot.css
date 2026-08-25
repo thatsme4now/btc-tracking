@@ -1589,4 +1589,37 @@ input#dt-search-1 {
 .onchain-balance-partial-icon {
     font-size: 0.7rem;
     color:     var(--warn);
+}
+
+/* ── Standalone login page (no navbar) ───────────────────── */
+.login-page {
+    min-height:     100vh;
+    display:        flex;
+    align-items:    center;
+    justify-content: center;
+    padding:        1.5rem;
+}
+
+.login-card {
+    width:     100%;
+    max-width: 340px;
+}
+
+.login-msg {
+    font-size:     0.78rem;
+    border-radius: var(--radius);
+    padding:       0.6rem 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.login-msg-error {
+    color:       var(--neg);
+    border:      1px solid var(--neg);
+    background:  color-mix(in srgb, var(--neg) 10%, transparent);
+}
+
+.login-msg-info {
+    color:       var(--text-muted);
+    border:      1px solid var(--border);
+    background:  var(--bg-card);
 } 

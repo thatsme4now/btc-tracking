@@ -230,11 +230,16 @@ ALTER TABLE import_staging_row ALTER COLUMN transaction_id VARCHAR(100);
 -- Instanz für den optionalen Preisabruf (current-price/mempool,
 -- monthly-prices/fill-missing) — siehe MempoolPriceService. Beide NULL
 -- (Standard) = Funktion deaktiviert.
+--
+-- login_password_hash: BCrypt hash of the optional, app-wide login password
+-- — see SecurityConfig/AppSettings entity. NULL/blank (default) = login
+-- disabled. Separate from the Lock mechanism, see the AppSettings Javadoc.
 CREATE TABLE IF NOT EXISTS app_settings (
     id                              BIGINT NOT NULL PRIMARY KEY,
     tax_holding_period_cutoff_date  DATE,
     mempool_host                    VARCHAR(255),
-    mempool_port                    INT
+    mempool_port                    INT,
+    login_password_hash             VARCHAR(255)
 );
 INSERT INTO app_settings (id, tax_holding_period_cutoff_date)
     SELECT 1, NULL WHERE NOT EXISTS (SELECT 1 FROM app_settings WHERE id = 1);
@@ -242,3 +247,4 @@ INSERT INTO app_settings (id, tax_holding_period_cutoff_date)
 -- Migration für bestehende Installationen.
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS mempool_host VARCHAR(255);
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS mempool_port INT;
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS login_password_hash VARCHAR(255);

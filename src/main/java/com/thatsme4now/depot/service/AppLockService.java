@@ -104,8 +104,12 @@ public class AppLockService {
      * lock file and clears all tables again defensively, leaving the app
      * like a fresh install. Requires the literal confirmation text "delete"
      * (language-independent, see applock.reset.* in the frontend) as a
-     * safeguard against accidental direct API calls — the app has no login
-     * authentication, so this UI confirmation is not a real security boundary.
+     * safeguard against accidental direct API calls. Since the optional
+     * app-wide login (see SecurityConfig) is off by default and this
+     * confirmation text is the only thing standing between an unauthenticated
+     * caller and this method in that default state, it is not a real security
+     * boundary by itself — only enabling login makes reaching this endpoint at
+     * all require being authenticated first.
      */
     public void reset(String confirm) {
         if (!"delete".equals(confirm)) {
