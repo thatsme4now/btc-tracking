@@ -1569,6 +1569,16 @@ async function openPositionModal(id) {
     _positionAddresses = [];
     document.getElementById('positionFetchAllBtn').classList.add('d-none');
 
+    // xpub scan: only meaningful for an already-saved position (needs a real positionId to attach
+    // addresses to) — reset its UI on every open, and pick back up a scan already running on the
+    // server (e.g. if the dialog was closed and reopened while it was still going).
+    _stopXpubScanPolling();
+    _xpubScanPositionId = null;
+    document.getElementById('xpubScanToggleBtn').classList.toggle('d-none', !id);
+    document.getElementById('xpubScanInputRow').classList.add('d-none');
+    document.getElementById('xpubScanProgressRow').classList.add('d-none');
+    document.getElementById('xpubScanInput').value = '';
+
     const titleEl = document.getElementById('positionModalTitle');
     if (id) {
         titleEl.setAttribute('data-i18n', 'form.position.titleEdit');
@@ -1582,6 +1592,7 @@ async function openPositionModal(id) {
             lastFetchBalanceSats: a.lastFetchBalanceSats, lastFetchAt: a.lastFetchAt
         }));
         document.getElementById('positionFetchAllBtn').classList.toggle('d-none', _positionAddresses.length === 0);
+        _resumeXpubScanIfRunning(id);
     } else {
         titleEl.setAttribute('data-i18n', 'form.position.titleNew');
         titleEl.textContent = t('form.position.titleNew');
@@ -1683,6 +1694,216 @@ function removePositionAddressRow(i) {
 function _positionAddressFieldChanged(i, field, value) {
     if (!_positionAddresses[i]) return;
     _positionAddresses[i][field] = value;
+}
+
+// ── xpub scan (import a wallet's addresses from its account xpub/ypub/zpub) ──────────────────
+// See XpubScanService (backend) for the derivation/scan itself and its security notes. On this
+// side, the xpub only ever exists as the value of #xpubScanInput for the moment it takes to send
+// the one POST request that starts the scan — the field is cleared immediately after, whatever the
+// outcome, and nothing else here ever holds onto it.
+
+let _xpubScanPollTimer = null;
+let _xpubScanPositionId = null;
+let _xpubScanResultModal = null;
+
+function toggleXpubScanRow() {
+    const row = document.getElementById('xpubScanInputRow');
+    const show = row.classList.contains('d-none');
+    row.classList.toggle('d-none', !show);
+    if (show) {
+        const input = document.getElementById('xpubScanInput');
+        input.value = '';
+        input.focus();
+    }
+}
+
+function startXpubScan() {
+    const positionId = document.getElementById('positionId').value;
+    const input = document.getElementById('xpubScanInput');
+    const xpub = input.value.trim();
+    if (!positionId || !xpub) return;
+
+    fetch('/api/btc-tracking/positions/' + positionId + '/xpub-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xpub: xpub })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        // Cleared either way — it's already been sent (or the attempt is over), no reason to leave
+        // it sitting in the field.
+        input.value = '';
+        if (!ok || data.error) { showToast('✗ ' + (data.error || t('toast.error')), 'error'); return; }
+        document.getElementById('xpubScanInputRow').classList.add('d-none');
+        document.getElementById('xpubScanProgressRow').classList.remove('d-none');
+        _xpubScanPositionId = positionId;
+        _pollXpubScanStatus();
+    })
+    .catch(err => { input.value = ''; showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'); });
+}
+
+function cancelXpubScan() {
+    if (!_xpubScanPositionId) return;
+    fetch('/api/btc-tracking/positions/' + _xpubScanPositionId + '/xpub-scan/cancel', { method: 'POST' }).catch(() => {});
+}
+
+function _stopXpubScanPolling() {
+    if (_xpubScanPollTimer) { clearTimeout(_xpubScanPollTimer); _xpubScanPollTimer = null; }
+}
+
+/** Picks a scan's progress display back up if one is still running server-side for this position —
+ *  e.g. the dialog was closed and reopened while it was in flight. */
+function _resumeXpubScanIfRunning(positionId) {
+    fetch('/api/btc-tracking/positions/' + positionId + '/xpub-scan')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (data && data.status === 'RUNNING') {
+                document.getElementById('xpubScanInputRow').classList.add('d-none');
+                document.getElementById('xpubScanProgressRow').classList.remove('d-none');
+                _xpubScanPositionId = positionId;
+                _pollXpubScanStatus();
+            }
+        })
+        .catch(() => {});
+}
+
+function _pollXpubScanStatus() {
+    if (!_xpubScanPositionId) return;
+    const positionId = _xpubScanPositionId;
+    fetch('/api/btc-tracking/positions/' + positionId + '/xpub-scan')
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'RUNNING') {
+                const chainLabel = data.chain === 1
+                    ? t('form.position.addresses.xpub.chain.change')
+                    : t('form.position.addresses.xpub.chain.receive');
+                document.getElementById('xpubScanProgressText').textContent = t('form.position.addresses.xpub.progress', {
+                    CHAIN: chainLabel, INDEX: data.index, GAP: data.gapCount, FOUND: data.foundCount
+                });
+                _xpubScanPollTimer = setTimeout(_pollXpubScanStatus, 1000);
+                return;
+            }
+
+            document.getElementById('xpubScanProgressRow').classList.add('d-none');
+            if (data.status === 'DONE') {
+                _renderXpubScanResultModal(data.result || []);
+            } else if (data.status === 'ERROR') {
+                showToast('✗ ' + (data.error || t('toast.error')), 'error');
+            }
+            // CANCELLED: nothing further to show — the progress row is already hidden above.
+            if (_xpubScanPositionId === positionId) _xpubScanPositionId = null;
+        })
+        .catch(err => {
+            document.getElementById('xpubScanProgressRow').classList.add('d-none');
+            showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error');
+            if (_xpubScanPositionId === positionId) _xpubScanPositionId = null;
+        });
+}
+
+function _renderXpubScanResultModal(result) {
+    const body = document.getElementById('xpubScanResultBody');
+    body.innerHTML = result.length
+        ? result.map(a => _xpubScanAddressBlockHtml(a)).join('')
+        : `<div class="text-center text-muted py-3">${esc(t('form.position.addresses.xpub.modal.empty'))}</div>`;
+
+    if (!_xpubScanResultModal) _xpubScanResultModal = new bootstrap.Modal(document.getElementById('xpubScanResultModal'));
+    _xpubScanResultModal.show();
+}
+
+function _xpubScanAddressBlockHtml(a) {
+    const chainLabel = a.chain === 1
+        ? t('form.position.addresses.xpub.chain.change')
+        : t('form.position.addresses.xpub.chain.receive');
+    return `<div class="address-balance-block" data-scan-id="${a.id}">
+        <div class="address-balance-block-header">
+            <input type="checkbox" class="xpub-scan-address-checkbox" checked
+                   title="${esc(t('form.position.addresses.xpub.modal.include'))}"/>
+            <span class="address-balance-block-addr">${esc(a.address)}</span>
+            <span class="address-balance-block-label">${esc(chainLabel)} #${a.index}</span>
+        </div>
+        <div class="address-balance-figures">
+            <span>${t('form.position.addresses.confirmed')}: <strong>${satsToBtcStr(a.confirmedBalanceSats)} BTC</strong></span>
+        </div>
+        <div class="table-responsive">
+        <table class="table depot-table address-balance-tx-table mb-0">
+            <thead><tr>
+                <th>${t('table.col.date')}</th>
+                <th>${t('form.position.addresses.direction')}</th>
+                <th class="text-end">${t('table.col.btc')}</th>
+                <th>TXID</th>
+                <th>${t('form.position.addresses.action')}</th>
+            </tr></thead>
+            <tbody>${_xpubScanTxRowsHtml(a.txs)}</tbody>
+        </table>
+        </div>
+    </div>`;
+}
+
+/** Simplified tx-row rendering for the xpub-scan review: same shape as the single/bundled address
+ *  view's rows, but no "Verknüpfen" (link) action — that needs a real, already-saved addressId,
+ *  which these addresses don't have until commit. A possible match is just flagged as a hint;
+ *  linking can still be done afterward from the regular address balance view once committed. */
+function _xpubScanTxRowsHtml(txs) {
+    if (!txs || !txs.length) {
+        return `<tr><td colspan="5" class="text-center text-muted">${t('dt.empty')}</td></tr>`;
+    }
+    return txs.map(tx => {
+        const dir = tx.netSats >= 0 ? t('form.position.addresses.received') : t('form.position.addresses.sent');
+        const dateStr = tx.confirmed ? _fmtEpochDate(tx.blockTime, null) : t('form.position.addresses.unconfirmedLabel');
+        const importable = tx.confirmed && !tx.alreadyTracked;
+        const hasCandidates = importable && (tx.matchCandidates || []).length > 0;
+
+        let actionCell = '';
+        if (tx.alreadyTracked) {
+            actionCell = `<span class="address-balance-tracked">${esc(t('form.position.addresses.alreadyTracked'))}</span>`;
+        } else if (importable) {
+            actionCell = `<input type="checkbox" class="address-import-check" data-txid="${esc(tx.txid)}"/>`;
+        }
+
+        return `<tr>
+            <td>${dateStr}</td>
+            <td>${dir}</td>
+            <td class="text-end">${satsToBtcStr(Math.abs(tx.netSats))}</td>
+            <td class="address-balance-txid" title="${esc(tx.txid)}">${esc(tx.txid.substring(0, 10))}…</td>
+            <td>
+                ${hasCandidates ? `<div class="address-balance-candidates-hint">${esc(t('form.position.addresses.matchFound'))}</div>` : ''}
+                ${actionCell}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function commitXpubScan() {
+    const positionId = document.getElementById('positionId').value;
+    const blocks = document.querySelectorAll('#xpubScanResultBody [data-scan-id]');
+    const entries = Array.from(blocks).map(block => ({
+        id: parseInt(block.dataset.scanId, 10),
+        include: block.querySelector('.xpub-scan-address-checkbox').checked,
+        txids: Array.from(block.querySelectorAll('.address-import-check:checked')).map(cb => cb.dataset.txid)
+    }));
+
+    if (!entries.some(e => e.include)) {
+        showToast('✗ ' + t('form.position.addresses.xpub.modal.noneIncluded'), 'error');
+        return;
+    }
+
+    fetch('/api/btc-tracking/positions/' + positionId + '/xpub-scan/commit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries: entries })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+        if (!ok || data.error) { showToast('✗ ' + (data.error || t('toast.error')), 'error'); return; }
+        if (_xpubScanResultModal) _xpubScanResultModal.hide();
+        showToast('✓ ' + t('form.position.addresses.xpub.modal.commit.success', {
+            ADDR: data.addressesAdded, TX: data.transactionsImported
+        }), 'success');
+        _positionsCache = null;
+        // Same "reload after a position change" convention as savePosition() above.
+        setTimeout(() => window.location.reload(), 800);
+    })
+    .catch(err => showToast('✗ ' + t('toast.error') + ': ' + err.message, 'error'));
 }
 
 /** Formats either a raw epoch-seconds number or an ISO datetime string (backend LocalDateTime) as "YYYY-MM-DD HH:MM" (UTC). */

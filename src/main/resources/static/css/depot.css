@@ -1404,6 +1404,44 @@ input#dt-search-1 {
     color:      var(--text-muted);
 }
 
+/* ── xpub scan (import from xpub/ypub/zpub) ──────────────── */
+.xpub-scan-input-row {
+    padding:       0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    background:    var(--bg-card);
+}
+
+.xpub-scan-hint {
+    margin-top: 0.4rem;
+    font-size:  0.7rem;
+    color:      var(--text-muted);
+}
+
+.xpub-scan-progress-row {
+    display:       flex;
+    align-items:   center;
+    gap:           0.6rem;
+    padding:       0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+    border:        1px solid var(--border);
+    border-radius: var(--radius);
+    background:    var(--bg-card);
+    font-size:     0.82rem;
+}
+
+.xpub-scan-progress-row span { flex: 1; }
+
+.xpub-scan-spinner { display: flex; align-items: center; color: var(--accent); }
+
+.xpub-scan-address-checkbox {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+}
+
 /* ── Address balance / import modal ──────────────────────── */
 .address-balance-block {
     padding:       0.75rem;

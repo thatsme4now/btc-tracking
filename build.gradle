@@ -5,7 +5,7 @@ plugins {
 }
 
 group   = 'com.thatsme4now'
-version = '1.5.0'
+version = '1.5.1'
 
 java {
     toolchain {
@@ -43,6 +43,12 @@ dependencies {
 
     // Jackson
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // BIP32 xpub/ypub/zpub parsing + address derivation for the xpub-scan feature (see
+    // XpubScanService) — pinned to the 0.16.x line deliberately: 0.17.x reorganized large parts of
+    // the public API (NetworkParameters -> Network, classes moved to org.bitcoinj.base) and isn't
+    // needed here, while 0.16.5 has the stable, long-documented API this code is written against.
+    implementation 'org.bitcoinj:bitcoinj-core:0.16.5'
 
     // Test
     // Spring Boot 3.2.5 manages JUnit Jupiter 5.10.x (platform 1.10.x) by
