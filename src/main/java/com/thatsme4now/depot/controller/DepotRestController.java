@@ -68,6 +68,7 @@ public class DepotRestController {
     private final MempoolPriceService mempoolPriceService;
     private final XpubScanService xpubScanService;
     private final PasswordEncoder passwordEncoder;
+    
 
     // Used to convert mempool's block_time (Unix epoch, UTC) into this app's LocalDateTime "date"
     // fields when importing on-chain transactions — same zone HistoricalPriceService/MonthlyPriceService use.
