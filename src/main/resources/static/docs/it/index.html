@@ -350,13 +350,14 @@
   <a href="#step-5"><span>05</span>Esporta CSV</a>
   <a href="#step-6"><span>06</span>Altre funzioni</a>
   <a href="#step-7"><span>07</span>Modalità Einundzwanzig</a>
+  <a href="#step-8"><span>08</span>Accesso con password</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>Importare CSV</h2>
       <p>
         Seleziona un file con <b>«Importa CSV»</b>. L'importazione avviene
@@ -415,7 +416,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>Formato CSV personalizzato</h2>
       <p>
         Senza l'opzione CoinTracking, l'app esporta nel proprio formato. È
@@ -445,7 +446,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>Gestione dati</h2>
       <p>
         Posizioni e transazioni si gestiscono nella pagina <b>«Gestione
@@ -537,7 +538,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>Blocca app</h2>
       <p>
         L'icona del lucchetto nell'intestazione (accanto a «Azioni» /
@@ -589,7 +590,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>Esportare CSV</h2>
       <p>
         Con <b>«Esporta CSV»</b> nell'intestazione puoi esportare tutte le
@@ -613,7 +614,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>Altre funzioni</h2>
       <p>
         La barra delle icone a destra dell'intestazione raggruppa
@@ -669,7 +670,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>Modalità Einundzwanzig</h2>
       <p>
         L'icona «21» nell'intestazione attiva uno schema di colori
@@ -689,6 +690,40 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>Accesso con password</h2>
+      <p>
+        Opzionale, disattivato per impostazione predefinita: un'unica
+        password per l'intera app, che protegge ogni pagina e ogni endpoint
+        API dietro una schermata di accesso. Attivala, modificala o
+        disattivala in <b>Impostazioni &rarr; &laquo;Accesso con password&raquo;</b> &mdash; ha
+        effetto immediato, senza riavvio.
+      </p>
+      <table class="fields">
+        <tr><th>Campo</th><th>Significato</th></tr>
+        <tr><td class="field">Password</td><td class="desc">Un'unica password per l'intera app &mdash; nessun nome utente, nessun account separato</td></tr>
+        <tr><td class="field">Password attuale</td><td class="desc">Necessaria per modificare o disattivare una password gi&agrave; impostata</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Solo per la sessione:</b> l'accesso &egrave; legato alla sessione del browser &mdash; chiudere il browser o riavviare l'app richiede un nuovo accesso. Non esiste l'opzione &laquo;ricordami&raquo;.</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>Archiviazione:</b> la password viene salvata come hash <span class="inline-code">BCrypt</span>, mai in chiaro, e mai registrata nei log. Tentativi errati ripetuti attivano un blocco crescente, che raddoppia ogni volta, fino a un massimo di 15 minuti.</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Relazione con &laquo;Blocca app&raquo; (passaggio 04):</b> sono indipendenti. L'accesso controlla chi pu&ograve; raggiungere l'app; il blocco cifra i dati a riposo. Se entrambi sono attivi, l'accesso &egrave; la porta esterna &mdash; prima si accede, poi si pu&ograve; vedere la finestra &laquo;App bloccata&raquo; se l'app &egrave; anche bloccata.</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>HTTP in chiaro:</b> senza HTTPS, la password viaggia non cifrata sulla tua rete. Vedi <a href="usage.html#tls" style="color:var(--accent)">Uso e installazione &rarr; TLS / HTTPS</a> per configurare un certificato autofirmato.</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>

@@ -30,9 +30,9 @@ App starts at `http://localhost:8080/btc-tracking` with H2 in-memory DB.
 
 - Java 21, Spring Boot 3.x patterns
 - Lombok for boilerplate (`@Data`, `@RequiredArgsConstructor`)
-- No Spring Security — this is a local single-user tool
+- Spring Security is used only for the optional password login (see `SecurityConfig`) — off by default, no user accounts, still a local single-user tool
 - Keep JS vanilla (no build toolchain for frontend)
-- i18n keys go in all three files: `en.json`, `de.json`, `th.json`
+- i18n keys go in all six files: `en.json`, `de.json`, `es.json`, `fr.json`, `it.json`, `th.json`
 
 ## Adding a Currency
 
@@ -48,7 +48,7 @@ App starts at `http://localhost:8080/btc-tracking` with H2 in-memory DB.
 Add `/src/main/resources/static/i18n/{lang}.json` with all keys from `en.json`,  
 then register the code in `i18n.js`:
 ```js
-const SUPPORTED = { en: 'English', de: 'Deutsch', th: 'ภาษาไทย', xx: 'Your Language' };
+const SUPPORTED = { en: 'English', de: 'Deutsch', th: 'ภาษาไทย', es: 'Español', it: 'Italiano', fr: 'Français', xx: 'Your Language' };
 ```
 
 ## Reporting Issues

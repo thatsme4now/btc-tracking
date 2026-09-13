@@ -313,6 +313,7 @@
   <a href="#option-b"><span>B</span>Umbrel App Store</a>
   <a href="#option-c"><span>C</span>Docker</a>
   <a href="#option-d"><span>D</span>Proxmox</a>
+  <a href="#tls"><span>E</span>TLS / HTTPS</a>
 </nav>
 <main>
   <section class="step" id="option-a">
@@ -428,7 +429,52 @@
       <span><b>หมายเหตุ:</b> สำหรับ LXC จำเป็นต้องเปิดใช้ Nested Docker (Nested Virtualization) — เปิดใน Proxmox ผ่าน <span class="inline-code">Features → Nesting</span> ที่คอนเทนเนอร์ก่อนติดตั้ง Docker</span>
     </div>
   </section>
-  <section class="step" style="border-bottom:none">
+    <section class="step" id="tls">
+    <div class="step-num">OPTION E</div>
+    <h2>TLS / HTTPS (ใบรับรองที่ลงนามด้วยตนเอง)</h2>
+    <p>
+      ปิดใช้งานเป็นค่าเริ่มต้น &mdash; แอปให้บริการผ่าน HTTP ธรรมดา แนะนำให้เปิดหากคุณเปิดใช้งาน
+      <a href="index.html#step-8" style="color:var(--accent)">เข้าสู่ระบบด้วยรหัสผ่าน</a> ด้วย
+      เนื่องจากมิฉะนั้นรหัสผ่านจะถูกส่งโดยไม่เข้ารหัสในเครือข่ายของคุณ
+    </p>
+    <h3>ดาวน์โหลดโดยตรง / JAR</h3>
+    <ol class="steplist">
+      <li>สร้าง keystore (ต้องมี JDK/JRE &mdash; <span class="inline-code">keytool</span> มาพร้อมกับมันแล้ว) แทนที่ <span class="inline-code">changeit</span> ด้วยรหัสผ่านของคุณเอง:
+        <pre class="cmd">keytool -genkeypair -alias btc-tracking -keyalg RSA -keysize 2048 -validity 3650 \
+  -storetype PKCS12 -keystore keystore.p12 -storepass changeit \
+  -dname "CN=btc-tracking"</pre>
+      </li>
+      <li>เพิ่มลงใน <span class="inline-code">application.properties</span> ข้าง ๆ ไฟล์ JAR:
+        <pre class="cmd">server.ssl.enabled=true
+server.ssl.key-store=file:./keystore.p12
+server.ssl.key-store-password=changeit
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=btc-tracking</pre>
+      </li>
+      <li>รีสตาร์ทแอป จากนี้ไปจะเข้าถึงได้เฉพาะผ่าน <span class="inline-code">https://&hellip;</span> บนพอร์ตเดิม &mdash; เบราว์เซอร์จะเตือนเรื่องใบรับรองที่ลงนามด้วยตนเองครั้งเดียว การเชื่อมต่อยังคงถูกเข้ารหัสจริง</li>
+    </ol>
+    <h3>Docker ทั่วไป</h3>
+    <p>วาง <span class="inline-code">keystore.p12</span> ไว้ใน volume เดียวกับที่ใช้สำหรับฐานข้อมูล และส่งการตั้งค่าเป็นตัวแปรสภาพแวดล้อม:</p>
+    <pre class="cmd">docker run -d \
+  --name btc-tracking \
+  -p 8080:8080 \
+  -v btc-tracking-data:/app/data \
+  -e SERVER_SSL_ENABLED=true \
+  -e SERVER_SSL_KEY_STORE=file:/app/data/keystore.p12 \
+  -e SERVER_SSL_KEY_STORE_PASSWORD=changeit \
+  -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 \
+  -e SERVER_SSL_KEY_ALIAS=btc-tracking \
+  thatsme4now/btc-tracking:latest</pre>
+    <div class="note">
+      <span>&#9888;</span>
+      <span><b>ห้ามเปิดใช้งานนี้บนการติดตั้ง Umbrel (ตัวเลือก B)</b> reverse proxy ของ Umbrel เอง (<span class="inline-code">app_proxy</span>) ทำการ terminate TLS อยู่แล้วหน้าทุกแอป และคาดหวัง HTTP ธรรมดาภายใน &mdash; การเปิด TLS ในคอนเทนเนอร์จะทำให้แอปเข้าถึงไม่ได้ผ่าน Umbrel</span>
+    </div>
+    <div class="note">
+      <span>&#8505;</span>
+      <span>หากต้องการปิดใช้งานอีกครั้ง: ลบบรรทัด <span class="inline-code">server.ssl.*</span> ทั้งห้าบรรทัด (หรือตัวแปรสภาพแวดล้อมที่เทียบเท่า) แล้วรีสตาร์ท &mdash; ไม่ต้อง rebuild</span>
+    </div>
+  </section>
+<section class="step" style="border-bottom:none">
     <div class="step-num">ภาพรวม</div>
     <h2>ควรเลือกรูปแบบไหน?</h2>
     <table class="compare">

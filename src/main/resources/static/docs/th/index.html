@@ -345,13 +345,14 @@
   <a href="#step-5"><span>05</span>ส่งออก CSV</a>
   <a href="#step-6"><span>06</span>ฟีเจอร์อื่น ๆ</a>
   <a href="#step-7"><span>07</span>โหมด Einundzwanzig</a>
+  <a href="#step-8"><span>08</span>เข้าสู่ระบบด้วยรหัสผ่าน</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>นำเข้า CSV</h2>
       <p>
         เลือกไฟล์ผ่าน <b>「นำเข้า CSV」</b> การนำเข้าจะทำงานเป็นตัวช่วยสามขั้นตอน:
@@ -407,7 +408,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>รูปแบบ CSV ของแอป</h2>
       <p>
         หากไม่เลือกตัวเลือก CoinTracking แอปจะส่งออกในรูปแบบของตัวเอง
@@ -437,7 +438,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>การจัดการข้อมูล</h2>
       <p>
         ตำแหน่งและธุรกรรมทั้งหมดจะจัดการในหน้า <b>「การจัดการข้อมูล」</b>
@@ -525,7 +526,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>ล็อกแอป</h2>
       <p>
         ไอคอนกุญแจในส่วนหัว (ข้าง「การดำเนินการ」/「การแสดงผล」)
@@ -576,7 +577,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>ส่งออก CSV</h2>
       <p>
         ผ่าน <b>「ส่งออก CSV」</b> ในส่วนหัว คุณสามารถส่งออกธุรกรรมทั้งหมด
@@ -599,7 +600,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>ฟีเจอร์อื่น ๆ</h2>
       <p>
         แถบไอคอนด้านขวาของส่วนหัวรวบรวมการตั้งค่าและเครื่องมือส่วนกลาง
@@ -651,7 +652,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>โหมด Einundzwanzig</h2>
       <p>
         ไอคอน「21」ในส่วนหัวจะเปลี่ยนไปใช้ธีมสีทางเลือก พร้อมแบบอักษรเฉพาะ
@@ -670,6 +671,38 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>เข้าสู่ระบบด้วยรหัสผ่าน</h2>
+      <p>
+        ไม่บังคับ ปิดใช้งานเป็นค่าเริ่มต้น: รหัสผ่านเดียวสำหรับทั้งแอปที่ปกป้องทุกหน้าและทุก
+        API endpoint ไว้หลังหน้าจอเข้าสู่ระบบ เปิดใช้งาน เปลี่ยน หรือปิดใช้งานได้ที่
+        <b>การตั้งค่า &rarr; &#12300;เข้าสู่ระบบด้วยรหัสผ่าน&#12301;</b> &mdash; มีผลทันที ไม่ต้องรีสตาร์ท
+      </p>
+      <table class="fields">
+        <tr><th>ฟิลด์</th><th>ความหมาย</th></tr>
+        <tr><td class="field">รหัสผ่าน</td><td class="desc">รหัสผ่านเดียวสำหรับทั้งแอป &mdash; ไม่มีชื่อผู้ใช้ ไม่มีบัญชีแยกต่างหาก</td></tr>
+        <tr><td class="field">รหัสผ่านปัจจุบัน</td><td class="desc">จำเป็นสำหรับการเปลี่ยนหรือปิดใช้งานรหัสผ่านที่ตั้งไว้แล้ว</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>เฉพาะเซสชันเท่านั้น:</b> การเข้าสู่ระบบผูกกับเซสชันของเบราว์เซอร์ &mdash; ปิดเบราว์เซอร์หรือรีสตาร์ทแอปต้องเข้าสู่ระบบใหม่ ไม่มีตัวเลือก&#12300;จดจำฉัน&#12301;</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>การจัดเก็บ:</b> รหัสผ่านถูกเก็บเป็น <span class="inline-code">BCrypt</span> hash ไม่เคยเก็บเป็นข้อความธรรมดา และไม่เคยถูกบันทึกลง log การพยายามป้อนรหัสผ่านผิดซ้ำ ๆ จะกระตุ้นการล็อกที่เพิ่มขึ้นเรื่อย ๆ โดยเพิ่มเป็นสองเท่าทุกครั้ง สูงสุด 15 นาที</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>ความสัมพันธ์กับ&#12300;ล็อกแอป&#12301;(ขั้นตอนที่ 04):</b> ทั้งสองแยกจากกัน การเข้าสู่ระบบควบคุมว่าใครเข้าถึงแอปได้บ้าง ส่วนการล็อกจะเข้ารหัสข้อมูลที่จัดเก็บไว้ หากเปิดใช้งานทั้งคู่ การเข้าสู่ระบบจะเป็นด่านนอกสุด &mdash; ต้องเข้าสู่ระบบก่อน จากนั้นอาจเห็นหน้าจอ&#12300;แอปถูกล็อก&#12301;หากแอปถูกล็อกไว้ด้วย</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>HTTP แบบข้อความธรรมดา:</b> หากไม่มี HTTPS รหัสผ่านจะถูกส่งโดยไม่เข้ารหัสในเครือข่ายของคุณ ดูที่ <a href="usage.html#tls" style="color:var(--accent)">การใช้งานและติดตั้ง &rarr; TLS / HTTPS</a> สำหรับการตั้งค่าใบรับรองที่ลงนามด้วยตนเอง</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
