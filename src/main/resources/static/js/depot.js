@@ -1055,11 +1055,14 @@ function onCsvFileSelected(input) {
         return;
     }
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/btc-tracking/import/mapping';
-    form.enctype = 'multipart/form-data';
-    form.style.display = 'none';
+    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+       const token = m ? decodeURIComponent(m[1]) : '';
+
+       const form = document.createElement('form');
+       form.method = 'POST';
+       form.action = '/btc-tracking/import/mapping' + (token ? '?_csrf=' + encodeURIComponent(token) : '');
+       form.enctype = 'multipart/form-data';
+       form.style.display = 'none'
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
