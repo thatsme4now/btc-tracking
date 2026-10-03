@@ -76,7 +76,7 @@
                         <button class="btn btn-xs depot-btn-outline" onclick="saveLoginPassword()">
                             <i class="bi bi-shield-lock me-1"></i><span data-i18n="modal.settings.login.save">Set / change password</span>
                         </button>
-                        <button class="btn btn-xs depot-btn-outline text-neg d-none" id="loginDisableBtn" onclick="disableLoginPassword()">
+                        <button class="btn btn-xs depot-btn-outline text-neg d-none" id="loginDisableBtn" onclick="openLoginDisableModal()">
                             <i class="bi bi-shield-slash me-1"></i><span data-i18n="modal.settings.login.disable">Disable login</span>
                         </button>
                     </div>
@@ -88,6 +88,34 @@
             </div>
         </div>
     </div>
+    <!-- Confirm password to disable login -->
+	<div class="modal fade" id="loginDisableModal" tabindex="-1">
+	    <div class="modal-dialog modal-sm">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-shield-slash me-2"></i><span data-i18n="modal.settings.login.disable">Disable login</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <label class="depot-label" data-i18n="modal.settings.login.currentPlaceholder">Current password</label>
+	                <input type="text" id="loginDisablePasswordInput"
+	                       class="form-control depot-input depot-password-field"
+	                       autocomplete="off" spellcheck="false"
+	                       onkeydown="if(event.key==='Enter') confirmLoginDisable()"/>
+	                <div id="loginDisableError" class="d-none" style="font-size:.75rem;color:var(--neg);margin-top:.5rem"></div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-primary" onclick="confirmLoginDisable()">
+	                    <i class="bi bi-shield-slash me-1"></i><span data-i18n="modal.settings.login.disable">Disable login</span>
+	                </button>
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
+	</div>
+    
 
     <!-- Send some Sats Modal -->
     <div class="modal fade" id="sendsomesatsModal" tabindex="-1">

@@ -331,9 +331,19 @@ function saveLoginPassword() {
     });
 }
 
-function disableLoginPassword() {
-    const currentPassword = document.getElementById('loginCurrentPasswordInput').value;
-    const errorEl = document.getElementById('loginSettingsError');
+let _loginDisableModal = null;
+
+function openLoginDisableModal() {
+    document.getElementById('loginDisablePasswordInput').value = '';
+    document.getElementById('loginDisableError').classList.add('d-none');
+    if (!_loginDisableModal) _loginDisableModal = new bootstrap.Modal(document.getElementById('loginDisableModal'));
+    _loginDisableModal.show();
+    setTimeout(() => document.getElementById('loginDisablePasswordInput').focus(), 300);
+}
+
+function confirmLoginDisable() {
+    const currentPassword = document.getElementById('loginDisablePasswordInput').value;
+    const errorEl = document.getElementById('loginDisableError');
     errorEl.classList.add('d-none');
 
     if (!currentPassword) {
@@ -354,6 +364,7 @@ function disableLoginPassword() {
             errorEl.classList.remove('d-none');
             return;
         }
+        _loginDisableModal.hide();
         showToast('✓ ' + t('modal.settings.login.toast.disabled'), 'success');
         setTimeout(() => window.location.reload(), 600);
     })

@@ -836,7 +836,14 @@ body.density-spacious {
 /* Collapse button is mobile/tablet-only. */
 .overview-block-collapse-btn { display: none; }
 
+@media (min-width: 991px) {
+    .modal-content {
+        width: 500px;
+    }
+}
+
 @media (max-width: 991px) {
+	
     .overview-grid-row,
     .overview-grid-row.empty { grid-template-columns: 1fr !important; }
 
