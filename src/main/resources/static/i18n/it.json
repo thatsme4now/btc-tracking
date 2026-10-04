@@ -470,5 +470,7 @@
   "holdings.buyDetail.periodBuys": "Acquisti in questo periodo",
   "holdings.buyDetail.periodCount": "{COUNT} acquisti",
   "holdings.buyDetail.avgPrice": "Prezzo medio/BTC",
-  "holdings.buyDetail.backToPeriod": "Torna al periodo"
+  "holdings.buyDetail.backToPeriod": "Torna al periodo"  ,
+    "holdings.buysUnit.fiat": "Mostra in valuta",
+    "holdings.buysUnit.btc": "Mostra in BTC"
 }

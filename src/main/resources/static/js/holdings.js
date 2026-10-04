@@ -45,6 +45,30 @@ const HOLDINGS_APEX_DEFAULTS = {
     }
 };
 
+const HOLDINGS_BUYS_UNIT_KEY = 'holdings-buys-unit';
+let _holdingsBuysUnit = (() => {
+    try { return localStorage.getItem(HOLDINGS_BUYS_UNIT_KEY) === 'btc' ? 'btc' : 'fiat'; }
+    catch (e) { return 'fiat'; }
+})();
+let _holdingsYearlyData = null; // Cache für Re-Render ohne neuen Fetch
+
+function _updateHoldingsBuysUnitButtons() {
+    document.querySelectorAll('.holdings-buys-unit-btn').forEach(btn => {
+        if (btn.dataset.unit === 'fiat') btn.textContent = CURRENCY.symbol();
+        btn.classList.toggle('is-active', btn.dataset.unit === _holdingsBuysUnit);
+    });
+}
+
+function setHoldingsBuysUnit(unit) {
+    if (unit === _holdingsBuysUnit || !_holdingsYearlyData) return;
+    _holdingsBuysUnit = unit;
+    try { localStorage.setItem(HOLDINGS_BUYS_UNIT_KEY, unit); } catch (e) { /* ignore */ }
+    _updateHoldingsBuysUnitButtons();
+    const currency = CURRENCY.current();
+    renderBuysChart(_holdingsYearlyData, currency);
+    renderBuysByExchangeChart(_holdingsYearlyData, currency);
+}
+
 // Blue/turquoise shades, cycled per exchange/wallet label (stable, alphabetical order)
 const HOLDINGS_BUY_PALETTE = [
     '#378ADD', '#1D9E75', '#185FA5', '#0F6E56',
@@ -167,6 +191,8 @@ async function initHoldings() {
         }
 
         contentEl.classList.remove('d-none');
+        _holdingsYearlyData = data;
+        _updateHoldingsBuysUnitButtons();
         renderBuysChart(data, currency);
         renderBuysByExchangeChart(data, currency);
         renderRealizedPnlChart(data, currency);
@@ -330,24 +356,25 @@ function _holdingsFmtCompact(val, currency) {
  * Verkäufe (single series, group:'sells') — two bars per year, side by side.
  */
 function renderBuysChart(data, currency) {
-    const years = data.map(d => d.year);
+    const btc    = _holdingsBuysUnit === 'btc';
+    const years  = data.map(d => d.year);
+    const buysOf = d => (btc ? d.buysByExchangeBtc : d.buysByExchange) || {};
 
-    // Stable, alphabetically-ordered set of exchange/wallet labels across all years
     const labelSet = new Set();
-    data.forEach(d => Object.keys(d.buysByExchange || {}).forEach(l => labelSet.add(l)));
+    data.forEach(d => Object.keys(buysOf(d)).forEach(l => labelSet.add(l)));
     const labels = Array.from(labelSet).sort();
 
     const buySeries = labels.map(label => ({
         name: label,
         group: 'buys',
-        data: data.map(d => Number((d.buysByExchange || {})[label] || 0))
+        data: data.map(d => Number(buysOf(d)[label] || 0))
     }));
 
     const sellsName = (typeof t === 'function') ? t('holdings.series.sells') : 'Verkäufe';
     const sellSeries = {
         name: sellsName,
         group: 'sells',
-        data: data.map(d => Number(d.totalSells || 0))
+        data: data.map(d => Number((btc ? d.totalSellsBtc : d.totalSells) || 0))
     };
 
     const series = [...buySeries, sellSeries];
@@ -362,13 +389,13 @@ function renderBuysChart(data, currency) {
         colors,
         plotOptions: { bar: { columnWidth: '65%' } },
         xaxis: { ...HOLDINGS_APEX_DEFAULTS.xaxis, categories: years },
-        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' }, formatter: (v) => _holdingsFmtCompact(v, currency) } },
+        yaxis: { ...HOLDINGS_APEX_DEFAULTS.yaxis, labels: { style: { colors: '#6b6f7a' },
+            formatter: (v) => btc ? Number(v).toFixed(2) : _holdingsFmtCompact(v, currency) } },
         tooltip: {
             ...HOLDINGS_APEX_DEFAULTS.tooltip,
-            // intersect:false makes the tooltip react across the full column width; shared:true keeps all series for the year together
             shared: true,
             intersect: false,
-            y: { formatter: (v) => fmt(v, currency) }
+            y: { formatter: (v) => btc ? fmtBtc(v) : fmt(v, currency) }
         }
     };
 
@@ -384,9 +411,12 @@ function renderBuysChart(data, currency) {
  * it's about historical buying activity, not current holdings.
  */
 function renderBuysByExchangeChart(data, currency) {
+    const btc = _holdingsBuysUnit === 'btc';
+    const fmtVal = (v) => btc ? fmtBtc(v) : CURRENCY.format(Number(v), currency);
+
     const totals = {};
     (data || []).forEach(d => {
-        Object.entries(d.buysByExchange || {}).forEach(([label, amount]) => {
+        Object.entries((btc ? d.buysByExchangeBtc : d.buysByExchange) || {}).forEach(([label, amount]) => {
             totals[label] = (totals[label] || 0) + Number(amount || 0);
         });
     });
@@ -417,15 +447,12 @@ function renderBuysByExchangeChart(data, currency) {
                             label:     t('chart.total'),
                             color:     '#6b6f7a',
                             fontSize:  '30px',
-                            formatter: (w) => {
-                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                                return CURRENCY.format(total, currency);
-                            }
+                            formatter: (w) => fmtVal(w.globals.seriesTotals.reduce((a, b) => a + b, 0))
                         },
                         value: {
                             color:     '#ddd9d0',
                             fontSize:  '30px',
-                            formatter: (val) => CURRENCY.format(Number(val), currency)
+                            formatter: (val) => fmtVal(val)
                         }
                     }
                 }

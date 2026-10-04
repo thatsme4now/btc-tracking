@@ -18,6 +18,15 @@ public class YearlyHoldingsDTO {
 
     /** Sum of SELL proceeds for this year, in the requested display currency. */
     private BigDecimal totalSells = BigDecimal.ZERO;
+    
+    /** Sum of BUY quantity (BTC) for this year, grouped by exchange/wallet label. */
+    private Map<String, BigDecimal> buysByExchangeBtc = new LinkedHashMap<>();
+
+    /** Sum of all BUY quantity (BTC) for this year. */
+    private BigDecimal totalBuysBtc = BigDecimal.ZERO;
+
+    /** Sum of SELL quantity (BTC) for this year. */
+    private BigDecimal totalSellsBtc = BigDecimal.ZERO;
 
     /** Realized gain/loss for this year (sale proceeds minus weighted-average cost basis of the sold BTC). */
     private BigDecimal realizedPnl = BigDecimal.ZERO;

@@ -470,5 +470,7 @@
   "holdings.buyDetail.periodBuys": "รายการซื้อในช่วงนี้",
   "holdings.buyDetail.periodCount": "{COUNT} รายการซื้อ",
   "holdings.buyDetail.avgPrice": "ราคาเฉลี่ย/BTC",
-  "holdings.buyDetail.backToPeriod": "กลับไปที่ช่วงเวลา"
+  "holdings.buyDetail.backToPeriod": "กลับไปที่ช่วงเวลา"  ,
+    "holdings.buysUnit.fiat": "แสดงเป็นสกุลเงิน",
+    "holdings.buysUnit.btc": "แสดงเป็น BTC"
 }

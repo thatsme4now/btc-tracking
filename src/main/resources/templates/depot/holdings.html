@@ -113,6 +113,12 @@
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.chart.buysAndSells">Käufe &amp; Verkäufe pro Jahr</span>
+                            <span class="pill-filter">
+							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="fiat"
+							            onclick="setHoldingsBuysUnit('fiat')" data-i18n-title="holdings.buysUnit.fiat"></button>
+							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="btc"
+							            onclick="setHoldingsBuysUnit('btc')" data-i18n-title="holdings.buysUnit.btc">₿</button>
+							</span>
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buys', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
@@ -296,6 +302,12 @@
                         <div class="holdings-chart-title">
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.chart.buysByExchange">Käufe pro Börse</span>
+                            <span class="pill-filter">
+							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="fiat"
+							            onclick="setHoldingsBuysUnit('fiat')" data-i18n-title="holdings.buysUnit.fiat"></button>
+							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="btc"
+							            onclick="setHoldingsBuysUnit('btc')" data-i18n-title="holdings.buysUnit.btc">₿</button>
+							</span>
                             <span class="holdings-block-actions">
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buysbyexchange', -1)" data-i18n-title="holdings.layout.moveUp" title="Nach oben"><i class="bi bi-chevron-up"></i></button>
                                 <button type="button" class="holdings-block-move-btn" onclick="moveHoldingsBlock('holdings-block-buysbyexchange', 1)" data-i18n-title="holdings.layout.moveDown" title="Nach unten"><i class="bi bi-chevron-down"></i></button>
