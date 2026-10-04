@@ -199,13 +199,19 @@ CREATE TABLE IF NOT EXISTS import_history (
 -- mempool_host/mempool_port: Host/Port einer selbst gehosteten mempool-
 -- Instanz für den optionalen Preisabruf — siehe MempoolPriceService. Beide
 -- NULL (Standard) = Funktion deaktiviert.
+--
+-- login_password_hash: BCrypt hash of the optional, app-wide login password
+-- — see SecurityConfig/AppSettings entity. NULL/blank (default) = login
+-- disabled.
 -- Bestandsinstallationen: ALTER TABLE app_settings
---   ADD COLUMN mempool_host VARCHAR(255), ADD COLUMN mempool_port INT;
+--   ADD COLUMN mempool_host VARCHAR(255), ADD COLUMN mempool_port INT,
+--   ADD COLUMN login_password_hash VARCHAR(255);
 CREATE TABLE IF NOT EXISTS app_settings (
     id                              BIGINT NOT NULL PRIMARY KEY,
     tax_holding_period_cutoff_date  DATE,
     mempool_host                    VARCHAR(255),
-    mempool_port                    INT
+    mempool_port                    INT,
+    login_password_hash             VARCHAR(255)
 ) ENGINE=InnoDB;
 INSERT IGNORE INTO app_settings (id, tax_holding_period_cutoff_date) VALUES (1, NULL);
 

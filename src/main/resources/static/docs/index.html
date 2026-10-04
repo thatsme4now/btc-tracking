@@ -349,13 +349,14 @@
   <a href="#step-5"><span>05</span>CSV Export</a>
   <a href="#step-6"><span>06</span>More Features</a>
   <a href="#step-7"><span>07</span>Einundzwanzig Mode</a>
+  <a href="#step-8"><span>08</span>Password Login</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>Import CSV</h2>
       <p>
         Select a file via <b>“Import CSV”</b>. The import runs as a wizard
@@ -411,7 +412,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>Custom CSV Format</h2>
       <p>
         Without the CoinTracking option, the app exports in its own format.
@@ -441,7 +442,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>Data Management</h2>
       <p>
         Positions and transactions are managed on the <b>“Data Management”</b>
@@ -530,7 +531,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>Lock App</h2>
       <p>
         The lock icon in the header (next to “Actions” / “Visualization”)
@@ -581,7 +582,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>Export CSV</h2>
       <p>
         Via <b>“Export CSV”</b> in the header you can export all transactions,
@@ -604,7 +605,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>More Features</h2>
       <p>
         The icon bar on the right of the header bundles global settings and
@@ -658,7 +659,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>Einundzwanzig Mode</h2>
       <p>
         The “21” icon in the header switches to an alternative color scheme
@@ -677,6 +678,39 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>Password Login</h2>
+      <p>
+        Optional, disabled by default: a single, app-wide password that
+        protects every page and every API endpoint behind a login screen.
+        Enable, change, or disable it under <b>Settings &rarr; &ldquo;Password login&rdquo;</b> &mdash;
+        takes effect immediately, no restart required.
+      </p>
+      <table class="fields">
+        <tr><th>Field</th><th>Meaning</th></tr>
+        <tr><td class="field">Password</td><td class="desc">A single app-wide password &mdash; no username, no separate accounts</td></tr>
+        <tr><td class="field">Current Password</td><td class="desc">Required to change or disable an already-set password</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Session only:</b> the login is tied to the browser session &mdash; closing the browser or restarting the app requires logging in again. There is no &ldquo;remember me&rdquo;.</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>Storage:</b> the password is stored as a <span class="inline-code">BCrypt</span> hash, never in plaintext, and never logged. Repeated wrong attempts trigger an increasing lockout, doubling each time up to 15 minutes.</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Relation to &ldquo;Lock App&rdquo; (step 04):</b> the two are independent. Login controls who can reach the app at all; Lock encrypts the data at rest. If both are enabled, Login is the outer gate &mdash; you log in first, and may then see the &ldquo;App Locked&rdquo; dialog if the app also happens to be locked.</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>Plaintext HTTP:</b> without HTTPS, the password travels unencrypted on your network. See <a href="usage.html#tls" style="color:var(--accent)">Usage &amp; Setup &rarr; TLS / HTTPS</a> for a self-signed certificate setup.</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>

@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,6 +67,8 @@ public class DepotRestController {
     private final MonthlyOverviewService monthlyOverviewService;
     private final MempoolPriceService mempoolPriceService;
     private final XpubScanService xpubScanService;
+    private final PasswordEncoder passwordEncoder;
+    
 
     // Used to convert mempool's block_time (Unix epoch, UTC) into this app's LocalDateTime "date"
     // fields when importing on-chain transactions — same zone HistoricalPriceService/MonthlyPriceService use.
@@ -730,7 +733,7 @@ public class DepotRestController {
 
     // ── App Settings ──────────────────────────────────────────────────────────
 
-    /** Returns the app settings (tax holding-period cutoff date, mempool host/port). */
+    /** Returns the app settings (tax holding-period cutoff date, mempool host/port, whether login is enabled). */
     @GetMapping("/settings")
     public ResponseEntity<Map<String, Object>> getSettings() {
         AppSettings settings = depotService.getAppSettings();
@@ -738,6 +741,7 @@ public class DepotRestController {
         body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
         body.put("mempoolHost", settings.getMempoolHost());
         body.put("mempoolPort", settings.getMempoolPort());
+        body.put("loginEnabled", isLoginEnabled(settings));
         return ResponseEntity.ok(body);
     }
 
@@ -762,6 +766,56 @@ public class DepotRestController {
         body.put("mempoolHost", settings.getMempoolHost());
         body.put("mempoolPort", settings.getMempoolPort());
         return ResponseEntity.ok(body);
+    }
+
+    private boolean isLoginEnabled(AppSettings settings) {
+        String hash = settings.getLoginPasswordHash();
+        return hash != null && !hash.isBlank();
+    }
+
+    /**
+     * Sets or changes the optional app-wide login password (see SecurityConfig). If a password is
+     * already set, the current one must be supplied and match — this also covers the very first
+     * time a password is set, since currentPassword is only checked when one already exists. The
+     * new password is BCrypt-hashed before being persisted; the raw password itself is never
+     * stored, logged, or returned in the response.
+     */
+    @PutMapping("/settings/login")
+    public ResponseEntity<Map<String, Object>> setLoginPassword(@RequestBody LoginPasswordSetRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        String currentHash = settings.getLoginPasswordHash();
+        boolean currentlySet = isLoginEnabled(settings);
+
+        if (currentlySet && (req.getCurrentPassword() == null
+                || !passwordEncoder.matches(req.getCurrentPassword(), currentHash))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
+        }
+        if (req.getNewPassword() == null || req.getNewPassword().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New password must not be empty."));
+        }
+        if (!req.getNewPassword().equals(req.getNewPasswordConfirm())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Passwords do not match."));
+        }
+
+        settings.setLoginPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        depotService.saveAppSettings(settings);
+        return ResponseEntity.ok(Map.of("loginEnabled", true));
+    }
+
+    /** Disables the login password — requires the current password to confirm. */
+    @DeleteMapping("/settings/login")
+    public ResponseEntity<Map<String, Object>> disableLoginPassword(@RequestBody LoginPasswordDisableRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        String currentHash = settings.getLoginPasswordHash();
+        if (!isLoginEnabled(settings)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Login is already disabled."));
+        }
+        if (req.getCurrentPassword() == null || !passwordEncoder.matches(req.getCurrentPassword(), currentHash)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
+        }
+        settings.setLoginPasswordHash(null);
+        depotService.saveAppSettings(settings);
+        return ResponseEntity.ok(Map.of("loginEnabled", false));
     }
 
     /** Returns a single wallet/exchange position. */
@@ -1464,6 +1518,19 @@ public class DepotRestController {
         private java.time.LocalDate taxHoldingPeriodCutoffDate;
         private String  mempoolHost;
         private Integer mempoolPort;
+    }
+
+    @lombok.Data
+    public static class LoginPasswordSetRequest {
+        /** Required only if a login password is already set — ignored on first-time setup. */
+        private String currentPassword;
+        private String newPassword;
+        private String newPasswordConfirm;
+    }
+
+    @lombok.Data
+    public static class LoginPasswordDisableRequest {
+        private String currentPassword;
     }
 
 

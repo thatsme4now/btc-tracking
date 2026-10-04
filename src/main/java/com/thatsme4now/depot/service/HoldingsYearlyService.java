@@ -83,6 +83,10 @@ public class HoldingsYearlyService {
 
             switch (tx.getType()) {
                 case BUY -> {
+                	String buyLabel = tx.getPosition() != null ? tx.getPosition().getLabel() : "?";
+                    dto.getBuysByExchangeBtc().merge(buyLabel, tx.getQuantity(), BigDecimal::add);
+                    dto.setTotalBuysBtc(dto.getTotalBuysBtc().add(tx.getQuantity()));
+                    
                     BigDecimal cost = fiatValue(tx, cur);
                     if (cost != null) {
                         runningQty  = runningQty.add(tx.getQuantity());
@@ -94,6 +98,8 @@ public class HoldingsYearlyService {
                     }
                 }
                 case SELL -> {
+                    dto.setTotalSellsBtc(dto.getTotalSellsBtc().add(tx.getQuantity()));
+
                     BigDecimal proceeds = sellProceeds(tx, cur);
                     if (proceeds != null) {
                         BigDecimal costOfSold;
@@ -155,6 +161,13 @@ public class HoldingsYearlyService {
             dto.setTotalBuys(dto.getTotalBuys().setScale(2, RoundingMode.HALF_UP));
             dto.setTotalSells(dto.getTotalSells().setScale(2, RoundingMode.HALF_UP));
             dto.setRealizedPnl(dto.getRealizedPnl().setScale(2, RoundingMode.HALF_UP));
+            
+            Map<String, BigDecimal> roundedBtc = new LinkedHashMap<>();
+            dto.getBuysByExchangeBtc().forEach((k, v) -> roundedBtc.put(k, v.setScale(8, RoundingMode.HALF_UP)));
+            dto.setBuysByExchangeBtc(roundedBtc);
+            dto.setTotalBuysBtc(dto.getTotalBuysBtc().setScale(8, RoundingMode.HALF_UP));
+            dto.setTotalSellsBtc(dto.getTotalSellsBtc().setScale(8, RoundingMode.HALF_UP));
+            
             result.add(dto);
         }
         return result;

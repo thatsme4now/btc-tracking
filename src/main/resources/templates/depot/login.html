@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Bitcoin Portfolio — Login</title>
+    <link rel="icon" type="image/x-icon"  th:href="@{/favicon.ico}"/>
+    <link rel="icon" type="image/png" sizes="32x32" th:href="@{/favicon-32.png}"/>
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/apple-touch-icon.png}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap.min.css}"/>
+    <link rel="stylesheet" th:href="@{/vendor/css/bootstrap-icons.min.css}"/>
+    <link rel="stylesheet" th:href="@{/css/depot.css}"/>
+</head>
+<body class="depot-body">
+
+<div class="login-page">
+    <div class="depot-card login-card">
+        <div class="text-center mb-4">
+            <i class="bi bi-currency-bitcoin" style="font-size:2rem;color:var(--accent)"></i>
+            <div class="depot-brand mt-1" style="font-size:1.1rem" data-i18n="nav.brand">BITCOIN PORTFOLIO</div>
+        </div>
+
+        <div th:if="${loggedOut}" class="login-msg login-msg-info" data-i18n="login.loggedOut">
+            You have been logged out.
+        </div>
+        <div th:if="${loginError == 'bad'}" class="login-msg login-msg-error" data-i18n="login.error.bad">
+            Wrong password.
+        </div>
+        <!-- 'locked' case needs {SECONDS} interpolation, which plain data-i18n doesn't support —
+             filled in by the inline script below via the same t(key, vars) helper applock.js uses. -->
+        <div th:if="${loginError == 'locked'}" id="loginLockedMsg" class="login-msg login-msg-error"></div>
+
+        <form method="post" th:action="@{/login}">
+            <input type="hidden" name="_csrf" th:if="${_csrf != null}" th:value="${_csrf.token}"/>
+            <input type="hidden" name="username" value="user"/>
+
+            <label class="depot-label mb-2" for="password" data-i18n="login.password.label">Password</label>
+            <input type="password" id="password" name="password"
+                   class="form-control depot-input depot-password-field mb-3"
+                   autocomplete="current-password" autofocus required/>
+
+            <button type="submit" class="btn depot-btn-primary w-100">
+                <i class="bi bi-box-arrow-in-right me-1"></i><span data-i18n="login.submit">Log in</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const LOCKED_SECONDS = /*[[${lockedSeconds}]]*/ 0;
+    /*]]>*/
+</script>
+<script th:src="@{/js/i18n.js}"></script>
+<script th:src="@{/js/theme.js}"></script>
+<script>
+    I18N.ready.then(() => {
+        I18N.applyI18n();
+        const lockedEl = document.getElementById('loginLockedMsg');
+        if (lockedEl) {
+            lockedEl.textContent = t('login.error.locked', { SECONDS: LOCKED_SECONDS });
+        }
+    });
+</script>
+
+</body>
+</html>

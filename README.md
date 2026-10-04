@@ -154,6 +154,11 @@ All settings in `application.properties` (or override via external file / enviro
 | `spring.datasource.username` | — | MySQL user |
 | `spring.datasource.password` | — | MySQL password |
 | `spring.jpa.show-sql` | `false` | Log SQL statements |
+| `server.ssl.enabled` | `false` | Enable HTTPS — see [TLS / HTTPS](#tls--https) below |
+| `server.ssl.key-store` | — | Path to a PKCS12 keystore, e.g. `file:./keystore.p12` |
+| `server.ssl.key-store-password` | — | Keystore password |
+| `server.ssl.key-store-type` | — | `PKCS12` |
+| `server.ssl.key-alias` | — | Key alias inside the keystore |
 
 **Mempool integration (optional, opt-in):** in-app under Settings → "Mempool integration",
 not an `application.properties` setting. Enter the host/port of your own self-hosted
@@ -161,6 +166,71 @@ mempool instance (e.g. the mempool app on your Umbrel/LAN) to enable fetching th
 BTC price by button and filling in missing monthly (Ultimo) reference prices in the yearly
 view — EUR/USD only, disabled by default (empty host/port). This app's own server (not your
 browser) connects to that host/port; only use your local network. See Data & Disclaimer below.
+
+**Password login (optional, opt-in):** in-app under Settings → "Password login", not an
+`application.properties` setting. A single, app-wide password — no username, no separate
+accounts. Off by default; enabling/disabling it or changing the password takes effect
+immediately, no restart needed. Once set, it protects the whole app — every page and every API
+endpoint — behind a login screen, and is separate from the "Lock" feature (which encrypts your
+data at rest; Password login instead controls who can reach the app at all). Repeated wrong
+attempts are rate-limited with an escalating lockout. Without HTTPS (see below), this protects
+against casual access on your network but not against someone who can already observe your
+network traffic — the password itself is never logged or stored anywhere except as a salted
+hash.
+
+### TLS / HTTPS
+
+Off by default — the app serves plain HTTP, same as before this option existed. If you run it
+directly (portable `.exe`, plain `java -jar`, or a bare `docker run -p 8080:8080` *without* a
+reverse proxy in front) and want the connection itself encrypted — recommended if you also
+enable Password login above, since otherwise the password travels in cleartext on your network
+— you can turn on HTTPS with a self-signed certificate:
+
+1. Generate a keystore (`keytool` ships with any JDK/JRE — replace `changeit` with your own
+   password):
+   ```bash
+   keytool -genkeypair -alias btc-tracking -keyalg RSA -keysize 2048 -validity 3650 \
+     -storetype PKCS12 -keystore keystore.p12 -storepass changeit \
+     -dname "CN=btc-tracking"
+   ```
+2. Add to `application.properties`, next to the JAR (or `depot-data.mv.db`):
+   ```properties
+   server.ssl.enabled=true
+   server.ssl.key-store=file:./keystore.p12
+   server.ssl.key-store-password=changeit
+   server.ssl.key-store-type=PKCS12
+   server.ssl.key-alias=btc-tracking
+   ```
+3. Restart the app. It's now reachable only via `https://…` on the same port — plain `http://`
+   will simply refuse to connect (there is no automatic redirect). Your browser will warn about
+   the self-signed certificate the first time; the connection is still genuinely encrypted, you
+   just need to accept/import the certificate once per device.
+
+To turn it off again: remove those five lines (or set `server.ssl.enabled=false`) and restart —
+plain configuration, no code changes or rebuild involved either way.
+
+**Generic Docker (`docker run`, not Umbrel):** put `keystore.p12` in the same volume already
+used for the database (`/app/data`) and pass the settings as environment variables instead of
+editing a file inside the image (Spring Boot maps `SERVER_SSL_ENABLED` etc. to the equivalent
+property automatically):
+```bash
+docker run -d \
+  --name btc-tracking \
+  -p 8080:8080 \
+  -v btc-tracking-data:/app/data \
+  -e SERVER_SSL_ENABLED=true \
+  -e SERVER_SSL_KEY_STORE=file:/app/data/keystore.p12 \
+  -e SERVER_SSL_KEY_STORE_PASSWORD=changeit \
+  -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 \
+  -e SERVER_SSL_KEY_ALIAS=btc-tracking \
+  thatsme4now/btc-tracking:latest
+```
+
+**⚠️ Do not enable this on the Umbrel install.** Umbrel already terminates HTTPS for you at its
+own reverse proxy (`app_proxy`) in front of every app; that proxy expects to reach this
+container over plain HTTP internally on the port declared in its `docker-compose.yml`. Turning
+on `server.ssl.enabled` inside the Umbrel container would make the app unreachable through
+Umbrel, since `app_proxy` wouldn't be able to speak HTTPS to it.
 
 
 ## Project Structure

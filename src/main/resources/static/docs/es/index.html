@@ -351,13 +351,14 @@
   <a href="#step-5"><span>05</span>Exportar CSV</a>
   <a href="#step-6"><span>06</span>Más funciones</a>
   <a href="#step-7"><span>07</span>Modo Einundzwanzig</a>
+  <a href="#step-8"><span>08</span>Inicio de sesión con contraseña</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>Importar CSV</h2>
       <p>
         Selecciona un archivo con <b>«Importar CSV»</b>. La importación se
@@ -416,7 +417,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>Formato CSV propio</h2>
       <p>
         Sin la opción CoinTracking, la app exporta en su propio formato. Es
@@ -446,7 +447,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>Gestión de datos</h2>
       <p>
         Las posiciones y transacciones se gestionan en la página
@@ -537,7 +538,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>Bloquear app</h2>
       <p>
         El icono de candado en el encabezado (junto a «Acciones» /
@@ -589,7 +590,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>Exportar CSV</h2>
       <p>
         Con <b>«Exportar CSV»</b> en el encabezado puedes exportar todas las
@@ -612,7 +613,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>Más funciones</h2>
       <p>
         La barra de iconos a la derecha del encabezado agrupa ajustes
@@ -668,7 +669,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>Modo Einundzwanzig</h2>
       <p>
         El icono «21» del encabezado activa un esquema de color alternativo
@@ -688,6 +689,40 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>Inicio de sesi&oacute;n con contrase&ntilde;a</h2>
+      <p>
+        Opcional, desactivado por defecto: una &uacute;nica contrase&ntilde;a para toda la
+        app que protege cada p&aacute;gina y cada endpoint de la API tras una
+        pantalla de inicio de sesi&oacute;n. Act&iacute;vala, c&aacute;mbiala o desact&iacute;vala en
+        <b>Ajustes &rarr; &laquo;Inicio de sesi&oacute;n con contrase&ntilde;a&raquo;</b> &mdash; surte efecto de
+        inmediato, sin reiniciar.
+      </p>
+      <table class="fields">
+        <tr><th>Campo</th><th>Significado</th></tr>
+        <tr><td class="field">Contrase&ntilde;a</td><td class="desc">Una &uacute;nica contrase&ntilde;a para toda la app &mdash; sin nombre de usuario, sin cuentas separadas</td></tr>
+        <tr><td class="field">Contrase&ntilde;a actual</td><td class="desc">Necesaria para cambiar o desactivar una contrase&ntilde;a ya establecida</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Solo para la sesi&oacute;n:</b> el inicio de sesi&oacute;n est&aacute; vinculado a la sesi&oacute;n del navegador &mdash; cerrar el navegador o reiniciar la app requiere volver a iniciar sesi&oacute;n. No existe la opci&oacute;n &laquo;recordarme&raquo;.</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>Almacenamiento:</b> la contrase&ntilde;a se guarda como hash <span class="inline-code">BCrypt</span>, nunca en texto plano, y nunca se registra en logs. Los intentos fallidos repetidos activan un bloqueo creciente que se duplica cada vez, hasta un m&aacute;ximo de 15 minutos.</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Relaci&oacute;n con &laquo;Bloquear app&raquo; (paso 04):</b> son independientes. El inicio de sesi&oacute;n controla qui&eacute;n puede acceder a la app; el bloqueo cifra los datos en reposo. Si ambos est&aacute;n activos, el inicio de sesi&oacute;n es la puerta exterior &mdash; primero inicias sesi&oacute;n y despu&eacute;s puede aparecer el di&aacute;logo &laquo;App bloqueada&raquo; si la app tambi&eacute;n est&aacute; bloqueada.</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>HTTP en texto plano:</b> sin HTTPS, la contrase&ntilde;a viaja sin cifrar por tu red. Consulta <a href="usage.html#tls" style="color:var(--accent)">Uso e instalaci&oacute;n &rarr; TLS / HTTPS</a> para configurar un certificado autofirmado.</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
