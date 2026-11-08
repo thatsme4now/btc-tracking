@@ -355,10 +355,11 @@
 	                    <th class="text-end" data-i18n="table.col.total">Total EUR</th>
 	                    <th class="text-end" data-i18n="table.col.profit"></th>
 	                    <th class="text-end" data-i18n="table.col.transferId">Transfer ID</th>
+	                    <th class="text-end" data-i18n="modal.field.blockchainTxId">On-chain TXID</th>
 	                </tr>
 	                </thead>
 	                <tbody id="txTableBody">
-	                <tr><td colspan="10" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
+	                <tr><td colspan="11" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
 	                </tbody>
 	            </table>
 	        </div>
@@ -517,6 +518,24 @@
 	      </div>
 	    </div>
 	  </div>
+	</div>
+	<div class="modal fade" id="txPairModal" tabindex="-1">
+	    <div class="modal-dialog modal-lg">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-arrow-left-right me-2"></i><span data-i18n="modal.txPair.title">Transfer pair</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <div class="row g-3" id="txPairBody"></div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
 	</div>
 	<!-- Export Modal -->
 	<div class="modal fade" id="exportModal" tabindex="-1">

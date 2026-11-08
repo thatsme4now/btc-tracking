@@ -472,5 +472,7 @@
   "holdings.buyDetail.avgPrice": "Prezzo medio/BTC",
   "holdings.buyDetail.backToPeriod": "Torna al periodo"  ,
     "holdings.buysUnit.fiat": "Mostra in valuta",
-    "holdings.buysUnit.btc": "Mostra in BTC"
+    "holdings.buysUnit.btc": "Mostra in BTC"    ,
+      "modal.txPair.title": "Coppia di trasferimentor",
+      "modal.field.blockchainTxId.copy": "Copia TXID"
 }

@@ -472,5 +472,7 @@
   "holdings.buyDetail.avgPrice": "ราคาเฉลี่ย/BTC",
   "holdings.buyDetail.backToPeriod": "กลับไปที่ช่วงเวลา"  ,
     "holdings.buysUnit.fiat": "แสดงเป็นสกุลเงิน",
-    "holdings.buysUnit.btc": "แสดงเป็น BTC"
+    "holdings.buysUnit.btc": "แสดงเป็น BTC"    ,
+      "modal.txPair.title": "คู่การโอน",
+      "modal.field.blockchainTxId.copy": "คัดลอก TXID"
 }

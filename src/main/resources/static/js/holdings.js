@@ -69,6 +69,26 @@ function setHoldingsBuysUnit(unit) {
     renderBuysByExchangeChart(_holdingsYearlyData, currency);
 }
 
+const HOLDINGS_BUYS_SCOPE_KEY = 'holdings-buys-scope';
+let _holdingsBuysScope = (() => {
+    try { return localStorage.getItem(HOLDINGS_BUYS_SCOPE_KEY) === 'unsold' ? 'unsold' : 'all'; }
+    catch (e) { return 'all'; }
+})();
+
+function _updateHoldingsBuysScopeButtons() {
+    document.querySelectorAll('.holdings-buys-scope-btn').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.scope === _holdingsBuysScope);
+    });
+}
+
+function setHoldingsBuysScope(scope) {
+    if (scope === _holdingsBuysScope || !_holdingsYearlyData) return;
+    _holdingsBuysScope = scope;
+    try { localStorage.setItem(HOLDINGS_BUYS_SCOPE_KEY, scope); } catch (e) { /* ignore */ }
+    _updateHoldingsBuysScopeButtons();
+    renderBuysByExchangeChart(_holdingsYearlyData, CURRENCY.current());
+}
+
 // Blue/turquoise shades, cycled per exchange/wallet label (stable, alphabetical order)
 const HOLDINGS_BUY_PALETTE = [
     '#378ADD', '#1D9E75', '#185FA5', '#0F6E56',
@@ -193,6 +213,7 @@ async function initHoldings() {
         contentEl.classList.remove('d-none');
         _holdingsYearlyData = data;
         _updateHoldingsBuysUnitButtons();
+        _updateHoldingsBuysScopeButtons();
         renderBuysChart(data, currency);
         renderBuysByExchangeChart(data, currency);
         renderRealizedPnlChart(data, currency);
@@ -411,16 +432,23 @@ function renderBuysChart(data, currency) {
  * it's about historical buying activity, not current holdings.
  */
 function renderBuysByExchangeChart(data, currency) {
-    const btc = _holdingsBuysUnit === 'btc';
+    const btc    = _holdingsBuysUnit === 'btc';
+    const unsold = _holdingsBuysScope === 'unsold';
     const fmtVal = (v) => btc ? fmtBtc(v) : CURRENCY.format(Number(v), currency);
+    const source = (d) => unsold
+        ? (btc ? d.buysByExchangeUnsoldBtc : d.buysByExchangeUnsold)
+        : (btc ? d.buysByExchangeBtc : d.buysByExchange);
+
+    // stable colors per exchange, independent of the active filter
+    const allLabels = Array.from(new Set((data || []).flatMap(d => Object.keys(d.buysByExchangeBtc || {})))).sort();
 
     const totals = {};
     (data || []).forEach(d => {
-        Object.entries((btc ? d.buysByExchangeBtc : d.buysByExchange) || {}).forEach(([label, amount]) => {
+        Object.entries(source(d) || {}).forEach(([label, amount]) => {
             totals[label] = (totals[label] || 0) + Number(amount || 0);
         });
     });
-    const labels = Object.keys(totals).sort();
+    const labels = Object.keys(totals).filter(l => totals[l] > 0).sort();
     const values = labels.map(l => totals[l]);
 
     if (_holdingsBuysByExchangeChart) { _holdingsBuysByExchangeChart.destroy(); _holdingsBuysByExchangeChart = null; }
@@ -435,7 +463,7 @@ function renderBuysByExchangeChart(data, currency) {
             type:   'donut',
             height: window.innerHeight / 3
         },
-        colors: labels.map((_, i) => HOLDINGS_BUY_PALETTE[i % HOLDINGS_BUY_PALETTE.length]),
+        colors: labels.map(l => HOLDINGS_BUY_PALETTE[Math.max(allLabels.indexOf(l), 0) % HOLDINGS_BUY_PALETTE.length]),
         plotOptions: {
             pie: {
                 donut: {
@@ -469,7 +497,6 @@ function renderBuysByExchangeChart(data, currency) {
     _holdingsBuysByExchangeChart = new ApexCharts(document.getElementById('holdingsBuysByExchangeChart'), options);
     _holdingsBuysByExchangeChart.render();
 
-    // same fix as initHoldingsDonut(): forces a width recalculation
     window.dispatchEvent(new Event('resize'));
 }
 

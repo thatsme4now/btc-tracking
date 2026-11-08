@@ -42,4 +42,10 @@ public class YearlyHoldingsDTO {
 
     /** Total BTC held across the whole portfolio as of 31.12. of this year (or now, for the current year). */
     private BigDecimal btcBalance = BigDecimal.ZERO;
+    
+    /** Anteilige Anschaffungskosten der noch nicht verkauften Käufe (FIFO), pro Börse, Fiat. */
+    private Map<String, BigDecimal> buysByExchangeUnsold = new LinkedHashMap<>();
+
+    /** FIFO-Restmenge der noch nicht verkauften Käufe (BTC), pro Börse. */
+    private Map<String, BigDecimal> buysByExchangeUnsoldBtc = new LinkedHashMap<>();
 }

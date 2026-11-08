@@ -3,8 +3,10 @@ package com.thatsme4now.depot.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +19,7 @@ import com.thatsme4now.depot.dto.PortfolioMetricsDTO;
 import com.thatsme4now.depot.dto.PositionDTO;
 import com.thatsme4now.depot.dto.YearlyHoldingsDTO;
 import com.thatsme4now.depot.entity.Transaction;
+import com.thatsme4now.depot.entity.TransactionType;
 import com.thatsme4now.depot.repository.HistoricalPriceRepository;
 import com.thatsme4now.depot.repository.TransactionRepository;
 
@@ -76,7 +79,8 @@ public class HoldingsYearlyService {
         // Snapshot of running qty/cost as of the last transaction seen in each year
         Map<Integer, BigDecimal> yearEndQty  = new HashMap<>();
         Map<Integer, BigDecimal> yearEndCost = new HashMap<>();
-
+        Map<Long, BigDecimal> remainingByBuy = remainingQtyByBuy(txs);
+        
         for (Transaction tx : txs) {
             int year = tx.getDate().getYear();
             YearlyHoldingsDTO dto = byYear.get(year);
@@ -95,6 +99,15 @@ public class HoldingsYearlyService {
                         String label = tx.getPosition() != null ? tx.getPosition().getLabel() : "?";
                         dto.getBuysByExchange().merge(label, cost, BigDecimal::add);
                         dto.setTotalBuys(dto.getTotalBuys().add(cost));
+                    }
+                    BigDecimal remQty = remainingByBuy.getOrDefault(tx.getId(), BigDecimal.ZERO);
+                    if (remQty.signum() > 0 && tx.getQuantity().signum() > 0) {
+                        dto.getBuysByExchangeUnsoldBtc().merge(buyLabel, remQty, BigDecimal::add);
+                        BigDecimal unsoldCost = fiatValue(tx, cur);
+                        if (unsoldCost != null) {
+                            BigDecimal share = unsoldCost.multiply(remQty).divide(tx.getQuantity(), 8, RoundingMode.HALF_UP);
+                            dto.getBuysByExchangeUnsold().merge(buyLabel, share, BigDecimal::add);
+                        }
                     }
                 }
                 case SELL -> {
@@ -167,6 +180,14 @@ public class HoldingsYearlyService {
             dto.setBuysByExchangeBtc(roundedBtc);
             dto.setTotalBuysBtc(dto.getTotalBuysBtc().setScale(8, RoundingMode.HALF_UP));
             dto.setTotalSellsBtc(dto.getTotalSellsBtc().setScale(8, RoundingMode.HALF_UP));
+            
+            Map<String, BigDecimal> roundedUnsold = new LinkedHashMap<>();
+            dto.getBuysByExchangeUnsold().forEach((k, v) -> roundedUnsold.put(k, v.setScale(2, RoundingMode.HALF_UP)));
+            dto.setBuysByExchangeUnsold(roundedUnsold);
+
+            Map<String, BigDecimal> roundedUnsoldBtc = new LinkedHashMap<>();
+            dto.getBuysByExchangeUnsoldBtc().forEach((k, v) -> roundedUnsoldBtc.put(k, v.setScale(8, RoundingMode.HALF_UP)));
+            dto.setBuysByExchangeUnsoldBtc(roundedUnsoldBtc);
             
             result.add(dto);
         }
@@ -279,5 +300,29 @@ public class HoldingsYearlyService {
             return tx.getQuantityFiat();
         }
         return tx.getQuantityFiat().multiply(rate);
+    }
+    
+    /** Portfolio-wide FIFO: remaining (unsold) quantity per BUY id. Same semantics as holdings.js#_computeBuyFifoStates. */
+    private Map<Long, BigDecimal> remainingQtyByBuy(List<Transaction> sortedTxs) {
+        Map<Long, BigDecimal> remaining = new HashMap<>();
+        Deque<Transaction> queue = new ArrayDeque<>();
+        for (Transaction tx : sortedTxs) {
+            if (tx.getType() == TransactionType.BUY) {
+                remaining.put(tx.getId(), tx.getQuantity());
+                queue.addLast(tx);
+            } else if (tx.getType() == TransactionType.SELL) {
+                BigDecimal toConsume = tx.getQuantity();
+                while (toConsume.signum() > 0 && !queue.isEmpty()) {
+                    Transaction lot = queue.peekFirst();
+                    BigDecimal left = remaining.get(lot.getId());
+                    BigDecimal take = left.min(toConsume);
+                    BigDecimal newLeft = left.subtract(take);
+                    remaining.put(lot.getId(), newLeft);
+                    toConsume = toConsume.subtract(take);
+                    if (newLeft.signum() <= 0) queue.pollFirst();
+                }
+            }
+        }
+        return remaining;
     }
 }

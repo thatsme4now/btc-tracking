@@ -303,6 +303,12 @@
                             <i class="bi bi-grip-vertical holdings-drag-handle"></i>
                             <span class="holdings-chart-title-text" data-i18n="holdings.chart.buysByExchange">Käufe pro Börse</span>
                             <span class="pill-filter">
+							    <button type="button" class="pill-filter-btn holdings-buys-scope-btn" data-scope="all"
+							            onclick="setHoldingsBuysScope('all')" data-i18n="holdings.buysScope.all">Alle</button>
+							    <button type="button" class="pill-filter-btn holdings-buys-scope-btn" data-scope="unsold"
+							            onclick="setHoldingsBuysScope('unsold')" data-i18n="holdings.buysScope.unsold">Nicht verkauft</button>
+							</span>
+                            <span class="pill-filter">
 							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="fiat"
 							            onclick="setHoldingsBuysUnit('fiat')" data-i18n-title="holdings.buysUnit.fiat"></button>
 							    <button type="button" class="pill-filter-btn holdings-buys-unit-btn" data-unit="btc"

@@ -494,7 +494,7 @@ async function loadTransactions() {
         })
         .catch(err => {
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -511,10 +511,13 @@ const TX_TYPE_COLORS = {
 
 // Builds the HTML for a single transaction row (without inserting it anywhere)
 function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
+    const hasPair = (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT')
+        && tx.transferId && transferIdCounts[tx.transferId] >= 2;
     const color   = TX_TYPE_COLORS[tx.type] || '';
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-
+    const shortTxId = tx.blockchainTxId ? tx.blockchainTxId.substring(0, 10) + '…' : '–';
+    
     const isSolo = tx.transferId
         && transferIdCounts[tx.transferId] === 1
         && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
@@ -557,9 +560,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
 	                <i class="bi bi-copy"></i>
 	            </button>
-	            ${tx.blockchainTxId ? `<button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
-	                <i class="bi bi-box-arrow-up-right"></i>
-	            </button>` : ''}
+	            
 	            <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
 	                <i class="bi bi-trash"></i>
 	            </button>
@@ -572,8 +573,11 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-	    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
-	</tr>`;
+        <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${hasPair ? `<button class="btn btn-xs depot-btn-icon me-1" onclick="event.stopPropagation(); openTransferPairModal(${tx.id})" title="${esc(t('modal.txPair.title'))}"><i class="bi bi-arrow-left-right"></i></button>` : ''}${shortId}</td>
+        <td class="text-end text-muted" style="font-size:.7rem;white-space:nowrap" data-search="${esc(tx.blockchainTxId || '')}" data-cell-label="${esc(t('modal.field.blockchainTxId'))}"><span title="${esc(tx.blockchainTxId || '')}">${esc(shortTxId)}</span>${tx.blockchainTxId ? `
+            <button class="btn btn-xs depot-btn-icon ms-1" onclick="event.stopPropagation(); copyTxId(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')}, this)" title="${esc(t('modal.field.blockchainTxId.copy'))}"><i class="bi bi-clipboard"></i></button>
+            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}"><i class="bi bi-box-arrow-up-right"></i></button>` : ''}</td>
+    </tr>`;
 }
 
 // Copies attributes and inner content onto the existing row node without swapping the DOM node itself, so DataTables' row(node).invalidate() still tracks it correctly.
@@ -616,7 +620,7 @@ function renderTxTable(data) {
 
         document.getElementById('txTableBody').innerHTML = data.length
             ? [...newHtmlById.values()].join('')
-            : `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+            : `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
         _markDuplicates();
 
         $('#txTable').DataTable({
@@ -804,8 +808,82 @@ const OVERVIEW_TX_BADGE_MAP = {
     TRANSFER_OUT: { cls: 'type-transfer-out', key: 'flow.panel.transferOut' }
 };
 
+function copyTxId(txId, btn) {
+    if (!txId) return;
+    const done = () => {
+        const icon = btn ? btn.querySelector('i') : null;
+        if (icon) {
+            const orig = icon.className;
+            icon.className = 'bi bi-check-lg';
+            setTimeout(() => icon.className = orig, 1500);
+        }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(txId).then(done).catch(() => _copyTextFallback(txId, done));
+    } else {
+        _copyTextFallback(txId, done);
+    }
+}
+
+function openTransferPairModal(txId) {
+    const tx = (_lastTxData || []).find(x => x.id === txId);
+    if (!tx || !tx.transferId) return;
+
+    const legs = _lastTxData
+        .filter(x => x.transferId === tx.transferId)
+        .sort((a, b) => (a.type === 'TRANSFER_OUT' ? -1 : 1) - (b.type === 'TRANSFER_OUT' ? -1 : 1));
+
+    document.getElementById('txPairBody').innerHTML = legs.map(x => {
+        const isOut = x.type === 'TRANSFER_OUT';
+        const date  = x.date ? x.date.replace('T', ' ').substring(0, 19) : '–';
+        const badge = `<span class="overview-tx-card-badge ${isOut ? 'type-transfer-out' : 'type-transfer-in'}">${esc(t(isOut ? 'flow.panel.transferOut' : 'flow.panel.transferIn'))}</span>`;
+        const feesLine = x.fees != null && Number(x.fees) !== 0
+            ? _overviewTxFieldRow(t('table.col.fees'), esc(x.fees) + ' ' + esc(x.feesCurrency || ''))
+            : '';
+        const txIdLine = x.blockchainTxId
+            ? _overviewTxFieldRow(t('modal.field.blockchainTxId'), esc(x.blockchainTxId.substring(0, 10)) + '…', x.blockchainTxId)
+            : '';
+        const commentLine = x.comment
+            ? _overviewTxFieldRow(t('modal.field.comment'), esc(x.comment), x.comment, true)
+            : '';
+        return `<div class="col-md-6">
+            <div class="overview-tx-card" style="cursor:default">
+                <div class="overview-tx-card-head"><span>${esc(x.positionLabel || '–')}</span>${badge}</div>
+                ${_overviewTxFieldRow(t('table.col.date'), date)}
+                ${_overviewTxFieldRow(t('table.col.btc'), fmt8(x.quantity))}
+                ${feesLine}${txIdLine}${commentLine}
+            </div>
+        </div>`;
+    }).join('');
+
+    (bootstrap.Modal.getInstance(document.getElementById('txPairModal'))
+        || new bootstrap.Modal(document.getElementById('txPairModal'))).show();
+}
+
+function _copyTextFallback(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { showToast('✗ ' + t('toast.error'), 'error'); }
+    document.body.removeChild(ta);
+}
+
 // Builds a card from raw tx data (content) plus the matching rendered <tr> (selection/status state), keeping the card consistent with the table.
 function _buildTxCardHtml(tx, row) {
+    const hasPair = (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT')
+        && tx.transferId
+        && (_lastTxData || []).filter(x => x.transferId === tx.transferId).length >= 2;
+    const pairBtn = hasPair
+        ? `<button type="button" class="btn btn-xs depot-btn-icon me-1" title="${esc(t('modal.txPair.title'))}"
+                   onclick="event.stopPropagation(); openTransferPairModal(${tx.id})">
+               <i class="bi bi-arrow-left-right"></i>
+           </button>`
+        : '';
+            
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
     const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import']
@@ -816,7 +894,10 @@ function _buildTxCardHtml(tx, row) {
     const badge = badgeInfo
         ? `<span class="overview-tx-card-badge ${badgeInfo.cls}">${esc(t(badgeInfo.key))}</span>`
         : '';
-
+    const txIdLine = tx.blockchainTxId
+        ? _overviewTxFieldRow(t('modal.field.blockchainTxId'), esc(tx.blockchainTxId.substring(0, 10)) + '…', tx.blockchainTxId)
+        : '';
+        
     let earning = '–';
     let posNeg  = '';
     if (tx.type === 'BUY') {
@@ -847,7 +928,7 @@ function _buildTxCardHtml(tx, row) {
         ? _overviewTxFieldRow(t('table.col.gl'), `<span class="${posNeg}">${earning}</span>`)
         : '';
     const transferLine = tx.transferId
-        ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
+        ? _overviewTxFieldRow(t('table.col.transferId'), pairBtn + esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
         : '';
     // truncate to 20 chars (full text in the tooltip) and left-align, otherwise a long comment widens the card
     const commentText = tx.comment && tx.comment.length > 20 ? tx.comment.substring(0, 20) + '…' : tx.comment;
@@ -875,6 +956,10 @@ function _buildTxCardHtml(tx, row) {
                         onclick="openAddTx(${txJson})">
                     <i class="bi bi-copy"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.copy'))}"
+                        onclick="copyTxId(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')}, this)">
+                    <i class="bi bi-clipboard"></i>     <!-- war: bi bi-copy -->
+                </button>` : ''}
                 ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.jump'))}"
                         onclick="jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
                     <i class="bi bi-box-arrow-up-right"></i>
@@ -887,7 +972,7 @@ function _buildTxCardHtml(tx, row) {
         </div>
         ${_overviewTxFieldRow(t('table.col.date'), date)}
         ${_overviewTxFieldRow(t('table.col.btc'), fmt8(tx.quantity))}
-        ${priceLine}${totalLine}${glLine}${transferLine}${commentLine}
+        ${priceLine}${totalLine}${glLine}${transferLine}${txIdLine}${commentLine}
     </div>`;
 }
 
@@ -2081,6 +2166,7 @@ function _addressBalanceResultHtml(addressId, data) {
                                 title="${esc(t('form.position.addresses.link.hint'))}">
                             <i class="bi bi-link-45deg me-1"></i><span data-i18n="form.position.addresses.link">Link</span>
                         </button>
+                        
                     </div>
                 `).join('')}
                 <label class="address-balance-import-anyway">
@@ -2100,7 +2186,10 @@ function _addressBalanceResultHtml(addressId, data) {
                 ${esc(tx.txid.substring(0, 10))}…
                 <button type="button" class="btn btn-xs depot-btn-icon" onclick="jumpToMempoolTx(${JSON.stringify(tx.txid).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
                     <i class="bi bi-box-arrow-up-right"></i>
-                </button>${trackedNote}
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon" onclick="copyTxId(${JSON.stringify(tx.txid).replace(/"/g,'&quot;')}, this)" title="${esc(t('modal.field.blockchainTxId.copy'))}">
+                                          <i class="bi bi-copy"></i>
+                                      </button>${trackedNote}
             </td>
             <td>${actionCell}</td>
         </tr>`;
