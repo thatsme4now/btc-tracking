@@ -471,8 +471,10 @@
   "holdings.buyDetail.periodCount": "{COUNT} compras",
   "holdings.buyDetail.avgPrice": "Precio medio/BTC",
   "holdings.buyDetail.backToPeriod": "Volver al período"  ,
-    "holdings.buysUnit.fiat": "Mostrar en moneda",
-    "holdings.buysUnit.btc": "Mostrar en BTC"    ,
-      "modal.txPair.title": "Par de transferencia",
-      "modal.field.blockchainTxId.copy": "Copiar TXID"
+  "holdings.buysUnit.fiat": "Mostrar en moneda",
+  "holdings.buysUnit.btc": "Mostrar en BTC"    ,
+  "modal.txPair.title": "Par de transferencia",
+  "modal.field.blockchainTxId.copy": "Copiar TXID",
+  "holdings.buysScope.all": "Todas",
+  "holdings.buysScope.unsold": "No vendidas"
 }

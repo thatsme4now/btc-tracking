@@ -471,8 +471,10 @@
   "holdings.buyDetail.periodCount": "{COUNT} buys",
   "holdings.buyDetail.avgPrice": "Avg. price/BTC",
   "holdings.buyDetail.backToPeriod": "Back to period"  ,
-    "holdings.buysUnit.fiat":   "Show in currency",
-    "holdings.buysUnit.btc": "Show in BTC"    ,
-      "modal.txPair.title": "Transfer pair",
-      "modal.field.blockchainTxId.copy": "Copy TXID"
+  "holdings.buysUnit.fiat":   "Show in currency",
+  "holdings.buysUnit.btc": "Show in BTC"    ,
+  "modal.txPair.title": "Transfer pair",
+  "modal.field.blockchainTxId.copy": "Copy TXID",
+  "holdings.buysScope.all": "All",
+  "holdings.buysScope.unsold": "Unsold"
 }

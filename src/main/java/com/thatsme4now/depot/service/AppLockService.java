@@ -112,7 +112,7 @@ public class AppLockService {
      * all require being authenticated first.
      */
     public void reset(String confirm) {
-        if (!"delete".equals(confirm)) {
+        if (!"delete".equalsIgnoreCase(confirm)) {
             throw new IllegalArgumentException("Confirmation text must be 'delete'.");
         }
         if (isLocked()) {
