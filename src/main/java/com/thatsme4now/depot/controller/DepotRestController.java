@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -66,6 +67,8 @@ public class DepotRestController {
     private final MonthlyOverviewService monthlyOverviewService;
     private final MempoolPriceService mempoolPriceService;
     private final XpubScanService xpubScanService;
+    private final PasswordEncoder passwordEncoder;
+    
 
     // Used to convert mempool's block_time (Unix epoch, UTC) into this app's LocalDateTime "date"
     // fields when importing on-chain transactions — same zone HistoricalPriceService/MonthlyPriceService use.
@@ -201,10 +204,11 @@ public class DepotRestController {
     public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
             @RequestParam(required = false, name = "from") String from,
             @RequestParam(required = false, name = "to") String to,
-            @RequestParam(required = false, name = "positionId") Long positionId) {
+            @RequestParam(required = false, name = "positionId") Long positionId,
+            @RequestParam(required = false, name = "includeIgnored", defaultValue = "true") boolean includeIgnored) {
 		java.time.LocalDate fromDate = (from != null && !from.isBlank()) ? java.time.LocalDate.parse(from) : null;
 		java.time.LocalDate toDate = (to != null && !to.isBlank()) ? java.time.LocalDate.parse(to) : null;
-		return flowService.buildFlowGraph(fromDate, toDate, positionId);
+		return flowService.buildFlowGraph(fromDate, toDate, positionId, includeIgnored);
     }
 
     /** Returns the raw daily BTC price history. */
@@ -231,6 +235,24 @@ public class DepotRestController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    
+    @PostMapping("/transactions/bulk-ignore")
+    public ResponseEntity<Map<String, Object>> bulkIgnore(@RequestBody BulkIgnoreRequest req) {
+        if (req.getIds() == null || req.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
+        }
+        int updated = 0;
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx == null) continue;
+            tx.setIgnored(req.isIgnored());
+            depotService.saveTransaction(tx);
+            depotService.syncIgnoredToPairedTransfer(tx);
+            updated++;
+        }
+        return ResponseEntity.ok(Map.of("updated", updated));
+    }
+
     
     /**
      * POST /api/depot/import-enc
@@ -365,6 +387,7 @@ public class DepotRestController {
             txIn.setCurrency(tx.getCurrency());
             txIn.setTransferId(uuid);
             txIn.setComment(tx.getComment());
+            txIn.setIgnored(tx.isIgnored());
             // Same physical on-chain transaction as the TRANSFER_OUT half — share the TXID immediately.
             txIn.setBlockchainTxId(tx.getBlockchainTxId());
             Position targetPos = csvImportService.resolvePosition(req.getTransferTarget());
@@ -388,6 +411,8 @@ public class DepotRestController {
             depotService.saveTransaction(tx);
             // Self-transfer pair: propagate the TXID to the other leg if it's still empty there.
             depotService.syncBlockchainTxIdToPairedTransfer(tx);
+            depotService.syncIgnoredToPairedTransfer(tx);
+
             return ResponseEntity.ok(depotService.getAllTransactions()
                 .stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow());
         }).orElse(ResponseEntity.notFound().build());
@@ -408,6 +433,8 @@ public class DepotRestController {
 		}
 		if (req.getCurrency()     != null) tx.setCurrency(req.getCurrency());
 		if (req.getExchangeRate() != null) tx.setExchangeRate(req.getExchangeRate());
+		if (req.getIgnored() != null) tx.setIgnored(req.getIgnored());
+
 		if (req.getExchange()     != null) {
 			Position position = csvImportService.resolvePosition(req.getExchange());
 	    	tx.setPosition(position);
@@ -730,7 +757,7 @@ public class DepotRestController {
 
     // ── App Settings ──────────────────────────────────────────────────────────
 
-    /** Returns the app settings (tax holding-period cutoff date, mempool host/port). */
+    /** Returns the app settings (tax holding-period cutoff date, mempool host/port, whether login is enabled). */
     @GetMapping("/settings")
     public ResponseEntity<Map<String, Object>> getSettings() {
         AppSettings settings = depotService.getAppSettings();
@@ -738,6 +765,7 @@ public class DepotRestController {
         body.put("taxHoldingPeriodCutoffDate", settings.getTaxHoldingPeriodCutoffDate());
         body.put("mempoolHost", settings.getMempoolHost());
         body.put("mempoolPort", settings.getMempoolPort());
+        body.put("loginEnabled", isLoginEnabled(settings));
         return ResponseEntity.ok(body);
     }
 
@@ -762,6 +790,56 @@ public class DepotRestController {
         body.put("mempoolHost", settings.getMempoolHost());
         body.put("mempoolPort", settings.getMempoolPort());
         return ResponseEntity.ok(body);
+    }
+
+    private boolean isLoginEnabled(AppSettings settings) {
+        String hash = settings.getLoginPasswordHash();
+        return hash != null && !hash.isBlank();
+    }
+
+    /**
+     * Sets or changes the optional app-wide login password (see SecurityConfig). If a password is
+     * already set, the current one must be supplied and match — this also covers the very first
+     * time a password is set, since currentPassword is only checked when one already exists. The
+     * new password is BCrypt-hashed before being persisted; the raw password itself is never
+     * stored, logged, or returned in the response.
+     */
+    @PutMapping("/settings/login")
+    public ResponseEntity<Map<String, Object>> setLoginPassword(@RequestBody LoginPasswordSetRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        String currentHash = settings.getLoginPasswordHash();
+        boolean currentlySet = isLoginEnabled(settings);
+
+        if (currentlySet && (req.getCurrentPassword() == null
+                || !passwordEncoder.matches(req.getCurrentPassword(), currentHash))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
+        }
+        if (req.getNewPassword() == null || req.getNewPassword().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "New password must not be empty."));
+        }
+        if (!req.getNewPassword().equals(req.getNewPasswordConfirm())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Passwords do not match."));
+        }
+
+        settings.setLoginPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        depotService.saveAppSettings(settings);
+        return ResponseEntity.ok(Map.of("loginEnabled", true));
+    }
+
+    /** Disables the login password — requires the current password to confirm. */
+    @DeleteMapping("/settings/login")
+    public ResponseEntity<Map<String, Object>> disableLoginPassword(@RequestBody LoginPasswordDisableRequest req) {
+        AppSettings settings = depotService.getAppSettings();
+        String currentHash = settings.getLoginPasswordHash();
+        if (!isLoginEnabled(settings)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Login is already disabled."));
+        }
+        if (req.getCurrentPassword() == null || !passwordEncoder.matches(req.getCurrentPassword(), currentHash)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Current password is incorrect."));
+        }
+        settings.setLoginPasswordHash(null);
+        depotService.saveAppSettings(settings);
+        return ResponseEntity.ok(Map.of("loginEnabled", false));
     }
 
     /** Returns a single wallet/exchange position. */
@@ -1290,6 +1368,7 @@ public class DepotRestController {
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
         return depotService.getAllPositions(currency).stream()
+        	.sorted((o1, o2)->o1.getLabel().compareTo(o2.getLabel()))
             .map(p -> Map.<String, Object>of(
                 "id", p.getId(),
                 "label", p.getLabel(),
@@ -1466,6 +1545,19 @@ public class DepotRestController {
         private Integer mempoolPort;
     }
 
+    @lombok.Data
+    public static class LoginPasswordSetRequest {
+        /** Required only if a login password is already set — ignored on first-time setup. */
+        private String currentPassword;
+        private String newPassword;
+        private String newPasswordConfirm;
+    }
+
+    @lombok.Data
+    public static class LoginPasswordDisableRequest {
+        private String currentPassword;
+    }
+
 
     @lombok.Data
     public static class MappedImportRequest {
@@ -1506,6 +1598,8 @@ public class DepotRestController {
         private String transferTarget;                   // position label for the paired TRANSFER_IN
         private String transferInDate;                    // optional, defaults to date; format "yyyy-MM-dd HH:mm:ss"
         private java.math.BigDecimal transferInQuantity;  // optional, defaults to quantity
+        private Boolean ignored;
+
     }
     
     @lombok.Data
@@ -1606,5 +1700,11 @@ public class DepotRestController {
         private Integer month;
         private String currency;
         private java.math.BigDecimal price;
+    }
+    
+    @lombok.Data
+    public static class BulkIgnoreRequest {
+        private List<Long> ids;
+        private boolean ignored;
     }
 }

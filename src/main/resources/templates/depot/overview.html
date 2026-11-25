@@ -271,6 +271,9 @@
 			        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			        </button>
+			        <button class="btn btn-xs depot-btn-outline" onclick="bulkSetIgnored(true)"><i class="bi bi-eye-slash me-1"></i><span data-i18n="table.action.ignore"></span></button>
+                    <button class="btn btn-xs depot-btn-outline" onclick="bulkSetIgnored(false)"><i class="bi bi-eye me-1"></i><span data-i18n="table.action.unignore"></span></button>
+			        
 			    </div>
 
 			    <!-- Compact dropdown toolbar for card view, toggled via depot.js _overviewApplyTxViewMode() -->
@@ -293,6 +296,9 @@
 			                <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li>
 			                <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li>
 			                <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li>
+                            <li><button class="dropdown-item" onclick="bulkSetIgnored(true)"><i class="bi bi-eye-slash me-1"></i><span data-i18n="table.action.ignore"></span></button></li>
+                            <li><button class="dropdown-item" onclick="bulkSetIgnored(false)"><i class="bi bi-eye me-1"></i><span data-i18n="table.action.unignore"></span></button></li>
+   
 			                <li><hr class="dropdown-divider"></li>
 			                <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li>
 			            </ul>
@@ -317,6 +323,8 @@
 					<button type="button" class="pill-filter-btn" data-mode="duplicate" onclick="toggleTxPillFilter('duplicate')" data-i18n="table.filter.duplicates">Mögliche Duplikate</button>
 					<button type="button" class="pill-filter-btn" data-mode="currency" onclick="toggleTxPillFilter('currency')" data-i18n="table.filter.currencyNoRate">Fremdwährung ohne Wechselkurs</button>
 					<button type="button" class="pill-filter-btn" data-mode="solo" onclick="toggleTxPillFilter('solo')" data-i18n="table.filter.soloTransfer">Solo-Transfer</button>
+					<button type="button" class="pill-filter-btn" data-mode="ignored" onclick="toggleTxPillFilter('ignored')" data-i18n="table.filter.ignored">Ignoriert</button>
+					
 				</div>
 
 				<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
@@ -336,6 +344,8 @@
 				        <span class="tx-legend-dot" style="background:var(--last-import)"></span>
 				        <span data-i18n="legend.last.import"></span>
 				    </span>
+				    <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--text-muted);opacity:.5"></span><span data-i18n="legend.ignored"></span></span>
+				    
 				</div>
 
 				<div class="table-responsive" id="txTableWrap">
@@ -355,10 +365,11 @@
 	                    <th class="text-end" data-i18n="table.col.total">Total EUR</th>
 	                    <th class="text-end" data-i18n="table.col.profit"></th>
 	                    <th class="text-end" data-i18n="table.col.transferId">Transfer ID</th>
+	                    <th class="text-end" data-i18n="modal.field.blockchainTxId">On-chain TXID</th>
 	                </tr>
 	                </thead>
 	                <tbody id="txTableBody">
-	                <tr><td colspan="10" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
+	                <tr><td colspan="11" class="text-center text-muted py-3" data-i18n="dt.loading">Loading…</td></tr>
 	                </tbody>
 	            </table>
 	        </div>
@@ -517,6 +528,24 @@
 	      </div>
 	    </div>
 	  </div>
+	</div>
+	<div class="modal fade" id="txPairModal" tabindex="-1">
+	    <div class="modal-dialog modal-lg">
+	        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+	            <div class="modal-header" style="border-bottom:1px solid var(--border)">
+	                <span class="depot-card-header mb-0">
+	                    <i class="bi bi-arrow-left-right me-2"></i><span data-i18n="modal.txPair.title">Transfer pair</span>
+	                </span>
+	                <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal"></button>
+	            </div>
+	            <div class="modal-body">
+	                <div class="row g-3" id="txPairBody"></div>
+	            </div>
+	            <div class="modal-footer" style="border-top:1px solid var(--border)">
+	                <button class="btn depot-btn-outline" data-bs-dismiss="modal" data-i18n="modal.cancel">Cancel</button>
+	            </div>
+	        </div>
+	    </div>
 	</div>
 	<!-- Export Modal -->
 	<div class="modal fade" id="exportModal" tabindex="-1">
@@ -679,6 +708,12 @@
                             <div class="form-text text-muted" style="font-size:.7rem"
                                  data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
                         </div>
+                        <div class="col-lg-12">
+						    <div class="form-check">
+						        <input type="checkbox" class="form-check-input" id="addTxIgnored"/>
+						        <label class="form-check-label" for="addTxIgnored" data-i18n="modal.field.ignored">Ignoriert</label>
+						    </div>
+						</div>
                         <div class="col-lg-12">
                             <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
                             <textarea id="addTxComment" class="form-control depot-input"></textarea>
@@ -993,6 +1028,7 @@
 <div th:replace="~{depot/fragments/navbar-modals :: navbarModals}"></div>
 </main>
 
+<script th:src="@{/js/csrf.js}"></script>
 <script th:inline="javascript">
     /*<![CDATA[*/
     const SERVER_CURRENCY     = /*[[${currency}]]*/ 'EUR';

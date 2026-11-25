@@ -401,7 +401,7 @@ function togglePosEmptyFilter(mode) {
 // Each mode maps to a fact already available on the rendered <tr> (class or data attribute), see
 // _buildTxRowHtml(). No mode active = "Alle" = no filtering.
 const TX_FILTER_KEY = 'tx-pill-filters-v1';
-const TX_FILTER_MODES = ['comment', 'txid', 'duplicate', 'currency', 'solo'];
+const TX_FILTER_MODES = ['comment', 'txid', 'duplicate', 'currency', 'solo', 'ignored'];
 let _txActiveFilters = new Set(_loadTxFilters());
 
 function _loadTxFilters() {
@@ -424,6 +424,7 @@ function _txRowMatchesFilter(row, mode) {
         case 'duplicate': return row.classList.contains('warning-duplicate');
         case 'currency':  return row.classList.contains('warning');
         case 'solo':      return row.classList.contains('solo-transfer');
+        case 'ignored': return row.classList.contains('ignored-tx');
         default:          return true;
     }
 }
@@ -494,7 +495,7 @@ async function loadTransactions() {
         })
         .catch(err => {
             document.getElementById('txTableBody').innerHTML =
-                `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
+                `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-neg py-3 text-center">${t('toast.error')}: ${err.message}</td><td></td><td></td><td></td><td></td></tr>`;
         });
 }
 
@@ -511,10 +512,13 @@ const TX_TYPE_COLORS = {
 
 // Builds the HTML for a single transaction row (without inserting it anywhere)
 function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
+    const hasPair = (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT')
+        && tx.transferId && transferIdCounts[tx.transferId] >= 2;
     const color   = TX_TYPE_COLORS[tx.type] || '';
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const shortId = tx.transferId ? tx.transferId.substring(0, 8) + '…' : '–';
-
+    const shortTxId = tx.blockchainTxId ? tx.blockchainTxId.substring(0, 10) + '…' : '–';
+    
     const isSolo = tx.transferId
         && transferIdCounts[tx.transferId] === 1
         && (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT');
@@ -543,7 +547,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
         earning="–";
     }
     const hasComment = !!(tx.comment && tx.comment.trim());
-    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" data-blockchain-tx-id="${esc(tx.blockchainTxId || '')}" data-has-comment="${hasComment ? '1' : ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+    return `<tr class="depot-row  ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''} ${tx.ignored ? 'ignored-tx' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" data-blockchain-tx-id="${esc(tx.blockchainTxId || '')}" data-has-comment="${hasComment ? '1' : ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 	    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 	               style="accent-color:var(--accent)"/>
@@ -557,9 +561,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); openAddTx(${JSON.stringify(tx).replace(/"/g,'&quot;')})" title="Copy">
 	                <i class="bi bi-copy"></i>
 	            </button>
-	            ${tx.blockchainTxId ? `<button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
-	                <i class="bi bi-box-arrow-up-right"></i>
-	            </button>` : ''}
+	            
 	            <button class="btn btn-xs depot-btn-icon text-neg" onclick="event.stopPropagation(); deleteTx(${tx.id})" title="Delete">
 	                <i class="bi bi-trash"></i>
 	            </button>
@@ -567,13 +569,16 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	    </td>
 	    <td class="tx-date-col" style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
 	    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
-	    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+        <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span>${tx.ignored ? ` <span class="overview-tx-card-badge">${esc(t('table.filter.ignored'))}</span>` : ''}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.gl'))}"><span class="${posNeg}">${tx.quantityFiat != null ? earning : '–'}</span></td>
-	    <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${shortId}</td>
-	</tr>`;
+        <td class="text-end text-muted" style="font-size:.7rem" title="${tx.transferId || ''}" data-cell-label="${esc(t('table.col.transferId'))}">${hasPair ? `<button class="btn btn-xs depot-btn-icon me-1" onclick="event.stopPropagation(); openTransferPairModal(${tx.id})" title="${esc(t('modal.txPair.title'))}"><i class="bi bi-arrow-left-right"></i></button>` : ''}${shortId}</td>
+        <td class="text-end text-muted" style="font-size:.7rem;white-space:nowrap" data-search="${esc(tx.blockchainTxId || '')}" data-cell-label="${esc(t('modal.field.blockchainTxId'))}"><span title="${esc(tx.blockchainTxId || '')}">${esc(shortTxId)}</span>${tx.blockchainTxId ? `
+            <button class="btn btn-xs depot-btn-icon ms-1" onclick="event.stopPropagation(); copyTxId(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')}, this)" title="${esc(t('modal.field.blockchainTxId.copy'))}"><i class="bi bi-clipboard"></i></button>
+            <button class="btn btn-xs depot-btn-icon" onclick="event.stopPropagation(); jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}"><i class="bi bi-box-arrow-up-right"></i></button>` : ''}</td>
+    </tr>`;
 }
 
 // Copies attributes and inner content onto the existing row node without swapping the DOM node itself, so DataTables' row(node).invalidate() still tracks it correctly.
@@ -616,7 +621,7 @@ function renderTxTable(data) {
 
         document.getElementById('txTableBody').innerHTML = data.length
             ? [...newHtmlById.values()].join('')
-            : `<tr><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
+            : `<tr><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted py-3">${t('dt.empty')}</td><td></td><td></td><td></td><td></td></tr>`;
         _markDuplicates();
 
         $('#txTable').DataTable({
@@ -804,11 +809,85 @@ const OVERVIEW_TX_BADGE_MAP = {
     TRANSFER_OUT: { cls: 'type-transfer-out', key: 'flow.panel.transferOut' }
 };
 
+function copyTxId(txId, btn) {
+    if (!txId) return;
+    const done = () => {
+        const icon = btn ? btn.querySelector('i') : null;
+        if (icon) {
+            const orig = icon.className;
+            icon.className = 'bi bi-check-lg';
+            setTimeout(() => icon.className = orig, 1500);
+        }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(txId).then(done).catch(() => _copyTextFallback(txId, done));
+    } else {
+        _copyTextFallback(txId, done);
+    }
+}
+
+function openTransferPairModal(txId) {
+    const tx = (_lastTxData || []).find(x => x.id === txId);
+    if (!tx || !tx.transferId) return;
+
+    const legs = _lastTxData
+        .filter(x => x.transferId === tx.transferId)
+        .sort((a, b) => (a.type === 'TRANSFER_OUT' ? -1 : 1) - (b.type === 'TRANSFER_OUT' ? -1 : 1));
+
+    document.getElementById('txPairBody').innerHTML = legs.map(x => {
+        const isOut = x.type === 'TRANSFER_OUT';
+        const date  = x.date ? x.date.replace('T', ' ').substring(0, 19) : '–';
+        const badge = `<span class="overview-tx-card-badge ${isOut ? 'type-transfer-out' : 'type-transfer-in'}">${esc(t(isOut ? 'flow.panel.transferOut' : 'flow.panel.transferIn'))}</span>`;
+        const feesLine = x.fees != null && Number(x.fees) !== 0
+            ? _overviewTxFieldRow(t('table.col.fees'), esc(x.fees) + ' ' + esc(x.feesCurrency || ''))
+            : '';
+        const txIdLine = x.blockchainTxId
+            ? _overviewTxFieldRow(t('modal.field.blockchainTxId'), esc(x.blockchainTxId.substring(0, 10)) + '…', x.blockchainTxId)
+            : '';
+        const commentLine = x.comment
+            ? _overviewTxFieldRow(t('modal.field.comment'), esc(x.comment), x.comment, true)
+            : '';
+        return `<div class="col-md-6">
+            <div class="overview-tx-card" style="cursor:default">
+                <div class="overview-tx-card-head"><span>${esc(x.positionLabel || '–')}</span>${badge}</div>
+                ${_overviewTxFieldRow(t('table.col.date'), date)}
+                ${_overviewTxFieldRow(t('table.col.btc'), fmt8(x.quantity))}
+                ${feesLine}${txIdLine}${commentLine}
+            </div>
+        </div>`;
+    }).join('');
+
+    (bootstrap.Modal.getInstance(document.getElementById('txPairModal'))
+        || new bootstrap.Modal(document.getElementById('txPairModal'))).show();
+}
+
+function _copyTextFallback(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { showToast('✗ ' + t('toast.error'), 'error'); }
+    document.body.removeChild(ta);
+}
+
 // Builds a card from raw tx data (content) plus the matching rendered <tr> (selection/status state), keeping the card consistent with the table.
 function _buildTxCardHtml(tx, row) {
+    const hasPair = (tx.type === 'TRANSFER_IN' || tx.type === 'TRANSFER_OUT')
+        && tx.transferId
+        && (_lastTxData || []).filter(x => x.transferId === tx.transferId).length >= 2;
+    const pairBtn = hasPair
+        ? `<button type="button" class="btn btn-xs depot-btn-icon me-1" title="${esc(t('modal.txPair.title'))}"
+                   onclick="event.stopPropagation(); openTransferPairModal(${tx.id})">
+               <i class="bi bi-arrow-left-right"></i>
+           </button>`
+        : '';
+            
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
-    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import']
+    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import', 'ignored-tx']
         .filter(c => row.classList.contains(c)).join(' ');
     const selectedClass = row.classList.contains('selected') ? ' selected' : '';
 
@@ -816,7 +895,10 @@ function _buildTxCardHtml(tx, row) {
     const badge = badgeInfo
         ? `<span class="overview-tx-card-badge ${badgeInfo.cls}">${esc(t(badgeInfo.key))}</span>`
         : '';
-
+    const txIdLine = tx.blockchainTxId
+        ? _overviewTxFieldRow(t('modal.field.blockchainTxId'), esc(tx.blockchainTxId.substring(0, 10)) + '…', tx.blockchainTxId)
+        : '';
+        
     let earning = '–';
     let posNeg  = '';
     if (tx.type === 'BUY') {
@@ -847,13 +929,15 @@ function _buildTxCardHtml(tx, row) {
         ? _overviewTxFieldRow(t('table.col.gl'), `<span class="${posNeg}">${earning}</span>`)
         : '';
     const transferLine = tx.transferId
-        ? _overviewTxFieldRow(t('table.col.transferId'), esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
+        ? _overviewTxFieldRow(t('table.col.transferId'), pairBtn + esc(tx.transferId.substring(0, 8)) + '…', tx.transferId)
         : '';
     // truncate to 20 chars (full text in the tooltip) and left-align, otherwise a long comment widens the card
     const commentText = tx.comment && tx.comment.length > 20 ? tx.comment.substring(0, 20) + '…' : tx.comment;
     const commentLine = tx.comment
         ? _overviewTxFieldRow(t('modal.field.comment'), esc(commentText), tx.comment, true)
         : '';
+    const ignoredBadge = tx.ignored
+        ? `<span class="overview-tx-card-badge">${esc(t('table.filter.ignored'))}</span>` : '';
 
     const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
 
@@ -866,7 +950,7 @@ function _buildTxCardHtml(tx, row) {
                 <span>${esc(tx.positionLabel || '–')}</span>
             </span>
             <span class="overview-tx-card-actions" onclick="event.stopPropagation()">
-                ${badge}
+                ${badge} ${ignoredBadge}
                 <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
                         onclick="openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
@@ -875,6 +959,10 @@ function _buildTxCardHtml(tx, row) {
                         onclick="openAddTx(${txJson})">
                     <i class="bi bi-copy"></i>
                 </button>
+                ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.copy'))}"
+                        onclick="copyTxId(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')}, this)">
+                    <i class="bi bi-clipboard"></i>     <!-- war: bi bi-copy -->
+                </button>` : ''}
                 ${tx.blockchainTxId ? `<button type="button" class="btn btn-xs depot-btn-icon" title="${esc(t('modal.field.blockchainTxId.jump'))}"
                         onclick="jumpToMempoolTx(${JSON.stringify(tx.blockchainTxId).replace(/"/g,'&quot;')})">
                     <i class="bi bi-box-arrow-up-right"></i>
@@ -887,7 +975,7 @@ function _buildTxCardHtml(tx, row) {
         </div>
         ${_overviewTxFieldRow(t('table.col.date'), date)}
         ${_overviewTxFieldRow(t('table.col.btc'), fmt8(tx.quantity))}
-        ${priceLine}${totalLine}${glLine}${transferLine}${commentLine}
+        ${priceLine}${totalLine}${glLine}${transferLine}${txIdLine}${commentLine}
     </div>`;
 }
 
@@ -1055,11 +1143,14 @@ function onCsvFileSelected(input) {
         return;
     }
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/btc-tracking/import/mapping';
-    form.enctype = 'multipart/form-data';
-    form.style.display = 'none';
+    const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+       const token = m ? decodeURIComponent(m[1]) : '';
+
+       const form = document.createElement('form');
+       form.method = 'POST';
+       form.action = '/btc-tracking/import/mapping' + (token ? '?_csrf=' + encodeURIComponent(token) : '');
+       form.enctype = 'multipart/form-data';
+       form.style.display = 'none'
 
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -2078,6 +2169,7 @@ function _addressBalanceResultHtml(addressId, data) {
                                 title="${esc(t('form.position.addresses.link.hint'))}">
                             <i class="bi bi-link-45deg me-1"></i><span data-i18n="form.position.addresses.link">Link</span>
                         </button>
+                        
                     </div>
                 `).join('')}
                 <label class="address-balance-import-anyway">
@@ -2097,7 +2189,10 @@ function _addressBalanceResultHtml(addressId, data) {
                 ${esc(tx.txid.substring(0, 10))}…
                 <button type="button" class="btn btn-xs depot-btn-icon" onclick="jumpToMempoolTx(${JSON.stringify(tx.txid).replace(/"/g,'&quot;')})" title="${esc(t('modal.field.blockchainTxId.jump'))}">
                     <i class="bi bi-box-arrow-up-right"></i>
-                </button>${trackedNote}
+                </button>
+                <button type="button" class="btn btn-xs depot-btn-icon" onclick="copyTxId(${JSON.stringify(tx.txid).replace(/"/g,'&quot;')}, this)" title="${esc(t('modal.field.blockchainTxId.copy'))}">
+                                          <i class="bi bi-copy"></i>
+                                      </button>${trackedNote}
             </td>
             <td>${actionCell}</td>
         </tr>`;
@@ -2408,6 +2503,8 @@ document.addEventListener('contextmenu', e => {
 			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 			${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
 			${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
+            ${_ctxItem('bi-eye-slash', t('table.action.ignore'), 'bulkSetIgnored(true)')}
+            ${_ctxItem('bi-eye', t('table.action.unignore'), 'bulkSetIgnored(false)')}
 	        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 	        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
 
@@ -2647,6 +2744,19 @@ async function bulkRemoveTransfer() {
         loadTransactions();
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+function bulkSetIgnored(ignored) {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+    fetch('/api/btc-tracking/transactions/bulk-ignore', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, ignored })
+    }).then(r => r.json()).then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.ignore.success', { COUNT: d.updated }), 'success');
+        setTimeout(() => window.location.reload(), 800);
+    }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
 // ── Generic Confirm Dialog ────────────────────────────────

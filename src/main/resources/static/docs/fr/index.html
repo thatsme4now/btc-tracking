@@ -351,13 +351,14 @@
   <a href="#step-5"><span>05</span>Export CSV</a>
   <a href="#step-6"><span>06</span>Autres fonctions</a>
   <a href="#step-7"><span>07</span>Mode Einundzwanzig</a>
+  <a href="#step-8"><span>08</span>Connexion par mot de passe</a>
 </nav>
 
 <main>
 
   <section class="step" id="step-1" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">01 / 07</div>
+      <div class="step-num">01 / 08</div>
       <h2>Importer un CSV</h2>
       <p>
         Sélectionnez un fichier via <b>« Importer CSV »</b>. L'import se
@@ -416,7 +417,7 @@
 
   <section class="step" id="step-2">
     <div class="step-text">
-      <div class="step-num">02 / 07</div>
+      <div class="step-num">02 / 08</div>
       <h2>Format CSV personnalisé</h2>
       <p>
         Sans l'option CoinTracking, l'app exporte dans son propre format.
@@ -446,7 +447,7 @@
 
   <section class="step" id="step-3" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">03 / 07</div>
+      <div class="step-num">03 / 08</div>
       <h2>Gestion des données</h2>
       <p>
         Les positions et transactions se gèrent sur la page <b>« Gestion des
@@ -538,7 +539,7 @@
 
   <section class="step" id="step-4">
     <div class="step-text">
-      <div class="step-num">04 / 07</div>
+      <div class="step-num">04 / 08</div>
       <h2>Verrouiller l'app</h2>
       <p>
         L'icône de cadenas dans l'en-tête (à côté de « Actions » /
@@ -591,7 +592,7 @@
 
   <section class="step" id="step-5">
     <div class="step-text">
-      <div class="step-num">05 / 07</div>
+      <div class="step-num">05 / 08</div>
       <h2>Exporter CSV</h2>
       <p>
         Via <b>« Exporter CSV »</b> dans l'en-tête, vous pouvez exporter
@@ -615,7 +616,7 @@
 
   <section class="step" id="step-6" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">06 / 07</div>
+      <div class="step-num">06 / 08</div>
       <h2>Autres fonctions</h2>
       <p>
         La barre d'icônes à droite de l'en-tête regroupe les paramètres
@@ -671,7 +672,7 @@
 
   <section class="step" id="step-7" style="grid-template-columns:1fr;">
     <div class="step-text" style="grid-column:1;">
-      <div class="step-num">07 / 07</div>
+      <div class="step-num">07 / 08</div>
       <h2>Mode Einundzwanzig</h2>
       <p>
         L'icône « 21 » dans l'en-tête active un thème de couleurs alternatif
@@ -691,6 +692,40 @@
     </div>
   </section>
 
+  <section class="step" id="step-8" style="grid-template-columns:1fr;">
+    <div class="step-text" style="grid-column:1;">
+      <div class="step-num">08 / 08</div>
+      <h2>Connexion par mot de passe</h2>
+      <p>
+        Optionnel, d&eacute;sactiv&eacute; par d&eacute;faut&nbsp;: un seul mot de passe pour toute
+        l'app, qui prot&egrave;ge chaque page et chaque endpoint de l'API derri&egrave;re
+        un &eacute;cran de connexion. Activez, modifiez ou d&eacute;sactivez-le dans
+        <b>Param&egrave;tres &rarr; &laquo;&nbsp;Connexion par mot de passe&nbsp;&raquo;</b> &mdash; effet imm&eacute;diat,
+        aucun red&eacute;marrage n&eacute;cessaire.
+      </p>
+      <table class="fields">
+        <tr><th>Champ</th><th>Signification</th></tr>
+        <tr><td class="field">Mot de passe</td><td class="desc">Un seul mot de passe pour toute l'app &mdash; pas de nom d'utilisateur, pas de comptes s&eacute;par&eacute;s</td></tr>
+        <tr><td class="field">Mot de passe actuel</td><td class="desc">Requis pour modifier ou d&eacute;sactiver un mot de passe d&eacute;j&agrave; d&eacute;fini</td></tr>
+      </table>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Session uniquement&nbsp;:</b> la connexion est li&eacute;e &agrave; la session du navigateur &mdash; fermer le navigateur ou red&eacute;marrer l'app n&eacute;cessite de se reconnecter. Il n'y a pas d'option &laquo;&nbsp;rester connect&eacute;&nbsp;&raquo;.</span>
+      </div>
+      <div class="note">
+        <span>&#128274;</span>
+        <span><b>Stockage&nbsp;:</b> le mot de passe est stock&eacute; sous forme de hash <span class="inline-code">BCrypt</span>, jamais en clair, et jamais journalis&eacute;. Des tentatives erron&eacute;es r&eacute;p&eacute;t&eacute;es d&eacute;clenchent un verrouillage croissant, doublant &agrave; chaque fois, jusqu'&agrave; un maximum de 15 minutes.</span>
+      </div>
+      <div class="note">
+        <span>&#8505;</span>
+        <span><b>Relation avec &laquo;&nbsp;Verrouiller l'app&nbsp;&raquo; (&eacute;tape 04)&nbsp;:</b> les deux sont ind&eacute;pendants. La connexion contr&ocirc;le qui peut acc&eacute;der &agrave; l'app&nbsp;; le verrouillage chiffre les donn&eacute;es au repos. Si les deux sont actifs, la connexion est la porte ext&eacute;rieure &mdash; on se connecte d'abord, puis on peut voir la bo&icirc;te de dialogue &laquo;&nbsp;App verrouill&eacute;e&nbsp;&raquo; si l'app est aussi verrouill&eacute;e.</span>
+      </div>
+      <div class="note">
+        <span>&#9888;</span>
+        <span><b>HTTP en clair&nbsp;:</b> sans HTTPS, le mot de passe circule en clair sur votre r&eacute;seau. Voir <a href="usage.html#tls" style="color:var(--accent)">Utilisation &amp; Installation &rarr; TLS / HTTPS</a> pour la configuration d'un certificat auto-sign&eacute;.</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>

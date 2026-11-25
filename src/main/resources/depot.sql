@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS transaction (
     comment		  VARCHAR(255)             COMMENT '',
     transfer_id   VARCHAR(36)              COMMENT 'UUID linking TRANSFER_IN / TRANSFER_OUT pair',
     is_duplicate  TINYINT(1)    NOT NULL DEFAULT 0 COMMENT 'Flagged as possible duplicate at import',
+    is_ignored    TINYINT(1)    NOT NULL DEFAULT 0 COMMENT 'Aus Berechnungen ausgenommen (nur Flow zeigt sie)',
     import_history_id BIGINT               COMMENT 'Herkunfts-Import (import_history.id), NULL wenn manuell angelegt oder Herkunfts-Import gelöscht — bewusst ohne FK-Constraint (siehe schema-h2.sql)',
     blockchain_tx_id VARCHAR(64)           COMMENT 'Echte On-Chain-Bitcoin-TXID, getrennt von transaction_id (Import-Dedup-Schlüssel) — nur TRANSFER_IN/TRANSFER_OUT, optional, weich validiert',
     created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -199,13 +200,19 @@ CREATE TABLE IF NOT EXISTS import_history (
 -- mempool_host/mempool_port: Host/Port einer selbst gehosteten mempool-
 -- Instanz für den optionalen Preisabruf — siehe MempoolPriceService. Beide
 -- NULL (Standard) = Funktion deaktiviert.
+--
+-- login_password_hash: BCrypt hash of the optional, app-wide login password
+-- — see SecurityConfig/AppSettings entity. NULL/blank (default) = login
+-- disabled.
 -- Bestandsinstallationen: ALTER TABLE app_settings
---   ADD COLUMN mempool_host VARCHAR(255), ADD COLUMN mempool_port INT;
+--   ADD COLUMN mempool_host VARCHAR(255), ADD COLUMN mempool_port INT,
+--   ADD COLUMN login_password_hash VARCHAR(255);
 CREATE TABLE IF NOT EXISTS app_settings (
     id                              BIGINT NOT NULL PRIMARY KEY,
     tax_holding_period_cutoff_date  DATE,
     mempool_host                    VARCHAR(255),
-    mempool_port                    INT
+    mempool_port                    INT,
+    login_password_hash             VARCHAR(255)
 ) ENGINE=InnoDB;
 INSERT IGNORE INTO app_settings (id, tax_holding_period_cutoff_date) VALUES (1, NULL);
 

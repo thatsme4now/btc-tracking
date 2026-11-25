@@ -26,5 +26,6 @@ public class TransactionDTO {
     private BigDecimal exchangeRate;  // rate to EUR, default 1.0
     private String transferId;        // UUID, links TRANSFER_IN / TRANSFER_OUT pair
     private boolean duplicate;
+    private boolean ignored;
     private String comment;
 }

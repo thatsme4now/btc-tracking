@@ -179,6 +179,8 @@ async function openAddTx(tx) {
        document.getElementById('addTxCurrency').value     = tx.currency || 'EUR';
        document.getElementById('addTxExchangeRate').value = tx.exchangeRate || '1';
        document.getElementById('addTxComment').value      = tx.comment || '';
+        const ig = document.getElementById('addTxIgnored');  if (ig) ig.checked = !!tx.ignored;   // im Neu-Zweig: false
+
        const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
        document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', !isTrade));
    } else {
@@ -195,6 +197,7 @@ async function openAddTx(tx) {
         document.getElementById('addTxCurrency').value     = CURRENCY.current();
         document.getElementById('addTxExchangeRate').value = '1';
         document.getElementById('addTxComment').value      = '';
+
         document.querySelectorAll('.fiat-field').forEach(el => el.classList.toggle('d-none', false));
         _setExchangeValue('add', '');
     }
@@ -221,6 +224,7 @@ async function openEditTx(tx) {
     document.getElementById('editTxCurrency').value     = tx.currency || 'EUR';
     document.getElementById('editTxExchangeRate').value = tx.exchangeRate || '1';
     document.getElementById('editTxComment').value      = tx.comment || '';
+    const ie = document.getElementById('editTxIgnored'); if (ie) ie.checked = !!tx.ignored;
 
     document.getElementById('editTxType').disabled = true;
     const isTrade = tx.type === 'BUY' || tx.type === 'SELL';
@@ -299,7 +303,8 @@ function saveOrAddTx(isAdd) {
         currency:     isTrade ? (document.getElementById(pref + 'TxCurrency').value || CURRENCY.current()) : null,
         exchangeRate: isTrade ? (parseFloat(document.getElementById(pref + 'TxExchangeRate').value) || 1) : null,
         comment:      document.getElementById(pref + 'TxComment').value,
-        exchange:     _getExchangeValue(pref)
+        exchange:     _getExchangeValue(pref),
+        ignored: !!document.getElementById(pref + 'TxIgnored')?.checked,
     };
 
     // On-chain TXID: edit-modal only (the field doesn't exist in the Add-modal).

@@ -42,6 +42,10 @@
 		            <i class="bi bi-x-lg me-1"></i><span data-i18n="flow.filter.reset">Zurücksetzen</span>
 		        </button>
 		    </div>
+		    <div class="form-check mb-2">
+			    <input type="checkbox" class="form-check-input" id="flowFilterHideIgnored" onchange="applyFlowFilter()"/>
+			    <label class="form-check-label" for="flowFilterHideIgnored" data-i18n="flow.filter.hideIgnored">Ignorierte ausblenden</label>
+			</div>
 		</div>	
         <div id="flowLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
             <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--pos)"></span><span data-i18n="flow.legend.buy">Kauf</span></span>
@@ -92,6 +96,7 @@
 <!-- Edit Transaction Modal (shared fragment, same dialog as the main dashboard) -->
 <div th:replace="~{depot/fragments/tx-edit-modal :: editTxModal}"></div>
 
+<script th:src="@{/js/csrf.js}"></script>
 <script th:src="@{/vendor/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/vendor/js/flatpickr.min.js}"></script>
 <script th:src="@{/vendor/js/flatpickr-l10n-de.js}"></script>

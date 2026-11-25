@@ -318,6 +318,7 @@
   <a href="#option-b"><span>B</span>Umbrel App Store</a>
   <a href="#option-c"><span>C</span>Docker</a>
   <a href="#option-d"><span>D</span>Proxmox</a>
+  <a href="#tls"><span>E</span>TLS / HTTPS</a>
 </nav>
 <main>
   <section class="step" id="option-a">
@@ -434,7 +435,52 @@
       <span><b>Nota:</b> Para LXC se necesita Docker anidado (virtualización anidada) — actívalo en Proxmox mediante <span class="inline-code">Features → Nesting</span> en el contenedor antes de instalar Docker.</span>
     </div>
   </section>
-  <section class="step" style="border-bottom:none">
+    <section class="step" id="tls">
+    <div class="step-num">OPCI&Oacute;N E</div>
+    <h2>TLS / HTTPS (certificado autofirmado)</h2>
+    <p>
+      Desactivado por defecto &mdash; la app sirve por HTTP. Recomendado si adem&aacute;s
+      activas el <a href="index.html#step-8" style="color:var(--accent)">Inicio de sesi&oacute;n con contrase&ntilde;a</a>,
+      ya que si no la contrase&ntilde;a viaja sin cifrar por tu red.
+    </p>
+    <h3>Descarga directa / JAR</h3>
+    <ol class="steplist">
+      <li>Genera un almac&eacute;n de claves (requiere un JDK/JRE &mdash; <span class="inline-code">keytool</span> viene incluido). Sustituye <span class="inline-code">changeit</span> por tu propia contrase&ntilde;a:
+        <pre class="cmd">keytool -genkeypair -alias btc-tracking -keyalg RSA -keysize 2048 -validity 3650 \
+  -storetype PKCS12 -keystore keystore.p12 -storepass changeit \
+  -dname "CN=btc-tracking"</pre>
+      </li>
+      <li>A&ntilde;ade a <span class="inline-code">application.properties</span> junto al JAR:
+        <pre class="cmd">server.ssl.enabled=true
+server.ssl.key-store=file:./keystore.p12
+server.ssl.key-store-password=changeit
+server.ssl.key-store-type=PKCS12
+server.ssl.key-alias=btc-tracking</pre>
+      </li>
+      <li>Reinicia la app. A partir de ahora solo es accesible v&iacute;a <span class="inline-code">https://&hellip;</span> en el mismo puerto &mdash; el navegador avisar&aacute; una vez sobre el certificado autofirmado; la conexi&oacute;n sigue estando realmente cifrada.</li>
+    </ol>
+    <h3>Docker gen&eacute;rico</h3>
+    <p>Coloca <span class="inline-code">keystore.p12</span> en el mismo volumen que usas para la base de datos, y pasa los ajustes como variables de entorno:</p>
+    <pre class="cmd">docker run -d \
+  --name btc-tracking \
+  -p 8080:8080 \
+  -v btc-tracking-data:/app/data \
+  -e SERVER_SSL_ENABLED=true \
+  -e SERVER_SSL_KEY_STORE=file:/app/data/keystore.p12 \
+  -e SERVER_SSL_KEY_STORE_PASSWORD=changeit \
+  -e SERVER_SSL_KEY_STORE_TYPE=PKCS12 \
+  -e SERVER_SSL_KEY_ALIAS=btc-tracking \
+  thatsme4now/btc-tracking:latest</pre>
+    <div class="note">
+      <span>&#9888;</span>
+      <span><b>No lo actives en la instalaci&oacute;n de Umbrel (Opci&oacute;n B).</b> El propio proxy inverso de Umbrel (<span class="inline-code">app_proxy</span>) ya termina TLS delante de cada app y espera HTTP simple internamente &mdash; activar TLS dentro del contenedor har&iacute;a la app inaccesible a trav&eacute;s de Umbrel.</span>
+    </div>
+    <div class="note">
+      <span>&#8505;</span>
+      <span>Para desactivarlo de nuevo: elimina las cinco l&iacute;neas <span class="inline-code">server.ssl.*</span> (o las variables de entorno equivalentes) y reinicia &mdash; no hace falta reconstruir.</span>
+    </div>
+  </section>
+<section class="step" style="border-bottom:none">
     <div class="step-num">RESUMEN</div>
     <h2>¿Qué variante te conviene?</h2>
     <table class="compare">

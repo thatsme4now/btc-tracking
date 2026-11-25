@@ -54,6 +54,23 @@ async function _flowLoadFifo() {
             fetch('/api/btc-tracking/settings').then(r => r.json()).catch(() => ({}))
         ]);
         _flowSellMeta       = _flowComputeFifo(allTx);
+        
+       
+        
+        
+        
+        
+         //TODO: CHECK IF THIS NEEDED OR NOT
+        _flowSellMeta = _flowComputeFifo(allTx.filter(tx => !tx.ignored));
+        //TODO: CHECK IF THIS NEEDED OR NOT
+        
+        
+        
+        
+        
+        
+        
+        
         _flowTaxCutoffDate  = settingsRes.taxHoldingPeriodCutoffDate || null;
     } catch (err) {
         console.warn('FIFO load failed', err.message);
@@ -153,6 +170,7 @@ function _buildFlowQuery() {
     if (from) params.set('from', from);
     if (to) params.set('to', to);
     if (positionId) params.set('positionId', positionId);
+    if (document.getElementById('flowFilterHideIgnored')?.checked) params.set('includeIgnored', 'false');
     return params.toString();
 }
 
@@ -164,6 +182,7 @@ function resetFlowFilter() {
     document.getElementById('flowFilterFrom').value = '';
     document.getElementById('flowFilterTo').value = '';
     document.getElementById('flowFilterPosition').value = '';
+    document.getElementById('flowFilterHideIgnored').checked = false;
     loadFlowGraph();
 }
 
@@ -330,6 +349,8 @@ function _doRenderSankey(data) {
         .data(graph.links)
         .join('path')
         .attr('class', 'flow-link')
+        .classed('flow-link-ignored', d => d.raw.details.length > 0
+            && d.raw.details.every(det => det.transaction && det.transaction.ignored))
         .attr('d', d3.sankeyLinkHorizontal())
         .attr('stroke', colorForLink)
         .attr('stroke-width', d => Math.max(1, d.width))
@@ -376,9 +397,16 @@ function _showLinkTooltip(event, d, tooltip) {
             return `${det.date.substring(0, 10)} — ${_flowFmt8(det.quantity)} BTC${suffix}`;
         })
         .join('<br>');
+    const ignoredQty = raw.details
+        .filter(det => det.transaction && det.transaction.ignored)
+        .reduce((s, det) => s + Number(det.quantity), 0);
+    const ignoredLine = ignoredQty > 0
+        ? `<div style="color:var(--text-muted)">${t('flow.link.ignoredShare', { AMOUNT: _flowFmt8(ignoredQty) })}</div>`
+        : '';
     tooltip.innerHTML = `
         <div style="font-weight:600;margin-bottom:.3rem">${raw.month}</div>
         <div>${t('flow.link.total')}: ${_flowFmt8(raw.value)} BTC</div>
+        ${ignoredLine}
         <div style="margin-top:.3rem;color:var(--text-muted)">${t('flow.link.transactions', { COUNT: raw.details.length })}</div>
         <div style="margin-top:.2rem;max-height:150px;overflow-y:auto">${details}</div>`;
     _positionTooltip(event, tooltip);
@@ -674,6 +702,9 @@ function _renderFlowTxCard(item) {
     const date = tx.date ? String(tx.date).replace('T', ' ').substring(0, 19) : '–';
 
     let badge = '';
+    const ignoredBadge = tx.ignored
+        ? `<span class="flow-tx-card-badge">${esc(t('table.filter.ignored'))}</span>` : '';
+        
     if (item.pairRole === 'out') {
         badge = `<span class="flow-tx-card-badge pair-out">${esc(t('flow.panel.transferOut'))}</span>`;
     } else if (item.pairRole === 'in') {
@@ -770,7 +801,7 @@ function _renderFlowTxCard(item) {
         <div class="flow-tx-card-head">
             <span>${esc(tx.positionLabel || '–')}</span>
             <span class="flow-tx-card-actions">
-                ${badge}
+                ${badge} ${ignoredBadge}
                 <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
                         onclick="event.stopPropagation(); openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>

@@ -27,6 +27,15 @@ import lombok.Data;
  * Jahresansicht befüllt werden können — siehe MempoolPriceService. Beide
  * NULL/leer = Funktion deaktiviert (Standard, Opt-in). Der Backend-Server
  * (nicht der Browser) ruft diesen Host/Port auf.
+ *
+ * loginPasswordHash: BCrypt hash of the optional, app-wide login password
+ * (a single global password, no username) — see SecurityConfig and
+ * PasswordLoginAuthenticationProvider. NULL/blank = login disabled
+ * (default, opt-in) — the app is then reachable without any access gate,
+ * as before. The plaintext password itself is never stored or logged,
+ * only this hash. Deliberately kept separate from the Lock mechanism
+ * (AppLockService): its exportFull()/clearAll() do NOT cover app_settings,
+ * i.e. this field survives every lock/unlock cycle unchanged.
  */
 @Data
 @Entity
@@ -44,4 +53,7 @@ public class AppSettings {
 
     @Column(name = "mempool_port")
     private Integer mempoolPort;
+
+    @Column(name = "login_password_hash", length = 255)
+    private String loginPasswordHash;
 }

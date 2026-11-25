@@ -148,6 +148,11 @@
                         data-i18n-title="nav.btn.help" title="Help">
                     <i class="bi bi-question-circle"></i>
                 </button>
+                <!-- Only shown when a login password is currently configured (see DepotViewController#loginEnabled) -->
+                <button class="btn depot-btn-icon px-2" th:if="${loginEnabled}" onclick="doLogout()"
+                        data-i18n-title="nav.btn.logout" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
             </div>
         </div>
     </nav>

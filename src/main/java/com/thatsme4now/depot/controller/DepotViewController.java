@@ -8,6 +8,7 @@ import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,10 +33,41 @@ public class DepotViewController {
     private final DepotService depotService;
     private final ImportWizardService importWizardService;
 
+    /**
+     * Exposed to every view rendered by this controller (navbar.html reads it to show/hide the
+     * Logout button) — true only when a login password is currently configured. Deliberately not
+     * exposed for the /login page itself, which never shows the navbar.
+     */
+    @ModelAttribute("loginEnabled")
+    public boolean loginEnabled() {
+        String hash = depotService.getAppSettings().getLoginPasswordHash();
+        return hash != null && !hash.isBlank();
+    }
+
     /** Redirects the app root to the holdings visualization page. */
     @GetMapping("/")
     public String root() {
     	return "redirect:/btc-tracking/holdings";
+    }
+
+    /**
+     * Renders the standalone login page (no navbar). If login isn't currently configured there is
+     * nothing to log into, so this redirects to the app root instead of showing a pointless form —
+     * e.g. a stale bookmark to /login after the password was removed in Settings.
+     */
+    @GetMapping("/login")
+    public String login(
+            @RequestParam(value = "error", required = false) String error,
+            @RequestParam(value = "seconds", required = false) Long seconds,
+            @RequestParam(value = "logout", required = false) String logout,
+            Model model) {
+        if (!loginEnabled()) {
+            return "redirect:/";
+        }
+        model.addAttribute("loginError", error);
+        model.addAttribute("lockedSeconds", seconds);
+        model.addAttribute("loggedOut", logout != null);
+        return "depot/login";
     }
 
     /** Renders the flow diagram (Sankey) visualization page. */

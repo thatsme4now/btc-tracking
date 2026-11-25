@@ -165,11 +165,11 @@ public class DataExportService {
             jdbcTemplate.update(
                 "INSERT INTO `transaction` (id, transaction_id, blockchain_tx_id, position_id, type, date, quantity, " +
                 "quantity_fiat, currency, exchange_rate, price_per_btc, fees, fees_currency, comment, " +
-                "transfer_id, is_duplicate, import_history_id, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
+                "transfer_id, is_duplicate, import_history_id, is_ignored, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW())",
                 t.getId(), t.getTransactionId(), t.getBlockchainTxId(), t.getPositionId(), t.getType().name(), t.getDate(),
                 t.getQuantity(), t.getQuantityFiat(), t.getCurrency(), t.getExchangeRate(),
                 t.getPricePerBtc(), t.getFees(), t.getFeesCurrency(), t.getComment(),
-                t.getTransferId(), t.isDuplicate(), t.getImportHistoryId());
+                t.getTransferId(), t.isDuplicate(), t.getImportHistoryId(), t.isIgnored());
             maxTransactionId = Math.max(maxTransactionId, t.getId());
         }
         // NOTE: MySQL/H2 don't allow bind params in DDL → inline the (internally computed) value.
@@ -328,6 +328,7 @@ public class DataExportService {
         dto.setTransferId(tx.getTransferId());
         dto.setDuplicate(tx.isDuplicate());
         dto.setComment(tx.getComment());
+        dto.setIgnored(tx.isIgnored());
         dto.setImportHistoryId(tx.getImportHistoryId());
         return dto;
     }
