@@ -22,6 +22,7 @@ public class TransactionExportDTO {
     private BigDecimal exchangeRate;
     private String transferId;
     private boolean duplicate;
+    private boolean ignored;
     private String comment;
     private Long importHistoryId;
 }

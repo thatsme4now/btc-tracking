@@ -29,6 +29,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findAllByOrderByDateDesc();
 
     Optional<Transaction> findFirstByOrderByDateAsc();
+    
+    List<Transaction> findByPositionIdAndIgnoredFalseOrderByDateAsc(Long positionId);
 
     boolean existsByPositionIdAndDateAndTypeAndQuantity(
             Long positionId, LocalDateTime date, TransactionType type, BigDecimal quantity);

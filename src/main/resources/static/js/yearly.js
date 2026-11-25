@@ -354,6 +354,7 @@ async function yearlyRenderTiles(year, currency, seq) {
         ]);
         if (seq !== undefined && seq !== _yearlyOverviewSeq) return; // selection changed in the meantime
         _yearlyAllTx          = txs;
+        _yearlyAllTx = txs.filter(tx => !tx.ignored);
         _yearlyCurrentPrice   = Number(priceRes.price || 0);
         _yearlyTaxCutoffDate  = settingsRes.taxHoldingPeriodCutoffDate || null;
     }

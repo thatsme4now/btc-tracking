@@ -271,6 +271,9 @@
 			        <button class="btn btn-xs depot-btn-outline text-neg" onclick="bulkDelete()">
 			            <i class="bi bi-trash me-1"></i><span data-i18n="table.action.delete"></span>
 			        </button>
+			        <button class="btn btn-xs depot-btn-outline" onclick="bulkSetIgnored(true)"><i class="bi bi-eye-slash me-1"></i><span data-i18n="table.action.ignore"></span></button>
+                    <button class="btn btn-xs depot-btn-outline" onclick="bulkSetIgnored(false)"><i class="bi bi-eye me-1"></i><span data-i18n="table.action.unignore"></span></button>
+			        
 			    </div>
 
 			    <!-- Compact dropdown toolbar for card view, toggled via depot.js _overviewApplyTxViewMode() -->
@@ -293,6 +296,9 @@
 			                <li><button class="dropdown-item" onclick="openBulkExRate()"><i class="bi bi-percent me-2"></i><span data-i18n="table.action.exchange.rate"></span></button></li>
 			                <li><button class="dropdown-item" onclick="clearDuplicateMark()"><i class="bi bi-check-circle me-2"></i><span data-i18n="table.action.clear.duplicate"></span></button></li>
 			                <li><button class="dropdown-item" onclick="bulkMarkSoloTransfer()"><i class="bi bi-arrow-down-up me-2"></i><span data-i18n="table.action.mark.solo"></span></button></li>
+                            <li><button class="dropdown-item" onclick="bulkSetIgnored(true)"><i class="bi bi-eye-slash me-1"></i><span data-i18n="table.action.ignore"></span></button></li>
+                            <li><button class="dropdown-item" onclick="bulkSetIgnored(false)"><i class="bi bi-eye me-1"></i><span data-i18n="table.action.unignore"></span></button></li>
+   
 			                <li><hr class="dropdown-divider"></li>
 			                <li><button class="dropdown-item text-neg" onclick="bulkDelete()"><i class="bi bi-trash me-2"></i><span data-i18n="table.action.delete"></span></button></li>
 			            </ul>
@@ -317,6 +323,8 @@
 					<button type="button" class="pill-filter-btn" data-mode="duplicate" onclick="toggleTxPillFilter('duplicate')" data-i18n="table.filter.duplicates">Mögliche Duplikate</button>
 					<button type="button" class="pill-filter-btn" data-mode="currency" onclick="toggleTxPillFilter('currency')" data-i18n="table.filter.currencyNoRate">Fremdwährung ohne Wechselkurs</button>
 					<button type="button" class="pill-filter-btn" data-mode="solo" onclick="toggleTxPillFilter('solo')" data-i18n="table.filter.soloTransfer">Solo-Transfer</button>
+					<button type="button" class="pill-filter-btn" data-mode="ignored" onclick="toggleTxPillFilter('ignored')" data-i18n="table.filter.ignored">Ignoriert</button>
+					
 				</div>
 
 				<div id="txLegend" class="d-flex gap-3 px-1 py-2" style="font-size:.72rem;color:var(--text-muted);flex-wrap:wrap">
@@ -336,6 +344,8 @@
 				        <span class="tx-legend-dot" style="background:var(--last-import)"></span>
 				        <span data-i18n="legend.last.import"></span>
 				    </span>
+				    <span class="tx-legend-item"><span class="tx-legend-dot" style="background:var(--text-muted);opacity:.5"></span><span data-i18n="legend.ignored"></span></span>
+				    
 				</div>
 
 				<div class="table-responsive" id="txTableWrap">
@@ -698,6 +708,12 @@
                             <div class="form-text text-muted" style="font-size:.7rem"
                                  data-i18n="modal.field.currency.hint">Trading currency (e.g. EUR, USDT)</div>
                         </div>
+                        <div class="col-lg-12">
+						    <div class="form-check">
+						        <input type="checkbox" class="form-check-input" id="addTxIgnored"/>
+						        <label class="form-check-label" for="addTxIgnored" data-i18n="modal.field.ignored">Ignoriert</label>
+						    </div>
+						</div>
                         <div class="col-lg-12">
                             <label class="depot-label" data-i18n="modal.field.comment">Comment</label>
                             <textarea id="addTxComment" class="form-control depot-input"></textarea>

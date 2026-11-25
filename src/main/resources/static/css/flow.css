@@ -203,3 +203,6 @@
 @media (max-width: 768px) {
     .flow-chart-col svg#flowSvg { height: 55vh !important; }
 }
+
+/* flow.css */
+.flow-link.flow-link-ignored { stroke-dasharray: 6 4; }

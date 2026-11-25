@@ -1626,3 +1626,6 @@ input#dt-search-1 {
     border:      1px solid var(--border);
     background:  var(--bg-card);
 } 
+
+.depot-row.ignored-tx td { opacity: .5; }
+.overview-tx-card.ignored-tx { opacity: .55; border-left-color: var(--text-muted); }

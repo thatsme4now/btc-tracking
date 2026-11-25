@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
     comment       VARCHAR(255),
     transfer_id   VARCHAR(36),
     is_duplicate  BOOLEAN       NOT NULL DEFAULT FALSE,
+    is_ignored    BOOLEAN       NOT NULL DEFAULT FALSE,
     import_history_id BIGINT,
     -- Echte On-Chain-Bitcoin-TXID (64 Hex-Zeichen), getrennt von transaction_id
     -- oben (das ist der interne CSV-Import-Dedup-Schlüssel). Nur bei
@@ -142,6 +143,7 @@ CREATE INDEX IF NOT EXISTS idx_mp_year_month ON monthly_price(price_year, price_
 -- Migration für bestehende Installationen.
 ALTER TABLE monthly_price ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'MANUAL';
 ALTER TABLE monthly_price ADD COLUMN IF NOT EXISTS loaded_at TIMESTAMP;
+ALTER TABLE `transaction` ADD COLUMN IF NOT EXISTS is_ignored BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- ============================================================
 -- CSV-Import-Assistent (3-Step-Wizard): Staging-Tabelle + Historie

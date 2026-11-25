@@ -639,10 +639,11 @@ function setHoldingsBuyGranularity(granularity) {
 
 async function initHoldingsBuyPercent(currency) {
     try {
-        const [txs, priceRes] = await Promise.all([
+        const [allTx, priceRes] = await Promise.all([
             fetch('/api/btc-tracking/transactions').then(r => r.json()),
             fetch(`/api/btc-tracking/current-price?currency=${encodeURIComponent(currency)}`).then(r => r.json())
         ]);
+        const txs = allTx.filter(tx => !tx.ignored);
 
         _holdingsCurrentPrice = Number(priceRes.price || 0);
         _holdingsBuyMeta      = _computeBuyFifoStates(txs);

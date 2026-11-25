@@ -476,5 +476,13 @@
   "modal.txPair.title": "Paire de transfert",
   "modal.field.blockchainTxId.copy": "Copier la TXID",
   "holdings.buysScope.all": "Tous",
-  "holdings.buysScope.unsold": "Non vendus"
+  "holdings.buysScope.unsold": "Non vendus",
+  "modal.field.ignored": "Ignorée (exclue des calculs)",
+  "table.filter.ignored": "Ignorée",
+  "table.action.ignore": "Marquer comme ignorée",
+  "table.action.unignore": "Retirer le marquage ignorée",
+  "legend.ignored": "Ignorée (exclue des calculs)",
+  "toast.ignore.success": "{COUNT} transaction(s) mise(s) à jour",
+  "flow.filter.hideIgnored": "Masquer les ignorées",
+  "flow.link.ignoredShare": "dont ignoré : {AMOUNT} BTC"
 }

@@ -476,5 +476,13 @@
   "modal.txPair.title": "คู่การโอน",
   "modal.field.blockchainTxId.copy": "คัดลอก TXID",
   "holdings.buysScope.all": "ทั้งหมด",
-  "holdings.buysScope.unsold": "ยังไม่ขาย"
+  "holdings.buysScope.unsold": "ยังไม่ขาย",
+  "modal.field.ignored": "ละเว้น (ไม่รวมในการคำนวณ)",
+  "table.filter.ignored": "ละเว้น",
+  "table.action.ignore": "ทำเครื่องหมายว่าละเว้น",
+  "table.action.unignore": "ยกเลิกการละเว้น",
+  "legend.ignored": "ละเว้น (ไม่รวมในการคำนวณ)",
+  "toast.ignore.success": "อัปเดต {COUNT} ธุรกรรมแล้ว",
+  "flow.filter.hideIgnored": "ซ่อนรายการที่ละเว้น",
+  "flow.link.ignoredShare": "ในจำนวนนี้ละเว้น: {AMOUNT} BTC"
 }

@@ -276,16 +276,28 @@ public class DepotService {
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+    
+    /** Setzen überträgt auf alle Legs derselben transferId, Aufheben nicht. */
+    public void syncIgnoredToPairedTransfer(Transaction tx) {
+        if (!tx.isIgnored() || tx.getTransferId() == null) return;
+        for (Transaction other : transactionRepo.findByTransferId(tx.getTransferId())) {
+            if (other.getId().equals(tx.getId()) || other.isIgnored()) continue;
+            other.setIgnored(true);
+            transactionRepo.save(other);
+        }
+    }
 
     /** Net BTC quantity currently tracked for a position — same figure shown in the Wallets/Exchanges table. */
     public BigDecimal getPositionQuantity(Long positionId) {
-        return computeQuantity(transactionRepo.findByPositionIdOrderByDateAsc(positionId))
+        return computeQuantity(transactionRepo.findByPositionIdAndIgnoredFalseOrderByDateAsc(positionId))
                 .setScale(8, RoundingMode.HALF_UP);
     }
 
     /** Maps a position + its transactions into a {@link PositionDTO} with computed quantity, cost basis and gain/loss. */
     private PositionDTO toDTO(Position p, CurrentPrice cp, List<PositionAddress> addresses) {
-        List<Transaction> txs = transactionRepo.findByPositionIdOrderByDateAsc(p.getId());
+    	List<Transaction> txs = transactionRepo.findByPositionIdAndIgnoredFalseOrderByDateAsc(p.getId());
+//TODO: CHECK THIS
+    	//    	List<Transaction> txs = transactionRepo.findByPositionIdOrderByDateAsc(p.getId());
 
         BigDecimal quantity = computeQuantity(txs);
 
@@ -401,6 +413,7 @@ public class DepotService {
         dto.setTransactionId(tx.getTransactionId());
         dto.setBlockchainTxId(tx.getBlockchainTxId());
         dto.setDuplicate(tx.isDuplicate());
+        dto.setIgnored(tx.isIgnored());
 
         if (tx.getQuantityFiat() != null) {
             dto.setQuantityFiat(tx.getQuantityFiat().setScale(2, RoundingMode.HALF_UP));

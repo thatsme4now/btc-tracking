@@ -50,6 +50,7 @@ public class MonthlyOverviewService {
         String cur = (currency == null || currency.isBlank()) ? "EUR" : currency.toUpperCase();
 
         List<Transaction> txs = transactionRepo.findAll().stream()
+                .filter(tx -> !tx.isIgnored())
                 .sorted(Comparator.comparing(Transaction::getDate))
                 .toList();
 

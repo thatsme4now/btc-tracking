@@ -204,10 +204,11 @@ public class DepotRestController {
     public com.thatsme4now.depot.dto.FlowGraphDTO getFlow(
             @RequestParam(required = false, name = "from") String from,
             @RequestParam(required = false, name = "to") String to,
-            @RequestParam(required = false, name = "positionId") Long positionId) {
+            @RequestParam(required = false, name = "positionId") Long positionId,
+            @RequestParam(required = false, name = "includeIgnored", defaultValue = "true") boolean includeIgnored) {
 		java.time.LocalDate fromDate = (from != null && !from.isBlank()) ? java.time.LocalDate.parse(from) : null;
 		java.time.LocalDate toDate = (to != null && !to.isBlank()) ? java.time.LocalDate.parse(to) : null;
-		return flowService.buildFlowGraph(fromDate, toDate, positionId);
+		return flowService.buildFlowGraph(fromDate, toDate, positionId, includeIgnored);
     }
 
     /** Returns the raw daily BTC price history. */
@@ -234,6 +235,24 @@ public class DepotRestController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+    
+    @PostMapping("/transactions/bulk-ignore")
+    public ResponseEntity<Map<String, Object>> bulkIgnore(@RequestBody BulkIgnoreRequest req) {
+        if (req.getIds() == null || req.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Missing ids"));
+        }
+        int updated = 0;
+        for (Long id : req.getIds()) {
+            Transaction tx = depotService.getTransaction(id).orElse(null);
+            if (tx == null) continue;
+            tx.setIgnored(req.isIgnored());
+            depotService.saveTransaction(tx);
+            depotService.syncIgnoredToPairedTransfer(tx);
+            updated++;
+        }
+        return ResponseEntity.ok(Map.of("updated", updated));
+    }
+
     
     /**
      * POST /api/depot/import-enc
@@ -368,6 +387,7 @@ public class DepotRestController {
             txIn.setCurrency(tx.getCurrency());
             txIn.setTransferId(uuid);
             txIn.setComment(tx.getComment());
+            txIn.setIgnored(tx.isIgnored());
             // Same physical on-chain transaction as the TRANSFER_OUT half — share the TXID immediately.
             txIn.setBlockchainTxId(tx.getBlockchainTxId());
             Position targetPos = csvImportService.resolvePosition(req.getTransferTarget());
@@ -391,6 +411,8 @@ public class DepotRestController {
             depotService.saveTransaction(tx);
             // Self-transfer pair: propagate the TXID to the other leg if it's still empty there.
             depotService.syncBlockchainTxIdToPairedTransfer(tx);
+            depotService.syncIgnoredToPairedTransfer(tx);
+
             return ResponseEntity.ok(depotService.getAllTransactions()
                 .stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow());
         }).orElse(ResponseEntity.notFound().build());
@@ -411,6 +433,8 @@ public class DepotRestController {
 		}
 		if (req.getCurrency()     != null) tx.setCurrency(req.getCurrency());
 		if (req.getExchangeRate() != null) tx.setExchangeRate(req.getExchangeRate());
+		if (req.getIgnored() != null) tx.setIgnored(req.getIgnored());
+
 		if (req.getExchange()     != null) {
 			Position position = csvImportService.resolvePosition(req.getExchange());
 	    	tx.setPosition(position);
@@ -1344,6 +1368,7 @@ public class DepotRestController {
     public List<Map<String, Object>> getPositions(HttpServletRequest request) {
     	 String currency = depotService.readCookie(request, "depot-currency", "EUR");
         return depotService.getAllPositions(currency).stream()
+        	.sorted((o1, o2)->o1.getLabel().compareTo(o2.getLabel()))
             .map(p -> Map.<String, Object>of(
                 "id", p.getId(),
                 "label", p.getLabel(),
@@ -1573,6 +1598,8 @@ public class DepotRestController {
         private String transferTarget;                   // position label for the paired TRANSFER_IN
         private String transferInDate;                    // optional, defaults to date; format "yyyy-MM-dd HH:mm:ss"
         private java.math.BigDecimal transferInQuantity;  // optional, defaults to quantity
+        private Boolean ignored;
+
     }
     
     @lombok.Data
@@ -1673,5 +1700,11 @@ public class DepotRestController {
         private Integer month;
         private String currency;
         private java.math.BigDecimal price;
+    }
+    
+    @lombok.Data
+    public static class BulkIgnoreRequest {
+        private List<Long> ids;
+        private boolean ignored;
     }
 }

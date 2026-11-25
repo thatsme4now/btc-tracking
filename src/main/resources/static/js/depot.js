@@ -401,7 +401,7 @@ function togglePosEmptyFilter(mode) {
 // Each mode maps to a fact already available on the rendered <tr> (class or data attribute), see
 // _buildTxRowHtml(). No mode active = "Alle" = no filtering.
 const TX_FILTER_KEY = 'tx-pill-filters-v1';
-const TX_FILTER_MODES = ['comment', 'txid', 'duplicate', 'currency', 'solo'];
+const TX_FILTER_MODES = ['comment', 'txid', 'duplicate', 'currency', 'solo', 'ignored'];
 let _txActiveFilters = new Set(_loadTxFilters());
 
 function _loadTxFilters() {
@@ -424,6 +424,7 @@ function _txRowMatchesFilter(row, mode) {
         case 'duplicate': return row.classList.contains('warning-duplicate');
         case 'currency':  return row.classList.contains('warning');
         case 'solo':      return row.classList.contains('solo-transfer');
+        case 'ignored': return row.classList.contains('ignored-tx');
         default:          return true;
     }
 }
@@ -546,7 +547,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
         earning="–";
     }
     const hasComment = !!(tx.comment && tx.comment.trim());
-    return `<tr class="depot-row ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" data-blockchain-tx-id="${esc(tx.blockchainTxId || '')}" data-has-comment="${hasComment ? '1' : ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
+    return `<tr class="depot-row  ${tx.currency !== CURRENCY.current() && tx.exchangeRate == 1 ?  'warning'  : ''} ${isSolo ? 'solo-transfer' : ''} ${tx.duplicate ? 'warning-duplicate' : ''} ${tx.ignored ? 'ignored-tx' : ''}" data-id="${tx.id}" data-type="${tx.type}" data-transfer-id="${tx.transferId || ''}" data-blockchain-tx-id="${esc(tx.blockchainTxId || '')}" data-has-comment="${hasComment ? '1' : ''}" ${tx.comment ? `title="${esc(tx.comment)}"` : ''} onclick="const cb=this.querySelector('.tx-row-check');cb.checked=!cb.checked;this.classList.toggle('selected',cb.checked);_updateBulkToolbar()">
 	    <td class="${isCompact ? 'd-none' : ''}" onclick="event.stopPropagation()">
 	        <input type="checkbox" class="tx-row-check" data-id="${tx.id}"
 	               style="accent-color:var(--accent)"/>
@@ -568,7 +569,7 @@ function _buildTxRowHtml(tx, transferIdCounts, isCompact) {
 	    </td>
 	    <td class="tx-date-col" style="white-space:nowrap" data-cell-label="${esc(t('table.col.date'))}">${date}</td>
 	    <td data-cell-label="${esc(t('table.col.position'))}">${tx.positionLabel || '–'}</td>
-	    <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span></td>
+        <td data-cell-label="${esc(t('table.col.type'))}"><span class="${color}">${tx.type}</span>${tx.ignored ? ` <span class="overview-tx-card-badge">${esc(t('table.filter.ignored'))}</span>` : ''}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.btc'))}">${fmt8(tx.quantity)}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.pricePerBtc'))}">${tx.pricePerBtc != null ? tx.currency !== CURRENCY.current() ?  formatEur(tx.pricePerBtc * tx.exchangeRate) : formatEur(tx.pricePerBtc) : '–'}</td>
 	    <td class="text-end" data-cell-label="${esc(t('table.col.total'))}">${tx.quantityFiat != null ? tx.currency !== CURRENCY.current() ? formatEur((tx.quantityFiat + tx.fees) * tx.exchangeRate) + ' <span class="text-end" style="font-size:.7rem">[' + tx.currency + ' × ' + tx.exchangeRate + ']</span>' : formatEur((tx.quantityFiat + tx.fees)) : '–'}</td>
@@ -886,7 +887,7 @@ function _buildTxCardHtml(tx, row) {
             
     const date    = tx.date ? tx.date.replace('T', ' ').substring(0, 19) : '–';
     const checked = row.querySelector('.tx-row-check')?.checked ? 'checked' : '';
-    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import']
+    const statusClass = ['warning', 'warning-duplicate', 'solo-transfer', 'last-import', 'ignored-tx']
         .filter(c => row.classList.contains(c)).join(' ');
     const selectedClass = row.classList.contains('selected') ? ' selected' : '';
 
@@ -935,6 +936,8 @@ function _buildTxCardHtml(tx, row) {
     const commentLine = tx.comment
         ? _overviewTxFieldRow(t('modal.field.comment'), esc(commentText), tx.comment, true)
         : '';
+    const ignoredBadge = tx.ignored
+        ? `<span class="overview-tx-card-badge">${esc(t('table.filter.ignored'))}</span>` : '';
 
     const txJson = JSON.stringify(tx).replace(/"/g, '&quot;');
 
@@ -947,7 +950,7 @@ function _buildTxCardHtml(tx, row) {
                 <span>${esc(tx.positionLabel || '–')}</span>
             </span>
             <span class="overview-tx-card-actions" onclick="event.stopPropagation()">
-                ${badge}
+                ${badge} ${ignoredBadge}
                 <button type="button" class="btn btn-xs depot-btn-icon" title="Edit"
                         onclick="openEditTx(${txJson})">
                     <i class="bi bi-pencil"></i>
@@ -2500,6 +2503,8 @@ document.addEventListener('contextmenu', e => {
 			<div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 			${_ctxItem('bi-arrow-right-square',t("table.action.move.position"),     'openBulkMove()')}
 			${_ctxItem('bi-check-circle',      t('table.action.clear.duplicate'),   'clearDuplicateMark()')}
+            ${_ctxItem('bi-eye-slash', t('table.action.ignore'), 'bulkSetIgnored(true)')}
+            ${_ctxItem('bi-eye', t('table.action.unignore'), 'bulkSetIgnored(false)')}
 	        <div style="border-top:1px solid var(--border);margin:.3rem 0"></div>
 	        ${_ctxItem('bi-trash text-neg',    t("table.action.delete"),            'bulkDelete()', true)}`;
 
@@ -2739,6 +2744,19 @@ async function bulkRemoveTransfer() {
         loadTransactions();
     })
     .catch(err => showToast('✗ ' + err.message, 'error'));
+}
+
+function bulkSetIgnored(ignored) {
+    const ids = _getSelectedIds();
+    if (!ids.length) return;
+    fetch('/api/btc-tracking/transactions/bulk-ignore', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, ignored })
+    }).then(r => r.json()).then(d => {
+        if (d.error) { showToast('✗ ' + d.error, 'error'); return; }
+        showToast('✓ ' + t('toast.ignore.success', { COUNT: d.updated }), 'success');
+        setTimeout(() => window.location.reload(), 800);
+    }).catch(err => showToast('✗ ' + err.message, 'error'));
 }
 
 // ── Generic Confirm Dialog ────────────────────────────────

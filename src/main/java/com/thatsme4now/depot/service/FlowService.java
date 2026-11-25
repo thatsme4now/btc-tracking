@@ -35,13 +35,16 @@ public class FlowService {
 
     // ── Public entry point ───────────────────────────────────────────────
 
+    public FlowGraphDTO buildFlowGraph(LocalDate from, LocalDate to, Long anchorPositionId) {
+    	return buildFlowGraph(from, to, anchorPositionId, false);
+    }
     /**
      * Builds the flow graph for the given date range. If {@code anchorPositionId}
      * is set, the graph is limited to flows that trace back to (upstream) or
      * derive from (downstream) that position via FIFO lot matching; otherwise
      * every edge is included at its full quantity.
      */
-    public FlowGraphDTO buildFlowGraph(LocalDate from, LocalDate to, Long anchorPositionId) {
+    public FlowGraphDTO buildFlowGraph(LocalDate from, LocalDate to, Long anchorPositionId, boolean includeIgnored) {
         List<Position> positions = positionRepo.findAll();
         List<Transaction> allTx = transactionRepo.findAll();
         allTx.sort(Comparator.comparing(Transaction::getDate));
@@ -54,6 +57,7 @@ public class FlowService {
         List<Transaction> filteredTx = allTx.stream()
                 .filter(tx -> fromDt == null || !tx.getDate().isBefore(fromDt))
                 .filter(tx -> toDt == null || tx.getDate().isBefore(toDt))
+                .filter(tx -> includeIgnored || !tx.isIgnored())
                 .collect(Collectors.toList());
 
         // Pairing lookup runs on ALL transactions so a transfer isn't mistaken for a
